@@ -15,7 +15,8 @@ const Index = () => {
   const [error, setError] = useState('');
   const [completedOrders, setCompletedOrders] = useState<LinkOrder[] | null>(null);
   const [email, setEmail] = useState('');
-
+  const [consentPD, setConsentPD] = useState(false);
+  const [consentOffer, setConsentOffer] = useState(false);
   const handleSubmit = (inputUrls: string[]) => {
     setIsLoading(true);
     setError('');
