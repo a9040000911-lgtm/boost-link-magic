@@ -15,11 +15,13 @@ import DashboardProjects from "./pages/dashboard/DashboardProjects";
 import DashboardSettings from "./pages/dashboard/DashboardSettings";
 import DashboardProjectDetail from "./pages/dashboard/DashboardProjectDetail";
 import DashboardTransactions from "./pages/dashboard/DashboardTransactions";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminServices from "./pages/admin/AdminServices";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminUserDetail from "./pages/admin/AdminUserDetail";
 import AdminSupport from "./pages/admin/AdminSupport";
+import AdminStaff from "./pages/admin/AdminStaff";
 import CookieConsent from "./components/CookieConsent";
 
 const queryClient = new QueryClient();
@@ -43,11 +45,13 @@ const App = () => (
             <Route path="settings" element={<DashboardSettings />} />
           </Route>
           <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminOrders />} />
+            <Route index element={<AdminDashboard />} />
+            <Route path="orders" element={<AdminOrders />} />
             <Route path="services" element={<AdminServices />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="users/:userId" element={<AdminUserDetail />} />
             <Route path="support" element={<AdminSupport />} />
+            <Route path="staff" element={<AdminStaff />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

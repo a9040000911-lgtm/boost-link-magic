@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, ExternalLink, RefreshCw, Eye } from "lucide-react";
+import { Search, ExternalLink, RefreshCw, Eye, Undo2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 interface Order {
@@ -25,9 +26,12 @@ interface Order {
   provider_order_id: string | null;
   service_id: string | null;
   provider_service_id: string | null;
+  refund_status: string | null;
+  refunded_amount: number | null;
+  refunded_at: string | null;
+  refunded_by: string | null;
   created_at: string;
   updated_at: string;
-  profiles?: { display_name: string | null; id: string } | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -51,6 +55,8 @@ const AdminOrders = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [providerServices, setProviderServices] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
+  const [refundReason, setRefundReason] = useState("");
+  const [refunding, setRefunding] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -130,6 +136,25 @@ const AdminOrders = () => {
   const formatDate = (d: string) => {
     const date = new Date(d);
     return date.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "2-digit" }) + " " + date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const handleRefund = async () => {
+    if (!selectedOrder) return;
+    setRefunding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("process-refund", {
+        body: { order_id: selectedOrder.id, reason: refundReason },
+      });
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+      toast.success(`Возврат ${data.refund_amount}₽ выполнен`);
+      setSelectedOrder(null);
+      setRefundReason("");
+      await loadData();
+    } catch (e: any) {
+      toast.error("Ошибка возврата: " + e.message);
+    }
+    setRefunding(false);
   };
 
   return (
@@ -293,6 +318,22 @@ const AdminOrders = () => {
                 <a href={selectedOrder.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
                   {selectedOrder.link} <ExternalLink className="h-2.5 w-2.5 inline" />
                 </a>
+              </div>
+              {/* Refund section */}
+              <div className="border-t pt-2">
+                {selectedOrder.refund_status === "refunded" ? (
+                  <div className="text-xs bg-destructive/10 rounded p-2">
+                    <p className="font-medium text-destructive">Возврат выполнен</p>
+                    <p className="text-muted-foreground">Сумма: {Number(selectedOrder.refunded_amount).toFixed(2)}₽ | {selectedOrder.refunded_at ? formatDate(selectedOrder.refunded_at) : ""}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Textarea placeholder="Причина возврата..." value={refundReason} onChange={(e) => setRefundReason(e.target.value)} className="text-xs h-16" />
+                    <Button variant="destructive" size="sm" className="w-full text-xs" onClick={handleRefund} disabled={refunding}>
+                      <Undo2 className="h-3 w-3 mr-1" />{refunding ? "Обработка..." : `Возврат ${Number(selectedOrder.price).toFixed(2)}₽`}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}

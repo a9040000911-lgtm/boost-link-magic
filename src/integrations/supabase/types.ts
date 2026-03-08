@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_logs: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: string | null
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           created_at: string
@@ -27,6 +60,10 @@ export type Database = {
           provider_order_id: string | null
           provider_service_id: string | null
           quantity: number
+          refund_status: string | null
+          refunded_amount: number | null
+          refunded_at: string | null
+          refunded_by: string | null
           service_id: string | null
           service_name: string
           status: string
@@ -45,6 +82,10 @@ export type Database = {
           provider_order_id?: string | null
           provider_service_id?: string | null
           quantity?: number
+          refund_status?: string | null
+          refunded_amount?: number | null
+          refunded_at?: string | null
+          refunded_by?: string | null
           service_id?: string | null
           service_name: string
           status?: string
@@ -63,6 +104,10 @@ export type Database = {
           provider_order_id?: string | null
           provider_service_id?: string | null
           quantity?: number
+          refund_status?: string | null
+          refunded_amount?: number | null
+          refunded_at?: string | null
+          refunded_by?: string | null
           service_id?: string | null
           service_name?: string
           status?: string
@@ -297,6 +342,30 @@ export type Database = {
           network?: string
           price?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      staff_permissions: {
+        Row: {
+          created_at: string
+          granted_by: string
+          id: string
+          permission: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by: string
+          id?: string
+          permission: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string
+          id?: string
+          permission?: string
+          user_id?: string
         }
         Relationships: []
       }
