@@ -225,12 +225,16 @@ const AdminUserDetail = () => {
         <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Баланс:</span>
         <Input
           type="number" value={balanceAmount} onChange={e => setBalanceAmount(e.target.value)}
-          placeholder="Сумма" className="h-7 w-[120px] text-xs"
+          placeholder="Сумма" className="h-7 w-[100px] text-xs"
         />
-        <Button size="sm" variant="outline" className="h-7 text-xs px-2 gap-1" onClick={() => adjustBalance("add")} disabled={saving || !balanceAmount}>
+        <Input
+          value={balanceReason} onChange={e => setBalanceReason(e.target.value)}
+          placeholder="Причина (обязательно)" className="h-7 w-[180px] text-xs"
+        />
+        <Button size="sm" variant="outline" className="h-7 text-xs px-2 gap-1" onClick={() => adjustBalance("add")} disabled={saving || !balanceAmount || !balanceReason.trim()}>
           <Plus className="h-3 w-3" />Пополнить
         </Button>
-        <Button size="sm" variant="outline" className="h-7 text-xs px-2 gap-1 text-destructive" onClick={() => adjustBalance("sub")} disabled={saving || !balanceAmount}>
+        <Button size="sm" variant="outline" className="h-7 text-xs px-2 gap-1 text-destructive" onClick={() => adjustBalance("sub")} disabled={saving || !balanceAmount || !balanceReason.trim()}>
           <Minus className="h-3 w-3" />Списать
         </Button>
         <Separator orientation="vertical" className="h-5 mx-1" />
