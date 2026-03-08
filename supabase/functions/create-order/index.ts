@@ -170,6 +170,16 @@ serve(async (req) => {
       return json({ error: 'Invalid price calculation' }, 400);
     }
 
+    // === MINIMUM MARKUP PROTECTION ===
+    // Read min_markup_percent from app_settings (default 200%)
+    const { data: minMarkupSetting } = await adminClient
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'min_markup_percent')
+      .single();
+    const minMarkupPercent = Number(minMarkupSetting?.value ?? 200);
+
+
     // === CHECK PLAN ORDER AMOUNT LIMIT ===
     if (limits.maxOrderAmount > 0 && totalPrice > limits.maxOrderAmount) {
       return json({
