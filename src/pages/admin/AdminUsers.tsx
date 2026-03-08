@@ -137,9 +137,11 @@ const AdminUsers = () => {
           <h1 className="text-base font-bold">Пользователи ({filtered.length})</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleExport}>
-            <Download className="h-3 w-3 mr-1" />CSV
-          </Button>
+          {isAdmin && (
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleExport}>
+              <Download className="h-3 w-3 mr-1" />CSV
+            </Button>
+          )}
           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={loadData}>
             <RefreshCw className="h-3 w-3 mr-1" />Обновить
           </Button>
