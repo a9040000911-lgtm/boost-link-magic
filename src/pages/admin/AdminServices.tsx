@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   RefreshCw, Search, Package, Plus, Link2, Trash2, ArrowUp, ArrowDown,
-  ChevronRight, Eye, EyeOff, Zap, ShieldCheck, AlertTriangle, Copy
+  Zap, ShieldCheck, AlertTriangle, Settings2, ChevronRight
 } from "lucide-react";
 import { toast } from "sonner";
 import { logAuditAction } from "@/lib/audit";
@@ -79,16 +79,16 @@ const AdminServices = () => {
     min_quantity: "100", max_quantity: "10000", price: "0"
   });
 
-  // Mapping dialog
-  const [mappingOpen, setMappingOpen] = useState(false);
-  const [mappingServiceId, setMappingServiceId] = useState<string | null>(null);
+  // Edit dialog
+  const [editService, setEditService] = useState<Service | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", description: "", category: "", network: "", min_quantity: "", max_quantity: "", price: "" });
+
+  // Mapping add state inside edit dialog
+  const [addMappingOpen, setAddMappingOpen] = useState(false);
   const [mappingProviderServiceId, setMappingProviderServiceId] = useState("");
   const [mappingPriority, setMappingPriority] = useState("1");
   const [mappingProviderFilter, setMappingProviderFilter] = useState("all");
   const [mappingSearch, setMappingSearch] = useState("");
-
-  // Detail dialog
-  const [detailService, setDetailService] = useState<Service | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -151,22 +151,15 @@ const AdminServices = () => {
   const createFromProvider = async (ps: ProviderService) => {
     const price = ps.our_price ?? ps.rate * (1 + (ps.markup_percent ?? 30) / 100);
     const { data, error } = await supabase.from("services").insert({
-      name: ps.name,
-      description: ps.description,
-      category: ps.category,
-      network: ps.network,
-      min_quantity: ps.min_quantity,
-      max_quantity: ps.max_quantity,
-      price,
+      name: ps.name, description: ps.description, category: ps.category,
+      network: ps.network, min_quantity: ps.min_quantity, max_quantity: ps.max_quantity, price,
     }).select().single();
     if (error) { toast.error(error.message); return; }
     await supabase.from("service_provider_mappings").insert({
-      service_id: data.id,
-      provider_service_id: ps.id,
-      priority: 1,
+      service_id: data.id, provider_service_id: ps.id, priority: 1,
     });
-    await logAuditAction("create_service", "service", data.id, { from_provider: ps.provider, provider_sid: ps.provider_service_id });
-    toast.success("Услуга создана и привязана к провайдеру");
+    await logAuditAction("create_service", "service", data.id, { from_provider: ps.provider });
+    toast.success("Услуга создана и привязана");
     await loadAll();
   };
 
@@ -176,10 +169,30 @@ const AdminServices = () => {
     setServices((prev) => prev.map((s) => s.id === id ? { ...s, is_enabled: enabled } : s));
   };
 
-  const updateServiceField = async (id: string, field: string, value: any) => {
-    await supabase.from("services").update({ [field]: value, updated_at: new Date().toISOString() }).eq("id", id);
-    await logAuditAction("update_service", "service", id, { field, value });
-    setServices((prev) => prev.map((s) => s.id === id ? { ...s, [field]: value } : s));
+  const saveEditService = async () => {
+    if (!editService) return;
+    const updates: any = {};
+    if (editForm.name !== editService.name) updates.name = editForm.name;
+    if ((editForm.description || null) !== editService.description) updates.description = editForm.description || null;
+    if (editForm.category !== editService.category) updates.category = editForm.category;
+    if (editForm.network !== editService.network) updates.network = editForm.network;
+    const minQ = parseInt(editForm.min_quantity) || 0;
+    const maxQ = parseInt(editForm.max_quantity) || 0;
+    const price = parseFloat(editForm.price) || 0;
+    if (minQ !== editService.min_quantity) updates.min_quantity = minQ;
+    if (maxQ !== editService.max_quantity) updates.max_quantity = maxQ;
+    if (price !== editService.price) updates.price = price;
+
+    if (Object.keys(updates).length === 0) { toast.info("Нет изменений"); return; }
+    updates.updated_at = new Date().toISOString();
+
+    const { error } = await supabase.from("services").update(updates).eq("id", editService.id);
+    if (error) { toast.error(error.message); return; }
+    await logAuditAction("update_service", "service", editService.id, updates);
+    toast.success("Сохранено");
+    await loadAll();
+    // Update editService reference
+    setEditService(prev => prev ? { ...prev, ...updates } : null);
   };
 
   const deleteService = async (id: string) => {
@@ -188,19 +201,19 @@ const AdminServices = () => {
     await supabase.from("services").delete().eq("id", id);
     await logAuditAction("delete_service", "service", id);
     toast.success("Удалено");
+    setEditService(null);
     await loadAll();
   };
 
-  const addMapping = async () => {
-    if (!mappingServiceId || !mappingProviderServiceId) return;
+  const addMapping = async (serviceId: string) => {
+    if (!mappingProviderServiceId) return;
     const { error } = await supabase.from("service_provider_mappings").insert({
-      service_id: mappingServiceId,
-      provider_service_id: mappingProviderServiceId,
+      service_id: serviceId, provider_service_id: mappingProviderServiceId,
       priority: parseInt(mappingPriority) || 1,
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Провайдер привязан");
-    setMappingOpen(false);
+    setAddMappingOpen(false);
     setMappingProviderServiceId("");
     setMappingPriority("1");
     setMappingSearch("");
@@ -228,7 +241,17 @@ const AdminServices = () => {
 
   const getProviderService = (psId: string) => providerServices.find((ps) => ps.id === psId);
 
-  // Derived data
+  const openEditDialog = (svc: Service) => {
+    setEditService(svc);
+    setEditForm({
+      name: svc.name, description: svc.description || "", category: svc.category,
+      network: svc.network, min_quantity: String(svc.min_quantity),
+      max_quantity: String(svc.max_quantity), price: String(svc.price),
+    });
+    setAddMappingOpen(false);
+  };
+
+  // Derived
   const categories = useMemo(() => {
     const src = activeTab === "catalog" ? services : providerServices;
     return [...new Set(src.map((s) => s.category))].sort();
@@ -239,9 +262,7 @@ const AdminServices = () => {
     return [...new Set(src.map((s) => s.network))].sort();
   }, [services, providerServices, activeTab]);
 
-  const providerKeys = useMemo(() => {
-    return [...new Set(providerServices.map((s) => s.provider))].sort();
-  }, [providerServices]);
+  const providerKeys = useMemo(() => [...new Set(providerServices.map((s) => s.provider))].sort(), [providerServices]);
 
   const filteredServices = useMemo(() => {
     return services.filter((s) => {
@@ -270,7 +291,6 @@ const AdminServices = () => {
     });
   }, [providerServices, search, networkFilter, categoryFilter, providerFilter]);
 
-  // Stats
   const statsEnabled = services.filter((s) => s.is_enabled).length;
   const statsWithProviders = services.filter((s) => getMappingsForService(s.id).length > 0).length;
   const statsWithFailover = services.filter((s) => getMappingsForService(s.id).filter(m => m.is_active).length >= 2).length;
@@ -284,11 +304,6 @@ const AdminServices = () => {
     }
     return true;
   });
-
-  const copyId = (id: string) => {
-    navigator.clipboard.writeText(id);
-    toast.success("ID скопирован");
-  };
 
   return (
     <div className="flex flex-col h-full gap-2">
@@ -309,58 +324,34 @@ const AdminServices = () => {
         </div>
       </div>
 
-      {/* Stats cards */}
+      {/* Stats */}
       <div className="grid grid-cols-5 gap-2 shrink-0">
-        <Card className="border-border/60">
-          <CardContent className="p-2">
-            <p className="text-lg font-bold">{services.length}</p>
-            <p className="text-[10px] text-muted-foreground">Всего услуг ({statsEnabled} вкл.)</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/60">
-          <CardContent className="p-2">
-            <p className="text-lg font-bold">{providerServices.length}</p>
-            <p className="text-[10px] text-muted-foreground">Услуг провайдеров</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/60">
-          <CardContent className="p-2 flex items-center gap-1">
-            <ShieldCheck className="h-3.5 w-3.5 text-green-500" />
-            <div>
-              <p className="text-lg font-bold">{statsWithFailover}</p>
-              <p className="text-[10px] text-muted-foreground">С failover (2+ пров.)</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/60">
-          <CardContent className="p-2 flex items-center gap-1">
-            <Zap className="h-3.5 w-3.5 text-primary" />
-            <div>
-              <p className="text-lg font-bold">{statsWithProviders}</p>
-              <p className="text-[10px] text-muted-foreground">С привязками</p>
-            </div>
-          </CardContent>
-        </Card>
+        <Card className="border-border/60"><CardContent className="p-2">
+          <p className="text-lg font-bold">{services.length}</p>
+          <p className="text-[10px] text-muted-foreground">Всего услуг ({statsEnabled} вкл.)</p>
+        </CardContent></Card>
+        <Card className="border-border/60"><CardContent className="p-2">
+          <p className="text-lg font-bold">{providerServices.length}</p>
+          <p className="text-[10px] text-muted-foreground">Услуг провайдеров</p>
+        </CardContent></Card>
+        <Card className="border-border/60"><CardContent className="p-2 flex items-center gap-1">
+          <ShieldCheck className="h-3.5 w-3.5 text-green-500" />
+          <div><p className="text-lg font-bold">{statsWithFailover}</p><p className="text-[10px] text-muted-foreground">С failover (2+ пров.)</p></div>
+        </CardContent></Card>
+        <Card className="border-border/60"><CardContent className="p-2 flex items-center gap-1">
+          <Zap className="h-3.5 w-3.5 text-primary" />
+          <div><p className="text-lg font-bold">{statsWithProviders}</p><p className="text-[10px] text-muted-foreground">С привязками</p></div>
+        </CardContent></Card>
         {statsOrphan > 0 ? (
-          <Card className="border-destructive/50">
-            <CardContent className="p-2 flex items-center gap-1">
-              <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
-              <div>
-                <p className="text-lg font-bold text-destructive">{statsOrphan}</p>
-                <p className="text-[10px] text-destructive">Без провайдера!</p>
-              </div>
-            </CardContent>
-          </Card>
+          <Card className="border-destructive/50"><CardContent className="p-2 flex items-center gap-1">
+            <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+            <div><p className="text-lg font-bold text-destructive">{statsOrphan}</p><p className="text-[10px] text-destructive">Без провайдера!</p></div>
+          </CardContent></Card>
         ) : (
-          <Card className="border-green-500/30">
-            <CardContent className="p-2 flex items-center gap-1">
-              <ShieldCheck className="h-3.5 w-3.5 text-green-500" />
-              <div>
-                <p className="text-lg font-bold text-green-600">0</p>
-                <p className="text-[10px] text-green-600">Все привязаны ✓</p>
-              </div>
-            </CardContent>
-          </Card>
+          <Card className="border-green-500/30"><CardContent className="p-2 flex items-center gap-1">
+            <ShieldCheck className="h-3.5 w-3.5 text-green-500" />
+            <div><p className="text-lg font-bold text-green-600">0</p><p className="text-[10px] text-green-600">Все привязаны ✓</p></div>
+          </CardContent></Card>
         )}
       </div>
 
@@ -415,39 +406,17 @@ const AdminServices = () => {
                 <DialogContent>
                   <DialogHeader><DialogTitle>Новая услуга</DialogTitle></DialogHeader>
                   <div className="space-y-3">
-                    <div>
-                      <Label className="text-xs">Название (наше, видно клиентам)</Label>
-                      <Input value={newService.name} onChange={(e) => setNewService({ ...newService, name: e.target.value })} />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Описание (для клиентов)</Label>
-                      <Textarea value={newService.description} onChange={(e) => setNewService({ ...newService, description: e.target.value })} />
-                    </div>
+                    <div><Label className="text-xs">Название</Label><Input value={newService.name} onChange={(e) => setNewService({ ...newService, name: e.target.value })} /></div>
+                    <div><Label className="text-xs">Описание</Label><Textarea value={newService.description} onChange={(e) => setNewService({ ...newService, description: e.target.value })} /></div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-xs">Категория</Label>
-                        <Input value={newService.category} onChange={(e) => setNewService({ ...newService, category: e.target.value })} placeholder="Подписчики" />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Платформа</Label>
-                        <Input value={newService.network} onChange={(e) => setNewService({ ...newService, network: e.target.value })} placeholder="Instagram" />
-                      </div>
+                      <div><Label className="text-xs">Категория</Label><Input value={newService.category} onChange={(e) => setNewService({ ...newService, category: e.target.value })} placeholder="Подписчики" /></div>
+                      <div><Label className="text-xs">Платформа</Label><Input value={newService.network} onChange={(e) => setNewService({ ...newService, network: e.target.value })} placeholder="Instagram" /></div>
                     </div>
                     <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <Label className="text-xs">Мин. кол-во</Label>
-                        <Input type="number" value={newService.min_quantity} onChange={(e) => setNewService({ ...newService, min_quantity: e.target.value })} />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Макс. кол-во</Label>
-                        <Input type="number" value={newService.max_quantity} onChange={(e) => setNewService({ ...newService, max_quantity: e.target.value })} />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Цена за 1000</Label>
-                        <Input type="number" value={newService.price} onChange={(e) => setNewService({ ...newService, price: e.target.value })} />
-                      </div>
+                      <div><Label className="text-xs">Мин</Label><Input type="number" value={newService.min_quantity} onChange={(e) => setNewService({ ...newService, min_quantity: e.target.value })} /></div>
+                      <div><Label className="text-xs">Макс</Label><Input type="number" value={newService.max_quantity} onChange={(e) => setNewService({ ...newService, max_quantity: e.target.value })} /></div>
+                      <div><Label className="text-xs">Цена/1к</Label><Input type="number" value={newService.price} onChange={(e) => setNewService({ ...newService, price: e.target.value })} /></div>
                     </div>
-                    <p className="text-[10px] text-muted-foreground">После создания привяжите услуги провайдеров для автоматического выполнения.</p>
                     <Button onClick={createService} disabled={!newService.name} className="w-full">Создать</Button>
                   </div>
                 </DialogContent>
@@ -459,116 +428,65 @@ const AdminServices = () => {
         {/* Tables */}
         <div className="flex-1 min-h-0 overflow-auto mt-2 border rounded-md">
           {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
-            </div>
+            <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
           ) : (
             <>
+              {/* === CATALOG TABLE (compact) === */}
               <TabsContent value="catalog" className="mt-0">
                 {filteredServices.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground text-sm">
-                    <Package className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                    <p>Нет услуг</p>
+                    <Package className="h-8 w-8 mx-auto mb-2 opacity-40" /><p>Нет услуг</p>
                   </div>
                 ) : (
                   <Table>
                     <TableHeader>
-                      <TableRow className="text-[10px]">
-                        <TableHead className="w-8 px-1">Вкл</TableHead>
-                        <TableHead className="px-1 w-[60px]">ID</TableHead>
-                        <TableHead className="px-1">Название</TableHead>
-                        <TableHead className="px-1">Описание</TableHead>
-                        <TableHead className="px-1 whitespace-nowrap">Категория</TableHead>
-                        <TableHead className="px-1 whitespace-nowrap">Сеть</TableHead>
-                        <TableHead className="px-1 whitespace-nowrap">Мин</TableHead>
-                        <TableHead className="px-1 whitespace-nowrap">Макс</TableHead>
-                        <TableHead className="px-1 whitespace-nowrap">Цена/1к</TableHead>
-                        <TableHead className="px-1">Failover цепочка</TableHead>
-                        <TableHead className="w-8 px-1"></TableHead>
+                      <TableRow className="text-[11px]">
+                        <TableHead className="w-10 px-2">Вкл</TableHead>
+                        <TableHead className="px-2">Название</TableHead>
+                        <TableHead className="px-2 w-[100px]">Сеть</TableHead>
+                        <TableHead className="px-2 w-[120px]">Категория</TableHead>
+                        <TableHead className="px-2 w-[80px] text-right">Цена/1к</TableHead>
+                        <TableHead className="px-2 w-[140px]">Провайдеры</TableHead>
+                        <TableHead className="px-2 w-10"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredServices.map((svc) => {
                         const svcMappings = getMappingsForService(svc.id);
                         const activeCount = svcMappings.filter(m => m.is_active).length;
-                        const hasFailover = activeCount >= 2;
                         const isOrphan = svc.is_enabled && activeCount === 0;
 
                         return (
-                          <TableRow key={svc.id} className={`text-[11px] ${!svc.is_enabled ? "opacity-40" : ""} ${isOrphan ? "bg-destructive/5" : ""}`}>
-                            <TableCell className="px-1">
-                              <Switch checked={svc.is_enabled} onCheckedChange={(v) => toggleServiceEnabled(svc.id, v)} className="scale-[0.6]" />
+                          <TableRow
+                            key={svc.id}
+                            className={`text-xs cursor-pointer hover:bg-muted/50 ${!svc.is_enabled ? "opacity-40" : ""} ${isOrphan ? "bg-destructive/5" : ""}`}
+                            onClick={() => openEditDialog(svc)}
+                          >
+                            <TableCell className="px-2" onClick={(e) => e.stopPropagation()}>
+                              <Switch checked={svc.is_enabled} onCheckedChange={(v) => toggleServiceEnabled(svc.id, v)} className="scale-[0.65]" />
                             </TableCell>
-                            <TableCell className="px-1">
-                              <button onClick={() => copyId(svc.id)} className="flex items-center gap-0.5 text-muted-foreground hover:text-foreground font-mono text-[9px]">
-                                {svc.id.slice(0, 8)} <Copy className="h-2 w-2" />
-                              </button>
+                            <TableCell className="px-2 font-medium">{svc.name}</TableCell>
+                            <TableCell className="px-2">
+                              <Badge variant="outline" className="text-[10px] px-1.5">{svc.network}</Badge>
                             </TableCell>
-                            <TableCell className="px-1 min-w-[160px]">
-                              <Input className="text-[11px] h-6 px-1 border-transparent hover:border-input focus:border-input" defaultValue={svc.name}
-                                onBlur={(e) => { if (e.target.value !== svc.name) updateServiceField(svc.id, "name", e.target.value); }} />
+                            <TableCell className="px-2 text-muted-foreground">{svc.category}</TableCell>
+                            <TableCell className="px-2 text-right font-mono">{Number(svc.price).toFixed(2)}</TableCell>
+                            <TableCell className="px-2">
+                              {isOrphan ? (
+                                <Badge variant="destructive" className="text-[9px] px-1">
+                                  <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />Нет
+                                </Badge>
+                              ) : activeCount > 0 ? (
+                                <div className="flex items-center gap-1">
+                                  <Badge variant="secondary" className="text-[9px] px-1">{activeCount} пров.</Badge>
+                                  {activeCount >= 2 && <ShieldCheck className="h-3 w-3 text-green-500" />}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-[10px]">—</span>
+                              )}
                             </TableCell>
-                            <TableCell className="px-1 min-w-[120px]">
-                              <Input className="text-[11px] h-6 px-1 border-transparent hover:border-input focus:border-input" placeholder="—"
-                                defaultValue={svc.description ?? ""}
-                                onBlur={(e) => { const v = e.target.value || null; if (v !== svc.description) updateServiceField(svc.id, "description", v); }} />
-                            </TableCell>
-                            <TableCell className="px-1">
-                              <Input className="text-[10px] h-6 px-1 w-[90px] border-transparent hover:border-input focus:border-input"
-                                defaultValue={svc.category}
-                                onBlur={(e) => { if (e.target.value !== svc.category) updateServiceField(svc.id, "category", e.target.value); }} />
-                            </TableCell>
-                            <TableCell className="px-1 whitespace-nowrap">
-                              <Badge variant="outline" className="text-[9px] px-1">{svc.network}</Badge>
-                            </TableCell>
-                            <TableCell className="px-1 whitespace-nowrap">
-                              <Input type="number" className="w-[55px] h-6 text-[10px] px-1 border-transparent hover:border-input focus:border-input"
-                                defaultValue={svc.min_quantity}
-                                onBlur={(e) => { const v = parseInt(e.target.value) || 0; if (v !== svc.min_quantity) updateServiceField(svc.id, "min_quantity", v); }} />
-                            </TableCell>
-                            <TableCell className="px-1 whitespace-nowrap">
-                              <Input type="number" className="w-[60px] h-6 text-[10px] px-1 border-transparent hover:border-input focus:border-input"
-                                defaultValue={svc.max_quantity}
-                                onBlur={(e) => { const v = parseInt(e.target.value) || 0; if (v !== svc.max_quantity) updateServiceField(svc.id, "max_quantity", v); }} />
-                            </TableCell>
-                            <TableCell className="px-1">
-                              <Input type="number" className="w-[65px] h-6 text-[10px] px-1 border-transparent hover:border-input focus:border-input"
-                                defaultValue={svc.price}
-                                onBlur={(e) => { const v = parseFloat(e.target.value) || 0; if (v !== svc.price) updateServiceField(svc.id, "price", v); }} />
-                            </TableCell>
-                            <TableCell className="px-1">
-                              <div className="flex items-center gap-0.5 flex-wrap">
-                                {isOrphan && (
-                                  <Badge variant="destructive" className="text-[8px] px-0.5"><AlertTriangle className="h-2 w-2 mr-0.5" />Нет провайдера</Badge>
-                                )}
-                                {svcMappings.map((m, i) => {
-                                  const ps = getProviderService(m.provider_service_id);
-                                  return (
-                                    <div key={m.id} className="flex items-center gap-0.5 group">
-                                      <Badge
-                                        variant={m.is_active ? (i === 0 ? "default" : "secondary") : "outline"}
-                                        className={`text-[8px] px-0.5 leading-none cursor-pointer ${!m.is_active ? "line-through opacity-50" : ""}`}
-                                        onClick={() => setDetailService(svc)}
-                                      >
-                                        {i === 0 ? "⚡" : `P${m.priority}`} {ps?.provider}:{ps?.provider_service_id}
-                                      </Badge>
-                                      <Switch className="scale-[0.4]" checked={m.is_active} onCheckedChange={(v) => toggleMapping(m.id, v)} />
-                                      <button className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteMapping(m.id)}>
-                                        <Trash2 className="h-2 w-2" />
-                                      </button>
-                                    </div>
-                                  );
-                                })}
-                                {hasFailover && <ShieldCheck className="h-3 w-3 text-green-500 ml-0.5" />}
-                                <button className="text-primary hover:text-primary/80" onClick={() => { setMappingServiceId(svc.id); setMappingOpen(true); }}>
-                                  <Plus className="h-3 w-3" />
-                                </button>
-                              </div>
-                            </TableCell>
-                            <TableCell className="px-1">
-                              <button className="text-destructive hover:text-destructive/80" onClick={() => deleteService(svc.id)}>
-                                <Trash2 className="h-3 w-3" />
-                              </button>
+                            <TableCell className="px-2">
+                              <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
                             </TableCell>
                           </TableRow>
                         );
@@ -578,57 +496,45 @@ const AdminServices = () => {
                 )}
               </TabsContent>
 
+              {/* === PROVIDER SERVICES TABLE === */}
               <TabsContent value="providers" className="mt-0">
                 {filteredProviderServices.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground text-sm">
-                    <Package className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                    <p>Синхронизируйте провайдеров</p>
+                    <Package className="h-8 w-8 mx-auto mb-2 opacity-40" /><p>Синхронизируйте провайдеров</p>
                   </div>
                 ) : (
                   <Table>
                     <TableHeader>
-                      <TableRow className="text-[10px]">
-                        <TableHead className="px-1 whitespace-nowrap">Пров.</TableHead>
-                        <TableHead className="px-1">SID</TableHead>
-                        <TableHead className="px-1">Услуга</TableHead>
-                        <TableHead className="px-1 whitespace-nowrap">Категория</TableHead>
-                        <TableHead className="px-1 whitespace-nowrap">Сеть</TableHead>
-                        <TableHead className="px-1 whitespace-nowrap">Мин</TableHead>
-                        <TableHead className="px-1 whitespace-nowrap">Макс</TableHead>
-                        <TableHead className="px-1 whitespace-nowrap">Цена</TableHead>
-                        <TableHead className="px-1">Привязки</TableHead>
-                        <TableHead className="px-1 w-[70px]"></TableHead>
+                      <TableRow className="text-[11px]">
+                        <TableHead className="px-2">Пров.</TableHead>
+                        <TableHead className="px-2">SID</TableHead>
+                        <TableHead className="px-2">Услуга</TableHead>
+                        <TableHead className="px-2 w-[90px]">Сеть</TableHead>
+                        <TableHead className="px-2 w-[80px] text-right">Цена</TableHead>
+                        <TableHead className="px-2 w-[80px]">Привязки</TableHead>
+                        <TableHead className="px-2 w-[80px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredProviderServices.map((svc) => {
                         const svcMappings = mappings.filter((m) => m.provider_service_id === svc.id);
                         return (
-                          <TableRow key={svc.id} className="text-[11px]">
-                            <TableCell className="px-1 whitespace-nowrap">
-                              <Badge variant="secondary" className="text-[9px] px-1">{svc.provider}</Badge>
+                          <TableRow key={svc.id} className="text-xs">
+                            <TableCell className="px-2"><Badge variant="secondary" className="text-[10px]">{svc.provider}</Badge></TableCell>
+                            <TableCell className="px-2 text-muted-foreground font-mono">{svc.provider_service_id}</TableCell>
+                            <TableCell className="px-2">
+                              <div className="truncate max-w-[280px] font-medium">{svc.name}</div>
                             </TableCell>
-                            <TableCell className="px-1 text-muted-foreground font-mono text-[10px]">{svc.provider_service_id}</TableCell>
-                            <TableCell className="px-1">
-                              <div className="truncate max-w-[250px] font-medium">{svc.name}</div>
-                              {svc.description && <div className="truncate max-w-[250px] text-[9px] text-muted-foreground">{svc.description}</div>}
+                            <TableCell className="px-2"><Badge variant="outline" className="text-[10px]">{svc.network}</Badge></TableCell>
+                            <TableCell className="px-2 text-right font-mono">{Number(svc.rate).toFixed(2)}₽</TableCell>
+                            <TableCell className="px-2">
+                              {svcMappings.length > 0 ? (
+                                <Badge variant="outline" className="text-[9px]">{svcMappings.length}</Badge>
+                              ) : <span className="text-muted-foreground text-[10px]">—</span>}
                             </TableCell>
-                            <TableCell className="px-1 text-[10px]">{svc.category}</TableCell>
-                            <TableCell className="px-1 whitespace-nowrap">
-                              <Badge variant="outline" className="text-[9px] px-1">{svc.network}</Badge>
-                            </TableCell>
-                            <TableCell className="px-1 whitespace-nowrap">{svc.min_quantity}</TableCell>
-                            <TableCell className="px-1 whitespace-nowrap">{svc.max_quantity}</TableCell>
-                            <TableCell className="px-1 whitespace-nowrap">{Number(svc.rate).toFixed(2)}₽</TableCell>
-                            <TableCell className="px-1">
-                              {svcMappings.length > 0 ? svcMappings.map((m) => {
-                                const s = services.find((sv) => sv.id === m.service_id);
-                                return <Badge key={m.id} variant="outline" className="text-[8px] mr-0.5">P{m.priority}: {s?.name?.slice(0, 15) || "?"}</Badge>;
-                              }) : <span className="text-muted-foreground text-[10px]">—</span>}
-                            </TableCell>
-                            <TableCell className="px-1">
-                              <Button variant="outline" size="sm" className="h-5 text-[9px] px-1" onClick={() => createFromProvider(svc)}>
-                                <Plus className="h-2 w-2 mr-0.5" />В каталог
+                            <TableCell className="px-2">
+                              <Button variant="outline" size="sm" className="h-6 text-[10px] px-1.5" onClick={() => createFromProvider(svc)}>
+                                <Plus className="h-2.5 w-2.5 mr-0.5" />В каталог
                               </Button>
                             </TableCell>
                           </TableRow>
@@ -643,172 +549,139 @@ const AdminServices = () => {
         </div>
       </Tabs>
 
-      {/* Mapping dialog - improved */}
-      <Dialog open={mappingOpen} onOpenChange={setMappingOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>
-              Привязать провайдера
-              {mappingServiceId && (() => {
-                const svc = services.find(s => s.id === mappingServiceId);
-                return svc ? <span className="text-muted-foreground font-normal ml-2">→ {svc.name}</span> : null;
-              })()}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            {/* Existing mappings */}
-            {mappingServiceId && (() => {
-              const existing = getMappingsForService(mappingServiceId);
-              if (existing.length === 0) return null;
-              return (
-                <div className="border rounded p-2 space-y-1">
-                  <p className="text-[10px] font-medium text-muted-foreground">Текущая цепочка failover:</p>
-                  {existing.map((m, i) => {
-                    const ps = getProviderService(m.provider_service_id);
-                    return (
-                      <div key={m.id} className="flex items-center gap-2 text-xs">
-                        <Badge variant={i === 0 ? "default" : "secondary"} className="text-[9px] w-6 justify-center">P{m.priority}</Badge>
-                        <span className="font-medium">{ps?.provider}</span>
-                        <span className="text-muted-foreground">ID:{ps?.provider_service_id} — {ps?.name?.slice(0, 40)}</span>
-                        <span className="text-muted-foreground ml-auto">{Number(ps?.rate || 0).toFixed(2)}₽</span>
-                        <div className="flex items-center gap-0.5">
-                          {m.priority > 1 && (
-                            <button onClick={() => updateMappingPriority(m.id, m.priority - 1)} className="text-muted-foreground hover:text-foreground">
-                              <ArrowUp className="h-3 w-3" />
-                            </button>
-                          )}
-                          <button onClick={() => updateMappingPriority(m.id, m.priority + 1)} className="text-muted-foreground hover:text-foreground">
-                            <ArrowDown className="h-3 w-3" />
-                          </button>
-                          <Switch className="scale-50" checked={m.is_active} onCheckedChange={(v) => toggleMapping(m.id, v)} />
-                          <button onClick={() => deleteMapping(m.id)} className="text-destructive"><Trash2 className="h-3 w-3" /></button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
+      {/* === EDIT SERVICE DIALOG === */}
+      <Dialog open={!!editService} onOpenChange={(open) => { if (!open) setEditService(null); }}>
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+          {editService && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Settings2 className="h-4 w-4 text-primary" />
+                  Редактирование услуги
+                </DialogTitle>
+              </DialogHeader>
 
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                <Input placeholder="Поиск услуги провайдера..." value={mappingSearch} onChange={(e) => setMappingSearch(e.target.value)} className="pl-7 h-7 text-xs" />
-              </div>
-              <Select value={mappingProviderFilter} onValueChange={setMappingProviderFilter}>
-                <SelectTrigger className="w-[120px] h-7 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все</SelectItem>
-                  {providerKeys.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Input type="number" placeholder="Приоритет" value={mappingPriority} onChange={(e) => setMappingPriority(e.target.value)} className="w-[80px] h-7 text-xs" />
-            </div>
-
-            <div className="border rounded max-h-[300px] overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="text-[10px]">
-                    <TableHead className="px-1">Пров.</TableHead>
-                    <TableHead className="px-1">ID</TableHead>
-                    <TableHead className="px-1">Услуга</TableHead>
-                    <TableHead className="px-1">Цена</TableHead>
-                    <TableHead className="px-1 w-10"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredMappingProviders.slice(0, 50).map((ps) => (
-                    <TableRow key={ps.id} className={`text-[11px] cursor-pointer ${mappingProviderServiceId === ps.id ? "bg-primary/10" : ""}`}
-                      onClick={() => setMappingProviderServiceId(ps.id)}>
-                      <TableCell className="px-1"><Badge variant="secondary" className="text-[9px]">{ps.provider}</Badge></TableCell>
-                      <TableCell className="px-1 text-muted-foreground">{ps.provider_service_id}</TableCell>
-                      <TableCell className="px-1 truncate max-w-[250px]">{ps.name}</TableCell>
-                      <TableCell className="px-1 whitespace-nowrap">{Number(ps.rate).toFixed(2)}₽</TableCell>
-                      <TableCell className="px-1">
-                        {mappingProviderServiceId === ps.id && <Badge className="text-[8px]">✓</Badge>}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] text-muted-foreground">
-                P1 = основной провайдер. При сбое → P2 → P3 → ... Все попытки логируются.
-              </p>
-              <Button onClick={addMapping} disabled={!mappingProviderServiceId} size="sm">
-                <Link2 className="h-3 w-3 mr-1" />Привязать
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Service detail dialog */}
-      <Dialog open={!!detailService} onOpenChange={() => setDetailService(null)}>
-        <DialogContent className="max-w-lg">
-          {detailService && (() => {
-            const svcMappings = getMappingsForService(detailService.id);
-            return (
-              <>
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
-                    {detailService.is_enabled ? <Eye className="h-4 w-4 text-green-500" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
-                    {detailService.name}
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-3 text-sm">
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div><span className="text-muted-foreground">ID:</span> <code className="bg-muted px-1 rounded text-[10px]">{detailService.id}</code></div>
-                    <div><span className="text-muted-foreground">Платформа:</span> {detailService.network}</div>
-                    <div><span className="text-muted-foreground">Категория:</span> {detailService.category}</div>
-                    <div><span className="text-muted-foreground">Цена/1000:</span> {Number(detailService.price).toFixed(2)}₽</div>
-                    <div><span className="text-muted-foreground">Мин:</span> {detailService.min_quantity}</div>
-                    <div><span className="text-muted-foreground">Макс:</span> {detailService.max_quantity}</div>
+              <div className="space-y-4">
+                {/* Basic info */}
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs">Название</Label>
+                    <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
                   </div>
-                  {detailService.description && (
-                    <div className="text-xs"><span className="text-muted-foreground">Описание:</span> {detailService.description}</div>
-                  )}
+                  <div>
+                    <Label className="text-xs">Описание</Label>
+                    <Textarea value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} className="h-16" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label className="text-xs">Категория</Label><Input value={editForm.category} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} /></div>
+                    <div><Label className="text-xs">Платформа</Label><Input value={editForm.network} onChange={(e) => setEditForm({ ...editForm, network: e.target.value })} /></div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div><Label className="text-xs">Мин. кол-во</Label><Input type="number" value={editForm.min_quantity} onChange={(e) => setEditForm({ ...editForm, min_quantity: e.target.value })} /></div>
+                    <div><Label className="text-xs">Макс. кол-во</Label><Input type="number" value={editForm.max_quantity} onChange={(e) => setEditForm({ ...editForm, max_quantity: e.target.value })} /></div>
+                    <div><Label className="text-xs">Цена за 1000</Label><Input type="number" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: e.target.value })} /></div>
+                  </div>
+                  <Button onClick={saveEditService} className="w-full" size="sm">Сохранить изменения</Button>
+                </div>
 
-                  <div className="border rounded p-2">
-                    <p className="text-xs font-bold mb-2">Failover цепочка ({svcMappings.filter(m => m.is_active).length} активных):</p>
-                    {svcMappings.length === 0 ? (
-                      <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="h-3 w-3" />Нет привязанных провайдеров</p>
-                    ) : (
-                      <div className="space-y-2">
+                {/* Failover chain */}
+                <div className="border rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold">Failover цепочка</p>
+                    <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => setAddMappingOpen(!addMappingOpen)}>
+                      <Plus className="h-3 w-3 mr-0.5" />{addMappingOpen ? "Отмена" : "Добавить"}
+                    </Button>
+                  </div>
+
+                  {(() => {
+                    const svcMappings = getMappingsForService(editService.id);
+                    if (svcMappings.length === 0) {
+                      return <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="h-3 w-3" />Нет привязанных провайдеров</p>;
+                    }
+                    return (
+                      <div className="space-y-1.5">
                         {svcMappings.map((m, i) => {
                           const ps = getProviderService(m.provider_service_id);
                           if (!ps) return null;
                           return (
-                            <div key={m.id} className={`flex items-start gap-2 text-xs p-1.5 rounded ${!m.is_active ? "opacity-40" : i === 0 ? "bg-primary/5 border border-primary/20" : "bg-muted/50"}`}>
-                              <Badge variant={i === 0 ? "default" : "secondary"} className="text-[9px] shrink-0 mt-0.5">
-                                {i === 0 ? "⚡ P" + m.priority : "P" + m.priority}
+                            <div key={m.id} className={`flex items-center gap-2 text-xs p-2 rounded-md border ${!m.is_active ? "opacity-40 border-dashed" : i === 0 ? "bg-primary/5 border-primary/20" : "bg-muted/30"}`}>
+                              <Badge variant={i === 0 ? "default" : "secondary"} className="text-[9px] shrink-0">
+                                {i === 0 ? "⚡" : `P${m.priority}`}
                               </Badge>
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium">{ps.provider} #{ps.provider_service_id}</p>
-                                <p className="text-muted-foreground truncate">{ps.name}</p>
-                                <div className="flex gap-2 text-[10px] text-muted-foreground mt-0.5">
-                                  <span>Цена: {Number(ps.rate).toFixed(2)}₽</span>
-                                  <span>Мин: {ps.min_quantity}</span>
-                                  <span>Макс: {ps.max_quantity}</span>
-                                  {ps.can_cancel && <Badge variant="outline" className="text-[8px] h-3">Cancel</Badge>}
-                                  {ps.can_refill && <Badge variant="outline" className="text-[8px] h-3">Refill</Badge>}
-                                </div>
+                                <span className="font-medium">{ps.provider}</span>
+                                <span className="text-muted-foreground ml-1">#{ps.provider_service_id}</span>
+                                <p className="text-[10px] text-muted-foreground truncate">{ps.name}</p>
                               </div>
-                              {i < svcMappings.length - 1 && m.is_active && (
-                                <ChevronRight className="h-3 w-3 text-muted-foreground mt-1 shrink-0" />
-                              )}
+                              <span className="text-[10px] text-muted-foreground shrink-0">{Number(ps.rate).toFixed(2)}₽</span>
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                {m.priority > 1 && (
+                                  <button onClick={() => updateMappingPriority(m.id, m.priority - 1)} className="p-0.5 hover:bg-muted rounded"><ArrowUp className="h-3 w-3" /></button>
+                                )}
+                                <button onClick={() => updateMappingPriority(m.id, m.priority + 1)} className="p-0.5 hover:bg-muted rounded"><ArrowDown className="h-3 w-3" /></button>
+                                <Switch className="scale-50" checked={m.is_active} onCheckedChange={(v) => toggleMapping(m.id, v)} />
+                                <button onClick={() => deleteMapping(m.id)} className="text-destructive p-0.5 hover:bg-destructive/10 rounded"><Trash2 className="h-3 w-3" /></button>
+                              </div>
                             </div>
                           );
                         })}
                       </div>
-                    )}
-                  </div>
+                    );
+                  })()}
+
+                  {/* Add mapping inline */}
+                  {addMappingOpen && (
+                    <div className="border-t pt-2 space-y-2 mt-2">
+                      <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                          <Input placeholder="Поиск провайдера..." value={mappingSearch} onChange={(e) => setMappingSearch(e.target.value)} className="pl-7 h-7 text-xs" />
+                        </div>
+                        <Select value={mappingProviderFilter} onValueChange={setMappingProviderFilter}>
+                          <SelectTrigger className="w-[110px] h-7 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Все</SelectItem>
+                            {providerKeys.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Input type="number" placeholder="P" value={mappingPriority} onChange={(e) => setMappingPriority(e.target.value)} className="w-[60px] h-7 text-xs" />
+                      </div>
+                      <div className="border rounded max-h-[200px] overflow-auto">
+                        <Table>
+                          <TableBody>
+                            {filteredMappingProviders.slice(0, 30).map((ps) => (
+                              <TableRow
+                                key={ps.id}
+                                className={`text-[11px] cursor-pointer ${mappingProviderServiceId === ps.id ? "bg-primary/10" : ""}`}
+                                onClick={() => setMappingProviderServiceId(ps.id)}
+                              >
+                                <TableCell className="px-2 py-1"><Badge variant="secondary" className="text-[9px]">{ps.provider}</Badge></TableCell>
+                                <TableCell className="px-2 py-1 text-muted-foreground">{ps.provider_service_id}</TableCell>
+                                <TableCell className="px-2 py-1 truncate max-w-[200px]">{ps.name}</TableCell>
+                                <TableCell className="px-2 py-1 text-right">{Number(ps.rate).toFixed(2)}₽</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      <Button onClick={() => addMapping(editService.id)} disabled={!mappingProviderServiceId} size="sm" className="w-full">
+                        <Link2 className="h-3 w-3 mr-1" />Привязать
+                      </Button>
+                    </div>
+                  )}
+
+                  <p className="text-[10px] text-muted-foreground">P1 = основной. При сбое → P2 → P3. Все попытки логируются.</p>
                 </div>
-              </>
-            );
-          })()}
+
+                {/* Danger zone */}
+                <div className="border border-destructive/30 rounded-lg p-3">
+                  <Button variant="destructive" size="sm" className="w-full text-xs" onClick={() => deleteService(editService.id)}>
+                    <Trash2 className="h-3 w-3 mr-1" />Удалить услугу
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
