@@ -37,8 +37,8 @@ const CookieConsent = () => {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground mb-1">Мы используем cookies</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Этот сайт использует файлы cookie для улучшения работы. Продолжая использовать сайт, вы соглашаетесь с{' '}
-                  <button className="underline hover:text-foreground transition-colors">политикой конфиденциальности</button>.
+                  Этот сайт использует файлы cookie для улучшения работы (420-ФЗ). Продолжая использовать сайт, вы соглашаетесь с{' '}
+                  <Link to="/privacy" className="underline hover:text-foreground transition-colors">политикой конфиденциальности</Link>.
                 </p>
                 <div className="flex gap-2 mt-3">
                   <button
