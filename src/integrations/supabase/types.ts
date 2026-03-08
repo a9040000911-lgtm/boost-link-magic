@@ -233,6 +233,48 @@ export type Database = {
         }
         Relationships: []
       }
+      licenses: {
+        Row: {
+          activated_at: string | null
+          created_at: string
+          domain: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          license_key: string
+          max_users: number | null
+          metadata: Json | null
+          plan: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          created_at?: string
+          domain: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          license_key: string
+          max_users?: number | null
+          metadata?: Json | null
+          plan?: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          created_at?: string
+          domain?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          license_key?: string
+          max_users?: number | null
+          metadata?: Json | null
+          plan?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       link_patterns: {
         Row: {
           category_id: string | null
