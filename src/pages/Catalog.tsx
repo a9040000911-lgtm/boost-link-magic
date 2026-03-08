@@ -254,7 +254,7 @@ const Catalog = () => {
                     </button>
                   );
                 })}
-              </div>
+            </motion.div>
             </div>
 
             {/* Right Content — Services & Order */}
