@@ -6,11 +6,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, RefreshCw, Pencil, X, Undo2, ExternalLink, Copy } from "lucide-react";
+import { Search, RefreshCw, Pencil, X, Undo2, ExternalLink, Copy, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useTableControls, exportToCsv } from "@/hooks/useTableControls";
+import { TablePagination } from "@/components/admin/TablePagination";
 
 interface Order {
   id: string;
@@ -44,14 +46,14 @@ const statusLabels: Record<string, string> = {
   refunded: "Возврат",
 };
 
-const statusColors: Record<string, string> = {
-  pending: "text-yellow-600",
-  processing: "text-blue-600",
-  in_progress: "text-blue-600",
-  completed: "text-green-600",
-  partial: "text-orange-600",
-  canceled: "text-red-600",
-  refunded: "text-purple-600",
+const statusColorClass: Record<string, string> = {
+  pending: "text-[hsl(var(--status-pending))]",
+  processing: "text-[hsl(var(--status-processing))]",
+  in_progress: "text-[hsl(var(--status-in-progress))]",
+  completed: "text-[hsl(var(--status-completed))]",
+  partial: "text-[hsl(var(--status-partial))]",
+  canceled: "text-[hsl(var(--status-canceled))]",
+  refunded: "text-[hsl(var(--status-refunded))]",
 };
 
 const AdminOrders = () => {
@@ -78,7 +80,7 @@ const AdminOrders = () => {
   const loadData = async () => {
     setLoading(true);
     const [ordersRes, psRes, sRes] = await Promise.all([
-      supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(500),
+      supabase.from("orders").select("*").order("created_at", { ascending: false }),
       supabase.from("provider_services").select("id, name, provider, provider_service_id, rate, network, category"),
       supabase.from("services").select("id, name, description, network, price, category"),
     ]);
@@ -128,6 +130,11 @@ const AdminOrders = () => {
     });
   }, [orders, search, statusFilter, platformFilter, profilesMap]);
 
+  const pagination = useTableControls({ data: filtered, pageSize: 50 });
+
+  // Reset page when filters change
+  useEffect(() => { pagination.resetPage(); }, [search, statusFilter, platformFilter]);
+
   const getServiceInfo = (order: Order) => order.service_id ? services.find((s: any) => s.id === order.service_id) : null;
   const getProviderServiceInfo = (order: Order) => order.provider_service_id ? providerServices.find((ps: any) => ps.id === order.provider_service_id) : null;
 
@@ -159,13 +166,43 @@ const AdminOrders = () => {
     setExpandedId(expandedId === id ? null : id);
   };
 
+  const handleExport = () => {
+    const headers = ["ID", "Дата", "Пользователь", "Услуга", "Ссылка", "Кол-во", "Цена", "Статус", "Провайдер", "ID провайдера"];
+    const rows = filtered.map((o) => [
+      o.id.slice(0, 8),
+      formatDate(o.created_at),
+      profilesMap[o.user_id]?.name || o.user_id.slice(0, 8),
+      o.service_name,
+      o.link,
+      String(o.quantity),
+      Number(o.price).toFixed(2),
+      statusLabels[o.status] || o.status,
+      o.provider || "",
+      o.provider_order_id || "",
+    ]);
+    exportToCsv("orders", headers, rows);
+    toast.success(`Экспортировано ${rows.length} заказов`);
+  };
+
+  // Calculate totals for filtered set
+  const totals = useMemo(() => {
+    const sum = filtered.reduce((a, o) => a + Number(o.price), 0);
+    const qty = filtered.reduce((a, o) => a + o.quantity, 0);
+    return { sum, qty };
+  }, [filtered]);
+
   return (
     <div className="flex flex-col h-full gap-3">
       <div className="flex items-center justify-between shrink-0">
         <h1 className="text-lg font-bold tracking-tight">СПИСОК ЗАКАЗОВ</h1>
-        <Button size="sm" variant="outline" className="h-8 text-xs" onClick={loadData}>
-          <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Обновить
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={handleExport}>
+            <Download className="h-3.5 w-3.5 mr-1.5" />CSV
+          </Button>
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={loadData}>
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Обновить
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -188,7 +225,10 @@ const AdminOrders = () => {
             {platforms.map((p) => <SelectItem key={p!} value={p!}>{p}</SelectItem>)}
           </SelectContent>
         </Select>
-        <span className="text-xs text-muted-foreground ml-auto">Найдено: {filtered.length}</span>
+        <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
+          <span>Найдено: <strong className="text-foreground">{filtered.length}</strong></span>
+          <span>Сумма: <strong className="text-foreground">{totals.sum.toFixed(2)}₽</strong></span>
+        </div>
       </div>
 
       {/* Table */}
@@ -199,7 +239,7 @@ const AdminOrders = () => {
           <Table>
             <TableHeader>
               <TableRow className="text-xs uppercase tracking-wider">
-                <TableHead className="px-3 w-[60px]">ID ▴</TableHead>
+                <TableHead className="px-3 w-[60px]">#</TableHead>
                 <TableHead className="px-3">Пользователь</TableHead>
                 <TableHead className="px-3">Информация</TableHead>
                 <TableHead className="px-3 w-[90px] text-right">Цена</TableHead>
@@ -209,13 +249,13 @@ const AdminOrders = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {pagination.paginated.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-12 text-muted-foreground text-sm">
                     Заказы не найдены
                   </TableCell>
                 </TableRow>
-              ) : filtered.map((o, idx) => {
+              ) : pagination.paginated.map((o, idx) => {
                 const svc = getServiceInfo(o);
                 const ps = getProviderServiceInfo(o);
                 const isExpanded = expandedId === o.id;
@@ -224,7 +264,7 @@ const AdminOrders = () => {
                 return (
                   <TableRow key={o.id} className="text-sm align-top border-b">
                     <TableCell className="px-3 py-3 font-mono text-xs text-muted-foreground">
-                      {idx + 1}
+                      {pagination.from + idx}
                     </TableCell>
                     <TableCell className="px-3 py-3">
                       <button
@@ -260,7 +300,6 @@ const AdminOrders = () => {
                           <span className="font-semibold">Дата создания:</span> {formatDate(o.created_at)}
                         </div>
 
-                        {/* Expandable details */}
                         {isExpanded && (
                           <div className="mt-2 pt-2 border-t border-dashed space-y-0.5">
                             <div>
@@ -303,7 +342,7 @@ const AdminOrders = () => {
                       {Number(o.price).toFixed(2)} ₽
                     </TableCell>
                     <TableCell className="px-3 py-3 text-center">
-                      <span className={`font-semibold ${statusColors[o.status] || "text-muted-foreground"}`}>
+                      <span className={`font-semibold ${statusColorClass[o.status] || "text-muted-foreground"}`}>
                         {statusLabels[o.status] || o.status}
                       </span>
                     </TableCell>
@@ -342,6 +381,8 @@ const AdminOrders = () => {
         )}
       </div>
 
+      <TablePagination {...pagination} />
+
       {/* Order detail dialog */}
       <Dialog open={!!selectedOrder} onOpenChange={(open) => { if (!open) setSelectedOrder(null); }}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
@@ -355,15 +396,13 @@ const AdminOrders = () => {
                   <DialogTitle className="text-base">Заказ #{selectedOrder.id.slice(0, 8)}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 text-sm">
-                  {/* Status */}
                   <div className="flex items-center justify-between">
-                    <span className={`font-semibold text-lg ${statusColors[selectedOrder.status] || "text-muted-foreground"}`}>
+                    <span className={`font-semibold text-lg ${statusColorClass[selectedOrder.status] || "text-muted-foreground"}`}>
                       {statusLabels[selectedOrder.status] || selectedOrder.status}
                     </span>
                     <span className="text-xs text-muted-foreground">{formatDate(selectedOrder.created_at)}</span>
                   </div>
 
-                  {/* Client */}
                   <div className="bg-muted/40 rounded-lg p-3 space-y-1">
                     <p className="text-xs text-muted-foreground font-medium">Клиент</p>
                     <button
@@ -375,7 +414,6 @@ const AdminOrders = () => {
                     <p className="text-[10px] text-muted-foreground font-mono">{selectedOrder.user_id}</p>
                   </div>
 
-                  {/* Service info */}
                   <div className="space-y-2">
                     <p className="text-xs text-muted-foreground font-medium">Услуга</p>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
@@ -386,7 +424,6 @@ const AdminOrders = () => {
                     </div>
                   </div>
 
-                  {/* Order params */}
                   <div className="space-y-2">
                     <p className="text-xs text-muted-foreground font-medium">Параметры заказа</p>
                     <div className="grid grid-cols-3 gap-2">
@@ -405,7 +442,6 @@ const AdminOrders = () => {
                     </div>
                   </div>
 
-                  {/* Link */}
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground font-medium">Ссылка</p>
                     <a href={selectedOrder.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs break-all flex items-start gap-1">
@@ -414,7 +450,6 @@ const AdminOrders = () => {
                     </a>
                   </div>
 
-                  {/* Provider */}
                   <div className="space-y-2 border-t pt-3">
                     <p className="text-xs text-muted-foreground font-medium">Провайдер</p>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
@@ -430,7 +465,6 @@ const AdminOrders = () => {
                     </div>
                   </div>
 
-                  {/* Refund info */}
                   {selectedOrder.refund_status && (
                     <div className="border-t pt-3 space-y-1">
                       <p className="text-xs text-muted-foreground font-medium">Возврат</p>
@@ -442,7 +476,6 @@ const AdminOrders = () => {
                     </div>
                   )}
 
-                  {/* IDs */}
                   <div className="border-t pt-3 space-y-1">
                     <p className="text-xs text-muted-foreground font-medium">Идентификаторы</p>
                     <div className="text-[10px] text-muted-foreground font-mono space-y-0.5">
@@ -453,7 +486,6 @@ const AdminOrders = () => {
                     </div>
                   </div>
 
-                  {/* Actions */}
                   <div className="border-t pt-3 flex gap-2">
                     <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => { setSelectedOrder(null); navigate(`/admin/users/${selectedOrder.user_id}`); }}>
                       Профиль клиента
@@ -480,24 +512,15 @@ const AdminOrders = () => {
               <div className="text-xs space-y-1 bg-muted/50 rounded-lg p-3">
                 <p><span className="text-muted-foreground">Заказ:</span> #{refundOrder.id.slice(0, 8)}</p>
                 <p><span className="text-muted-foreground">Услуга:</span> {refundOrder.service_name}</p>
-                <p><span className="text-muted-foreground">Сумма:</span> <strong>{Number(refundOrder.price).toFixed(2)}₽</strong></p>
+                <p><span className="text-muted-foreground">Сумма:</span> {Number(refundOrder.price).toFixed(2)}₽</p>
               </div>
-              <Textarea
-                placeholder="Причина возврата..."
-                value={refundReason}
-                onChange={(e) => setRefundReason(e.target.value)}
-                className="text-sm h-20"
-              />
-              <Button
-                variant="destructive"
-                size="sm"
-                className="w-full"
-                onClick={handleRefund}
-                disabled={refunding}
-              >
-                <Undo2 className="h-3.5 w-3.5 mr-1.5" />
-                {refunding ? "Обработка..." : `Вернуть ${Number(refundOrder.price).toFixed(2)}₽`}
-              </Button>
+              <Textarea placeholder="Причина возврата..." value={refundReason} onChange={(e) => setRefundReason(e.target.value)} rows={3} className="text-sm" />
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => setRefundOrder(null)}>Отмена</Button>
+                <Button variant="destructive" size="sm" onClick={handleRefund} disabled={refunding || !refundReason.trim()}>
+                  {refunding ? "Обработка..." : "Подтвердить возврат"}
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
