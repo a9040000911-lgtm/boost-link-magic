@@ -167,6 +167,7 @@ const SiteWidgets = () => {
   const [bugreportEnabled, setBugreportEnabled] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [bugOpen, setBugOpen] = useState(false);
+  const [screenshotHidden, setScreenshotHidden] = useState(false);
 
   // Review form
   const [reviewName, setReviewName] = useState("");
