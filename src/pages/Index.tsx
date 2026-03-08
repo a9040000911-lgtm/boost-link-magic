@@ -90,13 +90,36 @@ const Index = () => {
           animate={{ opacity: 1, y: 0 }}
           className={`relative z-10 ${isActive ? 'mb-2' : 'mb-6'}`}
         >
-          <motion.span
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent text-accent-foreground text-sm font-medium shadow-lg shadow-accent/20"
+          <motion.div
+            className="inline-flex items-center gap-0.5 text-3xl font-extrabold tracking-tight select-none"
             whileHover={{ scale: 1.05 }}
           >
-            <Sparkles className="w-4 h-4" />
-            CoolLike
-          </motion.span>
+            {"COOLLIKE".split("").map((letter, i) => (
+              <motion.span
+                key={i}
+                className="inline-block bg-clip-text text-transparent bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 animate-[shimmer_3s_ease-in-out_infinite]"
+                style={{
+                  WebkitTextStroke: "1px rgba(255,255,255,0.7)",
+                  textShadow: "0 0 20px rgba(168,85,247,0.5), 0 4px 12px rgba(0,0,0,0.3)",
+                  filter: "drop-shadow(0 2px 6px rgba(168,85,247,0.4))",
+                  animationDelay: `${i * 0.15}s`,
+                }}
+                initial={{ opacity: 0, y: -20, rotate: -10 }}
+                animate={{
+                  opacity: 1,
+                  y: [0, -4, 0],
+                  rotate: [0, i % 2 === 0 ? 2 : -2, 0],
+                }}
+                transition={{
+                  opacity: { duration: 0.4, delay: i * 0.08 },
+                  y: { duration: 2, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" },
+                  rotate: { duration: 2.5, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" },
+                }}
+              >
+                {letter}
+              </motion.span>
+            ))}
+          </motion.div>
         </motion.div>
 
         {!isActive && (
