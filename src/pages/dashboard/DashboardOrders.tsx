@@ -212,7 +212,6 @@ const DashboardOrders = () => {
                           <div className="mt-2 pt-2 border-t border-dashed space-y-0.5 text-xs text-muted-foreground">
                             <div><span className="font-medium text-foreground">Создан:</span> {formatDate(order.created_at)}</div>
                             <div><span className="font-medium text-foreground">Обновлён:</span> {formatDate(order.updated_at)}</div>
-                            <div><span className="font-medium text-foreground">ID заказа:</span> <span className="font-mono">{order.id}</span></div>
                             <div className="pt-1">
                               <Button
                                 variant="outline"
