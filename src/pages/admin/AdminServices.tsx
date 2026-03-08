@@ -659,7 +659,7 @@ const AdminServices = () => {
                         <TableHead className="px-2">Название</TableHead>
                         <TableHead className="px-2 w-[100px]">Сеть</TableHead>
                         <TableHead className="px-2 w-[120px]">Категория</TableHead>
-                        <TableHead className="px-2 w-[80px] text-right">Цена/1к</TableHead>
+                        <TableHead className="px-2 w-[90px] text-right">{priceLabel}</TableHead>
                         <TableHead className="px-2 w-[140px]">Провайдеры</TableHead>
                         <TableHead className="px-2 w-10"></TableHead>
                       </TableRow>
