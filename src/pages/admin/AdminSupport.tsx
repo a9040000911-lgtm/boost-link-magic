@@ -14,6 +14,7 @@ import { MessageSquare, Send, Search, User, Clock, ChevronLeft, Paperclip, Mail,
 import { ImageViewer } from "@/components/support/ImageViewer";
 import { AudioPlayer } from "@/components/support/AudioPlayer";
 import { VideoPlayer } from "@/components/support/VideoPlayer";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { toast } from "@/hooks/use-toast";
 
 interface ResponseTemplate {
@@ -686,9 +687,10 @@ const AdminSupport = () => {
   }, [messages, tickets]);
 
   return (
-    <div className="flex gap-0 border rounded-md overflow-hidden" style={{ height: "calc(100vh - 5.5rem)" }}>
+    <div className="border rounded-md overflow-hidden" style={{ height: "calc(100vh - 5.5rem)" }}>
+      <ResizablePanelGroup direction="horizontal" className="h-full">
       {/* Client list */}
-      <div className={`flex flex-col border-r w-[320px] shrink-0 ${selectedUserId ? "hidden lg:flex" : "flex w-full lg:w-[320px]"}`}>
+      <ResizablePanel defaultSize={25} minSize={15} maxSize={50} className={`flex flex-col ${selectedUserId ? "hidden lg:flex" : "flex"}`}>
         <div className="p-2 border-b shrink-0 space-y-1">
           <div className="flex items-center justify-between">
             <h2 className="text-xs font-bold flex items-center gap-1">
@@ -771,10 +773,10 @@ const AdminSupport = () => {
             })
           )}
         </div>
-      </div>
-
+      </ResizablePanel>
+      <ResizableHandle withHandle />
       {/* Chat */}
-      <div className={`flex flex-col flex-1 min-w-0 ${!selectedUserId ? "hidden lg:flex" : "flex"}`}>
+      <ResizablePanel defaultSize={75} minSize={40} className={`flex flex-col min-w-0 ${!selectedUserId ? "hidden lg:flex" : "flex"}`}>
         {!selectedUserId ? (
           <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
             <div className="text-center">
@@ -1091,7 +1093,8 @@ const AdminSupport = () => {
             )}
           </>
         )}
-      </div>
+      </ResizablePanel>
+      </ResizablePanelGroup>
 
       {/* Ban dialog */}
       <Dialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
