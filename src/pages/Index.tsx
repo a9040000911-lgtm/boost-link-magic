@@ -187,6 +187,19 @@ const Index = () => {
         {!showFlow && !showSummary && (
           <div className="relative z-10 w-full">
             <HeroInput onSubmit={handleSubmit} isLoading={isLoading} />
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="flex justify-center mt-4"
+            >
+              <button
+                onClick={() => navigate('/catalog')}
+                className="text-sm text-white/60 hover:text-white transition-colors underline underline-offset-4 decoration-white/30 hover:decoration-white/60"
+              >
+                Или выберите услугу в каталоге →
+              </button>
+            </motion.div>
           </div>
         )}
 
