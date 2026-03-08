@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -6,8 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare, Send, Search, User, Clock, ChevronLeft } from "lucide-react";
+import { MessageSquare, Send, Search, User, Clock, ChevronLeft, Paperclip, Image, Mic, Film, Mail, MessageCircle } from "lucide-react";
+import { ImageViewer } from "@/components/support/ImageViewer";
+import { AudioPlayer } from "@/components/support/AudioPlayer";
+import { VideoPlayer } from "@/components/support/VideoPlayer";
+import { toast } from "@/hooks/use-toast";
 
 interface Ticket {
   id: string;
@@ -17,6 +20,7 @@ interface Ticket {
   priority: string;
   created_at: string;
   updated_at: string;
+  channel?: string;
 }
 
 interface Message {
@@ -26,6 +30,9 @@ interface Message {
   message: string;
   is_admin: boolean;
   created_at: string;
+  attachment_url?: string | null;
+  attachment_type?: string | null;
+  attachment_name?: string | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -34,12 +41,64 @@ const statusColors: Record<string, string> = {
   closed: "bg-muted text-muted-foreground",
 };
 
-const priorityColors: Record<string, string> = {
-  low: "text-muted-foreground",
-  normal: "text-foreground",
-  high: "text-orange-500",
-  urgent: "text-red-500",
+const channelIcons: Record<string, React.ReactNode> = {
+  web: <MessageSquare className="h-2.5 w-2.5" />,
+  email: <Mail className="h-2.5 w-2.5" />,
+  telegram: <MessageCircle className="h-2.5 w-2.5" />,
 };
+
+function getAttachmentCategory(type: string | null | undefined): "image" | "audio" | "video" | "file" {
+  if (!type) return "file";
+  if (type.startsWith("image/")) return "image";
+  if (type.startsWith("audio/") || type.includes("ogg") || type.includes("voice")) return "audio";
+  if (type.startsWith("video/")) return "video";
+  return "file";
+}
+
+function MessageAttachment({ msg, onImageClick }: { msg: Message; onImageClick: (url: string) => void }) {
+  if (!msg.attachment_url) return null;
+
+  const category = getAttachmentCategory(msg.attachment_type);
+
+  switch (category) {
+    case "image":
+      return (
+        <div className="mt-1">
+          <img
+            src={msg.attachment_url}
+            alt={msg.attachment_name || "Image"}
+            className="max-w-[220px] max-h-[160px] rounded cursor-pointer hover:opacity-80 transition-opacity object-cover"
+            onClick={() => onImageClick(msg.attachment_url!)}
+          />
+        </div>
+      );
+    case "audio":
+      return (
+        <div className="mt-1">
+          <AudioPlayer src={msg.attachment_url} name={msg.attachment_name || "Голосовое сообщение"} />
+        </div>
+      );
+    case "video":
+      return (
+        <div className="mt-1">
+          <VideoPlayer src={msg.attachment_url} name={msg.attachment_name || "Видео"} />
+        </div>
+      );
+    default:
+      return (
+        <div className="mt-1">
+          <a
+            href={msg.attachment_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-primary hover:underline flex items-center gap-1"
+          >
+            📎 {msg.attachment_name || "Файл"}
+          </a>
+        </div>
+      );
+  }
+}
 
 const AdminSupport = () => {
   const { user } = useAuth();
@@ -52,8 +111,12 @@ const AdminSupport = () => {
   const [sending, setSending] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [channelFilter, setChannelFilter] = useState("all");
   const [profilesMap, setProfilesMap] = useState<Record<string, string>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [viewerImage, setViewerImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -84,7 +147,6 @@ const AdminSupport = () => {
     const ticketList = (data || []) as Ticket[];
     setTickets(ticketList);
 
-    // Load profiles for all users
     const userIds = [...new Set(ticketList.map((t) => t.user_id))];
     if (userIds.length > 0) {
       const { data: profiles } = await supabase.from("profiles").select("id, display_name").in("id", userIds);
@@ -100,23 +162,96 @@ const AdminSupport = () => {
     setMessages((data || []) as Message[]);
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedTicket || !user) return;
+  const uploadFile = async (file: File): Promise<{ url: string; type: string; name: string } | null> => {
+    const ext = file.name.split(".").pop();
+    const path = `${selectedTicket!.id}/${Date.now()}.${ext}`;
+
+    const { error } = await supabase.storage.from("support-attachments").upload(path, file);
+    if (error) {
+      toast({ title: "Ошибка загрузки", description: error.message, variant: "destructive" });
+      return null;
+    }
+
+    const { data } = supabase.storage.from("support-attachments").getPublicUrl(path);
+    return { url: data.publicUrl, type: file.type, name: file.name };
+  };
+
+  const sendMessage = async (attachmentData?: { url: string; type: string; name: string }) => {
+    if ((!newMessage.trim() && !attachmentData) || !selectedTicket || !user) return;
     setSending(true);
-    await supabase.from("support_messages").insert({
+
+    const msgData: any = {
       ticket_id: selectedTicket.id,
       user_id: user.id,
-      message: newMessage.trim(),
+      message: newMessage.trim() || (attachmentData ? `📎 ${attachmentData.name}` : ""),
       is_admin: true,
-    });
-    // Update ticket status to in_progress if open
+    };
+
+    if (attachmentData) {
+      msgData.attachment_url = attachmentData.url;
+      msgData.attachment_type = attachmentData.type;
+      msgData.attachment_name = attachmentData.name;
+    }
+
+    await supabase.from("support_messages").insert(msgData);
+
     if (selectedTicket.status === "open") {
       await supabase.from("support_tickets").update({ status: "in_progress", updated_at: new Date().toISOString() }).eq("id", selectedTicket.id);
       setSelectedTicket({ ...selectedTicket, status: "in_progress" });
       setTickets((prev) => prev.map((t) => t.id === selectedTicket.id ? { ...t, status: "in_progress" } : t));
     }
+
+    // Send notification via email if ticket has user email
+    // Send Telegram notification
+    try {
+      await supabase.functions.invoke("telegram-bot", {
+        body: {
+          action: "notify",
+          text: `📤 Ответ на тикет: <b>${selectedTicket.subject}</b>\n\n${newMessage.trim() || "📎 Файл"}`,
+        },
+      });
+    } catch (e) {
+      // Non-critical
+    }
+
+    // If telegram ticket, reply directly to user
+    if (selectedTicket.channel === "telegram" && selectedTicket.subject.includes("(")) {
+      const chatIdMatch = selectedTicket.subject.match(/\((\d+)\)/);
+      if (chatIdMatch) {
+        try {
+          await supabase.functions.invoke("telegram-bot", {
+            body: {
+              action: "reply",
+              chat_id: chatIdMatch[1],
+              text: newMessage.trim() || "📎 Файл отправлен",
+            },
+          });
+        } catch (e) {
+          // Non-critical
+        }
+      }
+    }
+
     setNewMessage("");
     setSending(false);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 20 * 1024 * 1024) {
+      toast({ title: "Файл слишком большой", description: "Максимум 20 МБ", variant: "destructive" });
+      return;
+    }
+
+    setUploading(true);
+    const result = await uploadFile(file);
+    if (result) {
+      await sendMessage(result);
+    }
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const closeTicket = async () => {
@@ -136,6 +271,7 @@ const AdminSupport = () => {
   const filteredTickets = useMemo(() => {
     return tickets.filter((t) => {
       if (statusFilter !== "all" && t.status !== statusFilter) return false;
+      if (channelFilter !== "all" && (t.channel || "web") !== channelFilter) return false;
       if (search) {
         const s = search.toLowerCase();
         const userName = profilesMap[t.user_id] || "";
@@ -143,7 +279,7 @@ const AdminSupport = () => {
       }
       return true;
     });
-  }, [tickets, search, statusFilter, profilesMap]);
+  }, [tickets, search, statusFilter, channelFilter, profilesMap]);
 
   const formatTime = (d: string) => {
     const date = new Date(d);
@@ -164,7 +300,7 @@ const AdminSupport = () => {
 
   return (
     <div className="flex h-full gap-0 border rounded-md overflow-hidden">
-      {/* Ticket list - left panel */}
+      {/* Ticket list */}
       <div className={`flex flex-col border-r w-[320px] shrink-0 ${selectedTicket ? "hidden lg:flex" : "flex w-full lg:w-[320px]"}`}>
         <div className="p-2 border-b shrink-0 space-y-1">
           <div className="flex items-center justify-between">
@@ -180,12 +316,21 @@ const AdminSupport = () => {
               <Input placeholder="Поиск..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-7 h-6 text-[11px]" />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[80px] h-6 text-[10px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[70px] h-6 text-[10px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Все</SelectItem>
                 <SelectItem value="open">Открыт</SelectItem>
                 <SelectItem value="in_progress">В работе</SelectItem>
                 <SelectItem value="closed">Закрыт</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={channelFilter} onValueChange={setChannelFilter}>
+              <SelectTrigger className="w-[60px] h-6 text-[10px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">📨</SelectItem>
+                <SelectItem value="web">🌐</SelectItem>
+                <SelectItem value="email">📧</SelectItem>
+                <SelectItem value="telegram">💬</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -205,19 +350,26 @@ const AdminSupport = () => {
               >
                 <div className="flex items-start justify-between gap-1">
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-medium truncate">{t.subject}</p>
+                    <div className="flex items-center gap-1">
+                      {channelIcons[t.channel || "web"]}
+                      <p className="text-[11px] font-medium truncate">{t.subject}</p>
+                    </div>
                     <div className="flex items-center gap-1 mt-0.5">
                       <button
                         className="text-[10px] text-primary hover:underline"
                         onClick={(e) => { e.stopPropagation(); navigate(`/admin/users/${t.user_id}`); }}
                       >
-                        {profilesMap[t.user_id] || t.user_id.slice(0, 8)}
+                        {profilesMap[t.user_id] || (t.channel === "telegram" ? "Telegram" : t.user_id.slice(0, 8))}
                       </button>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-0.5 shrink-0">
-                    <span className={`text-[9px] px-1 py-0.5 rounded ${statusColors[t.status] || "bg-muted"}`}>{t.status === "open" ? "Открыт" : t.status === "in_progress" ? "В работе" : "Закрыт"}</span>
-                    <span className="text-[9px] text-muted-foreground flex items-center gap-0.5"><Clock className="h-2 w-2" />{formatTime(t.updated_at)}</span>
+                    <span className={`text-[9px] px-1 py-0.5 rounded ${statusColors[t.status] || "bg-muted"}`}>
+                      {t.status === "open" ? "Открыт" : t.status === "in_progress" ? "В работе" : "Закрыт"}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground flex items-center gap-0.5">
+                      <Clock className="h-2 w-2" />{formatTime(t.updated_at)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -226,7 +378,7 @@ const AdminSupport = () => {
         </div>
       </div>
 
-      {/* Chat - right panel */}
+      {/* Chat */}
       <div className={`flex flex-col flex-1 min-w-0 ${!selectedTicket ? "hidden lg:flex" : "flex"}`}>
         {!selectedTicket ? (
           <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
@@ -237,19 +389,23 @@ const AdminSupport = () => {
           </div>
         ) : (
           <>
-            {/* Chat header */}
+            {/* Header */}
             <div className="p-2 border-b shrink-0 flex items-center justify-between">
               <div className="flex items-center gap-2 min-w-0">
                 <Button variant="ghost" size="sm" className="h-6 w-6 p-0 lg:hidden" onClick={() => setSelectedTicket(null)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold truncate">{selectedTicket.subject}</p>
+                  <div className="flex items-center gap-1">
+                    {channelIcons[selectedTicket.channel || "web"]}
+                    <p className="text-xs font-bold truncate">{selectedTicket.subject}</p>
+                  </div>
                   <button
                     className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
                     onClick={() => navigate(`/admin/users/${selectedTicket.user_id}`)}
                   >
-                    <User className="h-2 w-2" />{profilesMap[selectedTicket.user_id] || selectedTicket.user_id.slice(0, 8)}
+                    <User className="h-2 w-2" />
+                    {profilesMap[selectedTicket.user_id] || (selectedTicket.channel === "telegram" ? "Telegram User" : selectedTicket.user_id.slice(0, 8))}
                   </button>
                 </div>
               </div>
@@ -270,7 +426,8 @@ const AdminSupport = () => {
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.is_admin ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[70%] rounded-lg px-3 py-1.5 ${msg.is_admin ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                    <p className="text-xs whitespace-pre-wrap">{msg.message}</p>
+                    {msg.message && <p className="text-xs whitespace-pre-wrap">{msg.message}</p>}
+                    <MessageAttachment msg={msg} onImageClick={setViewerImage} />
                     <p className={`text-[9px] mt-0.5 ${msg.is_admin ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                       {formatFullTime(msg.created_at)}
                     </p>
@@ -282,7 +439,23 @@ const AdminSupport = () => {
 
             {/* Input */}
             {selectedTicket.status !== "closed" && (
-              <div className="p-2 border-t shrink-0 flex gap-2">
+              <div className="p-2 border-t shrink-0 flex gap-2 items-center">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  accept="image/*,audio/*,video/*,.pdf,.doc,.docx"
+                  onChange={handleFileSelect}
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 shrink-0"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  <Paperclip className="h-4 w-4" />
+                </Button>
                 <Input
                   placeholder="Написать ответ..."
                   value={newMessage}
@@ -290,7 +463,7 @@ const AdminSupport = () => {
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                   className="h-8 text-xs"
                 />
-                <Button size="sm" className="h-8 px-3" onClick={sendMessage} disabled={!newMessage.trim() || sending}>
+                <Button size="sm" className="h-8 px-3" onClick={() => sendMessage()} disabled={(!newMessage.trim() && !uploading) || sending}>
                   <Send className="h-3 w-3" />
                 </Button>
               </div>
@@ -298,6 +471,13 @@ const AdminSupport = () => {
           </>
         )}
       </div>
+
+      {/* Image viewer */}
+      <ImageViewer
+        src={viewerImage || ""}
+        open={!!viewerImage}
+        onOpenChange={(open) => { if (!open) setViewerImage(null); }}
+      />
     </div>
   );
 };
