@@ -100,7 +100,7 @@ const AdminUserDetail = () => {
     setSaving(true);
     try {
       const { error } = await supabase.from("profiles").update({
-        display_name: editName, bio: editBio, updated_at: new Date().toISOString(),
+        display_name: editName, bio: editBio, discount: parseFloat(editDiscount) || 0, updated_at: new Date().toISOString(),
       }).eq("id", userId);
       if (error) throw error;
       await logAuditAction("update_user_profile", "user", userId, { display_name: editName });
