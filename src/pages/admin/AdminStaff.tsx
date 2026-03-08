@@ -256,8 +256,8 @@ const AdminStaff = () => {
                 <DialogHeader><DialogTitle>Добавить сотрудника</DialogTitle></DialogHeader>
                 {createdCreds ? (
                   <div className="space-y-4">
-                    <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md p-4 space-y-2">
-                      <p className="text-sm font-medium text-green-800 dark:text-green-200">✅ Сотрудник создан!</p>
+                    <div className="bg-accent/50 border border-primary/20 rounded-md p-4 space-y-2">
+                      <p className="text-sm font-medium text-primary">✅ Сотрудник создан!</p>
                       <div>
                         <Label className="text-xs text-muted-foreground">Email</Label>
                         <p className="text-sm font-mono">{createdCreds.email}</p>
