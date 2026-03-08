@@ -53,9 +53,14 @@ export function TwoFactorGate({ children, userId }: TwoFactorGateProps) {
       setCooldown(60);
       toast.success("Код отправлен!");
     } catch (e: any) {
-      if (e.message?.includes("Подождите")) {
-        setCooldown(60);
+      const msg = e.message || "";
+      if (msg.includes("Подождите") || msg.includes("429")) {
+        // Code was already sent recently — just show the input
+        setCooldown(30);
         setCodeSent(true);
+        setChannels({ telegram: false, email: true });
+        setSending(false);
+        return;
       }
       toast.error(e.message || "Ошибка отправки кода");
     }
