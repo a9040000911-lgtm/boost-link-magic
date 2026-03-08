@@ -758,9 +758,9 @@ const AdminServices = () => {
                         <TableHead className="px-2">SID</TableHead>
                         <TableHead className="px-2">Услуга</TableHead>
                         <TableHead className="px-2 w-[90px]">Сеть</TableHead>
-                        <TableHead className="px-2 w-[80px] text-right">Закупка</TableHead>
+                        <TableHead className="px-2 w-[90px] text-right">Закупка</TableHead>
                         <TableHead className="px-2 w-[60px] text-right">Нац.%</TableHead>
-                        <TableHead className="px-2 w-[80px] text-right">Наша цена</TableHead>
+                        <TableHead className="px-2 w-[90px] text-right">Наша цена</TableHead>
                         <TableHead className="px-2 w-[80px]">Привязки</TableHead>
                         <TableHead className="px-2 w-[80px]"></TableHead>
                       </TableRow>
