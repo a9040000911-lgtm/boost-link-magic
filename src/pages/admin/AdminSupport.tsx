@@ -332,6 +332,9 @@ const AdminSupport = () => {
       msgData.attachment_type = attachmentData.type;
       msgData.attachment_name = attachmentData.name;
     }
+    if (replyTo) {
+      msgData.reply_to_id = replyTo.id;
+    }
 
     await supabase.from("support_messages").insert(msgData);
 
