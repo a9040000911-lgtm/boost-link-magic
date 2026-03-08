@@ -773,8 +773,6 @@ const AdminSupport = () => {
             })
           )}
         </div>
-      </div>
-
       </ResizablePanel>
       <ResizableHandle withHandle />
       {/* Chat */}
