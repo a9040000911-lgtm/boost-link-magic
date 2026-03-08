@@ -683,6 +683,10 @@ const AdminSupport = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
+                  {/* Rules button */}
+                  <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setShowRules(!showRules)} title="Правила для сотрудников">
+                    <BookOpen className="h-3 w-3" />
+                  </Button>
                   <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-orange-500 hover:text-orange-600" onClick={addWarning} title="Предупреждение">
                     <AlertTriangle className="h-3 w-3" />
                   </Button>
