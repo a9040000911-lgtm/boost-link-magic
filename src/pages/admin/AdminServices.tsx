@@ -125,6 +125,11 @@ const AdminServices = () => {
   const [showBulkBar, setShowBulkBar] = useState(false);
   const [markupLadder, setMarkupLadder] = useState<MarkupTier[]>(DEFAULT_MARKUP_LADDER);
 
+  // Price display toggles
+  const [priceMode, setPriceMode] = useState<"per1k" | "per1">("per1k");
+  const [currency, setCurrency] = useState<"RUB" | "USD">("RUB");
+  const [usdRate, setUsdRate] = useState<number>(0);
+
   useEffect(() => {
     if (!user) return;
     loadAll();
