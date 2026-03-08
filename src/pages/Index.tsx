@@ -148,11 +148,12 @@ const Index = () => {
             {(siteContent?.heroTitle || "COOLLIKE").split("").map((letter, i) => (
               <motion.span
                 key={i}
-                className="inline-block text-white"
+                className="inline-block"
                 style={{
-                  WebkitTextStroke: "1px rgba(255,255,255,0.7)",
-                  textShadow: "0 0 20px rgba(168,85,247,0.5), 0 4px 12px rgba(0,0,0,0.3)",
-                  filter: "drop-shadow(0 2px 6px rgba(168,85,247,0.4))",
+                  background: "linear-gradient(180deg, #c084fc 0%, #a855f7 50%, #7c3aed 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  filter: "drop-shadow(0 2px 8px rgba(168,85,247,0.3))",
                   animationDelay: `${i * 0.15}s`,
                 }}
                 initial={{ opacity: 0, y: -20, rotate: -10 }}
