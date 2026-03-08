@@ -188,7 +188,8 @@ const AdminServices = () => {
   };
 
   const createFromProvider = async (ps: ProviderService) => {
-    const price = ps.our_price ?? ps.rate * (1 + (ps.markup_percent ?? 30) / 100);
+    const ladderMarkup = getMarkupForRate(ps.rate, markupLadder);
+    const price = ps.our_price ?? ps.rate * (1 + (ps.markup_percent ?? ladderMarkup) / 100);
     const { data, error } = await supabase.from("services").insert({
       name: ps.name, description: ps.description, category: ps.category,
       network: ps.network, min_quantity: ps.min_quantity, max_quantity: ps.max_quantity, price,
