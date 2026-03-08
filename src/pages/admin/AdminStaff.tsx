@@ -110,7 +110,7 @@ const AdminStaff = () => {
 
   const removeStaff = async (userId: string, role: string) => {
     if (!confirm("Удалить роль у сотрудника?")) return;
-    await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role);
+    await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as any);
     await supabase.from("staff_permissions").delete().eq("user_id", userId);
     await logAuditAction("remove_role", "staff", userId, { role });
     toast.success("Роль удалена");
