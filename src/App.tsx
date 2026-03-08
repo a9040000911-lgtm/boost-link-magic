@@ -31,6 +31,7 @@ const App = () => (
             <Route index element={<DashboardOverview />} />
             <Route path="orders" element={<DashboardOrders />} />
             <Route path="projects" element={<DashboardProjects />} />
+            <Route path="projects/:projectId" element={<DashboardProjectDetail />} />
             <Route path="settings" element={<DashboardSettings />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
