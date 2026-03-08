@@ -8,6 +8,7 @@ const socials = [
 ];
 
 const legalLinks = [
+  { title: 'Каталог услуг', to: '/catalog' },
   { title: 'Контакты', to: '/page/contacts' },
   { title: 'Помощь', to: '/page/help' },
   { title: 'Возврат средств', to: '/page/refund' },

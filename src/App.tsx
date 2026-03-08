@@ -34,6 +34,7 @@ import AdminWidgets from "./pages/admin/AdminWidgets";
 import CookieConsent from "./components/CookieConsent";
 import SiteWidgets from "./components/SiteWidgets";
 import DynamicPage from "./pages/DynamicPage";
+import Catalog from "./pages/Catalog";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/catalog" element={<Catalog />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
