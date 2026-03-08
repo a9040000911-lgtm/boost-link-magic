@@ -239,7 +239,21 @@ const DashboardOrders = () => {
                       {Number(order.price).toFixed(2)} ₽
                     </TableCell>
                     <TableCell className="px-3 py-3 text-center">
-                      <Badge variant={variant}>{label}</Badge>
+                      <div className="flex flex-col items-center gap-1.5">
+                        <Badge variant={variant}>{label}</Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-[10px] gap-1 px-2 text-muted-foreground hover:text-primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/dashboard/support?new=1&order_id=${order.id}`);
+                          }}
+                        >
+                          <MessageSquare className="h-3 w-3" />
+                          Тикет
+                        </Button>
+                      </div>
                     </TableCell>
                     <TableCell className="px-3 py-3 text-center">
                       {isExpanded ? (
