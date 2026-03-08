@@ -885,12 +885,19 @@ const AdminSupport = () => {
                       </div>
                     </PopoverContent>
                   </Popover>
-                  <Input
+                  <Textarea
                     placeholder="Написать ответ..."
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                    className="h-8 text-xs"
+                    className="min-h-[36px] max-h-[200px] text-xs resize-none overflow-y-auto"
+                    rows={1}
+                    ref={(el) => {
+                      if (el) {
+                        el.style.height = "auto";
+                        el.style.height = Math.min(el.scrollHeight, 200) + "px";
+                      }
+                    }}
                   />
                   <Button size="sm" className="h-8 px-3" onClick={() => sendMessage()} disabled={(!newMessage.trim() && !uploading) || sending}>
                     <Send className="h-3 w-3" />
