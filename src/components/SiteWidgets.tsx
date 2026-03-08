@@ -18,7 +18,7 @@ interface FileUploadProps {
   onAfterScreenshot?: () => void;
 }
 
-const FileUpload = ({ file, preview, onFileChange, accent = "primary" }: FileUploadProps) => {
+const FileUpload = ({ file, preview, onFileChange, accent = "primary", onBeforeScreenshot, onAfterScreenshot }: FileUploadProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
