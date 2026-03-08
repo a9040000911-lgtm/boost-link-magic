@@ -735,16 +735,17 @@ const AdminSupport = () => {
               )}
             </div>
 
-            {/* Staff Rules Panel */}
-            {showRules && staffRules && (
-              <div className="border-b bg-muted/30 p-2 shrink-0">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-bold flex items-center gap-1"><BookOpen className="h-3 w-3" /> Правила для сотрудников</span>
-                  <button onClick={() => setShowRules(false)} className="text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /></button>
+            {/* Staff Rules Dialog */}
+            <Dialog open={showRules} onOpenChange={setShowRules}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2"><BookOpen className="h-4 w-4" /> Правила для сотрудников</DialogTitle>
+                </DialogHeader>
+                <div className="text-sm text-muted-foreground whitespace-pre-wrap max-h-[60vh] overflow-y-auto">
+                  {staffRules || "Правила ещё не добавлены. Перейдите в Настройки → Поддержка чтобы добавить правила."}
                 </div>
-                <div className="text-[10px] text-muted-foreground whitespace-pre-wrap max-h-[120px] overflow-y-auto">{staffRules}</div>
-              </div>
-            )}
+              </DialogContent>
+            </Dialog>
 
             {/* AI Suggestions Widget */}
             {aiEnabled && activeTicket && activeTicket.status !== "closed" && (
