@@ -1,4 +1,4 @@
-import { Package, ShoppingCart, Users, MessageSquare, LogOut, ArrowLeft, BarChart3, Shield, Server } from "lucide-react";
+import { Package, ShoppingCart, Users, MessageSquare, LogOut, ArrowLeft, BarChart3, Shield, Server, Receipt } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 const adminMenuItems = [
   { title: "Дашборд", url: "/admin", icon: BarChart3, end: true },
   { title: "Заказы", url: "/admin/orders", icon: ShoppingCart },
+  { title: "Транзакции", url: "/admin/transactions", icon: Receipt },
   { title: "Пользователи", url: "/admin/users", icon: Users },
   { title: "Услуги", url: "/admin/services", icon: Package },
   { title: "Провайдеры", url: "/admin/providers", icon: Server },

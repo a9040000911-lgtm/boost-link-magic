@@ -23,6 +23,7 @@ import AdminUserDetail from "./pages/admin/AdminUserDetail";
 import AdminSupport from "./pages/admin/AdminSupport";
 import AdminStaff from "./pages/admin/AdminStaff";
 import AdminProviders from "./pages/admin/AdminProviders";
+import AdminTransactions from "./pages/admin/AdminTransactions";
 import CookieConsent from "./components/CookieConsent";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const App = () => (
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="orders" element={<AdminOrders />} />
+            <Route path="transactions" element={<AdminTransactions />} />
             <Route path="services" element={<AdminServices />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="users/:userId" element={<AdminUserDetail />} />
