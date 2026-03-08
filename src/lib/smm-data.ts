@@ -57,6 +57,17 @@ export interface DbLinkPattern {
   is_enabled: boolean;
 }
 
+// DB platform type
+export interface DbPlatform {
+  id: string;
+  key: string;
+  name: string;
+  domains: string[];
+  icon: string | null;
+  color: string | null;
+  is_enabled: boolean;
+}
+
 // ──── Platform detection ────
 
 const platformPatterns: { platform: Platform; patterns: RegExp[] }[] = [
