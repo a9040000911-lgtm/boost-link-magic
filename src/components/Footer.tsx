@@ -32,10 +32,10 @@ const Footer = () => {
         </div>
 
         <div className="flex flex-col items-center md:items-end gap-1">
-          <Link to="/privacy" className="text-xs text-muted-foreground hover:text-foreground transition-colors underline">
+          <Link to="/privacy" className="text-xs text-background/60 hover:text-background transition-colors underline">
             Политика конфиденциальности
           </Link>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-background/60">
             © {new Date().getFullYear()} SMM Panel. Все права защищены.
           </p>
         </div>
