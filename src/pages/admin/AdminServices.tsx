@@ -85,7 +85,7 @@ const AdminServices = () => {
 
   // Edit dialog
   const [editService, setEditService] = useState<Service | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", description: "", category: "", network: "", min_quantity: "", max_quantity: "", price: "" });
+  const [editForm, setEditForm] = useState({ name: "", description: "", category: "", network: "", min_quantity: "", max_quantity: "", price: "", speed: "medium", guarantee: "none", warning_text: "" });
 
   // Mapping add state inside edit dialog
   const [addMappingOpen, setAddMappingOpen] = useState(false);
