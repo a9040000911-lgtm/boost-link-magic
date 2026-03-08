@@ -855,6 +855,36 @@ const AdminSupport = () => {
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
                     <Paperclip className="h-4 w-4" />
                   </Button>
+                  {/* Templates popover */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0" title="Шаблоны ответов">
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[280px] p-0" align="start" side="top">
+                      <div className="p-2 border-b">
+                        <p className="text-[10px] font-bold">Шаблоны ответов</p>
+                      </div>
+                      <div className="max-h-[250px] overflow-y-auto">
+                        {responseTemplates.length === 0 ? (
+                          <p className="text-[10px] text-muted-foreground p-3 text-center">Нет шаблонов</p>
+                        ) : responseTemplates.map(tpl => (
+                          <button
+                            key={tpl.id}
+                            onClick={() => applyTemplate(tpl.content)}
+                            className="w-full text-left p-2 hover:bg-muted/50 transition-colors border-b last:border-b-0"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-medium">{tpl.title}</span>
+                              {tpl.shortcut && <Badge variant="secondary" className="text-[8px] px-1 h-4">{tpl.shortcut}</Badge>}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5">{tpl.content}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                   <Input
                     placeholder="Написать ответ..."
                     value={newMessage}
