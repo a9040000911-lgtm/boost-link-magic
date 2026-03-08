@@ -130,6 +130,7 @@ const DashboardOrders = () => {
                  <TableHeader>
                    <TableRow>
                      <TableHead>Услуга</TableHead>
+                     <TableHead>Ссылка</TableHead>
                      <TableHead>Платформа</TableHead>
                      <TableHead>Кол-во</TableHead>
                      <TableHead>Цена</TableHead>
@@ -145,6 +146,17 @@ const DashboardOrders = () => {
                     return (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium max-w-[200px] truncate">{order.service_name}</TableCell>
+                        <TableCell className="max-w-[180px]">
+                          <a
+                            href={order.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline truncate block"
+                            title={order.link}
+                          >
+                            {order.link.replace(/^https?:\/\/(www\.)?/, "").slice(0, 30)}{order.link.length > 40 ? "…" : ""}
+                          </a>
+                        </TableCell>
                         <TableCell>{order.platform || "—"}</TableCell>
                         <TableCell>{order.quantity}</TableCell>
                         <TableCell>{Number(order.price).toFixed(2)} ₽</TableCell>

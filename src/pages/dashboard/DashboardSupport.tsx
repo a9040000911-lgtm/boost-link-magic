@@ -452,6 +452,20 @@ const DashboardSupport = () => {
             </div>
           )}
 
+          {/* Identifier field — always shown for context */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">
+              ID заказа, email или ссылка {selectedTopic?.requires_order_id ? "*" : "(необязательно)"}
+            </label>
+            <Input
+              value={contactIdentifier}
+              onChange={(e) => setContactIdentifier(e.target.value)}
+              placeholder="Например: #a1b2c3d4, user@mail.ru или https://instagram.com/..."
+              className="text-sm"
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">Укажите данные, чтобы мы быстрее нашли ваш заказ</p>
+          </div>
+
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Сообщение *</label>
             <Textarea
