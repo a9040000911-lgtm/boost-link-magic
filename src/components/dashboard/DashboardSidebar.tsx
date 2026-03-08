@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingCart, FolderKanban, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, FolderKanban, Settings, LogOut, Wallet } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 const menuItems = [
   { title: "Обзор", url: "/dashboard", icon: LayoutDashboard },
   { title: "Заказы", url: "/dashboard/orders", icon: ShoppingCart },
+  { title: "Транзакции", url: "/dashboard/transactions", icon: Wallet },
   { title: "Проекты", url: "/dashboard/projects", icon: FolderKanban },
   { title: "Настройки", url: "/dashboard/settings", icon: Settings },
 ];

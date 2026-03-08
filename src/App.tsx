@@ -13,6 +13,7 @@ import DashboardOrders from "./pages/dashboard/DashboardOrders";
 import DashboardProjects from "./pages/dashboard/DashboardProjects";
 import DashboardSettings from "./pages/dashboard/DashboardSettings";
 import DashboardProjectDetail from "./pages/dashboard/DashboardProjectDetail";
+import DashboardTransactions from "./pages/dashboard/DashboardTransactions";
 import CookieConsent from "./components/CookieConsent";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<DashboardOverview />} />
             <Route path="orders" element={<DashboardOrders />} />
+            <Route path="transactions" element={<DashboardTransactions />} />
             <Route path="projects" element={<DashboardProjects />} />
             <Route path="projects/:projectId" element={<DashboardProjectDetail />} />
             <Route path="settings" element={<DashboardSettings />} />
