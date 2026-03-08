@@ -713,7 +713,7 @@ const Catalog = () => {
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Выбрано</p>
                       <h3 className="text-sm font-bold text-foreground line-clamp-2">{selectedService.name}</h3>
                       <p className={`text-lg font-bold mt-1 ${activeNetConfig?.color || 'text-primary'}`}>
-                        {(selectedService.price / 1000).toFixed(2)} ₽ <span className="text-xs font-normal text-muted-foreground">/ шт</span>
+                        {fmtPrice(selectedService.price / 1000)} ₽ <span className="text-xs font-normal text-muted-foreground">/ шт</span>
                       </p>
                       {/* Speed & Guarantee */}
                       <div className="flex items-center gap-3 mt-1.5">
