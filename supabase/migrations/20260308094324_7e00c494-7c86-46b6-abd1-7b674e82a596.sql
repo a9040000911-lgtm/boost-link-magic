@@ -1,0 +1,1 @@
+ALTER TABLE public.support_messages ADD COLUMN reply_to_id uuid REFERENCES public.support_messages(id) ON DELETE SET NULL DEFAULT NULL;

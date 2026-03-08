@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { MessageSquare, Send, Search, User, Clock, ChevronLeft, Paperclip, Mail, MessageCircle, AlertTriangle, Ban, ShieldOff, ShieldCheck, Timer, TimerOff } from "lucide-react";
+import { MessageSquare, Send, Search, User, Clock, ChevronLeft, Paperclip, Mail, MessageCircle, AlertTriangle, Ban, ShieldOff, ShieldCheck, Timer, TimerOff, Reply, X } from "lucide-react";
 import { ImageViewer } from "@/components/support/ImageViewer";
 import { AudioPlayer } from "@/components/support/AudioPlayer";
 import { VideoPlayer } from "@/components/support/VideoPlayer";
@@ -39,6 +39,7 @@ interface Message {
   attachment_url?: string | null;
   attachment_type?: string | null;
   attachment_name?: string | null;
+  reply_to_id?: string | null;
 }
 
 interface ClientGroup {
@@ -177,6 +178,7 @@ const AdminSupport = () => {
   const [uploading, setUploading] = useState(false);
   const [viewerImage, setViewerImage] = useState<string | null>(null);
   const [banDialogOpen, setBanDialogOpen] = useState(false);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -330,6 +332,9 @@ const AdminSupport = () => {
       msgData.attachment_type = attachmentData.type;
       msgData.attachment_name = attachmentData.name;
     }
+    if (replyTo) {
+      msgData.reply_to_id = replyTo.id;
+    }
 
     await supabase.from("support_messages").insert(msgData);
 
@@ -362,6 +367,7 @@ const AdminSupport = () => {
     }
 
     setNewMessage("");
+    setReplyTo(null);
     setSending(false);
   };
 
@@ -660,12 +666,43 @@ const AdminSupport = () => {
                   );
                 }
                 const msg = item.msg;
+                const repliedMsg = msg.reply_to_id ? messages.find(m => m.id === msg.reply_to_id) : null;
                 return (
-                  <div key={msg.id} className={`flex ${msg.is_admin ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[70%] rounded-lg px-3 py-1.5 ${msg.is_admin ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                      {msg.message && <p className="text-xs whitespace-pre-wrap">{msg.message}</p>}
-                      <MessageAttachment msg={msg} onImageClick={setViewerImage} />
-                      <p className={`text-[9px] mt-0.5 ${msg.is_admin ? "text-primary-foreground/60" : "text-muted-foreground"}`}>{formatFullTime(msg.created_at)}</p>
+                  <div key={msg.id} className={`group flex ${msg.is_admin ? "justify-end" : "justify-start"}`}>
+                    <div className="flex items-center gap-1 max-w-[70%]">
+                      {!msg.is_admin && (
+                        <button
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
+                          onClick={() => setReplyTo(msg)}
+                          title="Ответить"
+                        >
+                          <Reply className="h-3 w-3 text-muted-foreground" />
+                        </button>
+                      )}
+                      <div className={`rounded-lg px-3 py-1.5 ${msg.is_admin ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                        {repliedMsg && (
+                          <div className={`mb-1 pl-2 border-l-2 ${msg.is_admin ? "border-primary-foreground/40" : "border-primary/40"} rounded-sm`}>
+                            <p className={`text-[10px] font-medium ${msg.is_admin ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                              {repliedMsg.is_admin ? "Поддержка" : profilesMap[repliedMsg.user_id] || "Клиент"}
+                            </p>
+                            <p className={`text-[10px] truncate max-w-[200px] ${msg.is_admin ? "text-primary-foreground/60" : "text-muted-foreground/80"}`}>
+                              {repliedMsg.message || "📎 Вложение"}
+                            </p>
+                          </div>
+                        )}
+                        {msg.message && <p className="text-xs whitespace-pre-wrap">{msg.message}</p>}
+                        <MessageAttachment msg={msg} onImageClick={setViewerImage} />
+                        <p className={`text-[9px] mt-0.5 ${msg.is_admin ? "text-primary-foreground/60" : "text-muted-foreground"}`}>{formatFullTime(msg.created_at)}</p>
+                      </div>
+                      {msg.is_admin && (
+                        <button
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
+                          onClick={() => setReplyTo(msg)}
+                          title="Ответить"
+                        >
+                          <Reply className="h-3 w-3 text-muted-foreground" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -675,21 +712,37 @@ const AdminSupport = () => {
 
             {/* Input */}
             {activeTicket && activeTicket.status !== "closed" && !isUserBanned && (
-              <div className="p-2 border-t shrink-0 flex gap-2 items-center">
-                <input ref={fileInputRef} type="file" className="hidden" accept="image/*,audio/*,video/*,.pdf,.doc,.docx" onChange={handleFileSelect} />
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                  <Paperclip className="h-4 w-4" />
-                </Button>
-                <Input
-                  placeholder="Написать ответ..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                  className="h-8 text-xs"
-                />
-                <Button size="sm" className="h-8 px-3" onClick={() => sendMessage()} disabled={(!newMessage.trim() && !uploading) || sending}>
-                  <Send className="h-3 w-3" />
-                </Button>
+              <div className="border-t shrink-0">
+                {replyTo && (
+                  <div className="px-3 py-1.5 bg-muted/50 flex items-center gap-2 border-b">
+                    <Reply className="h-3 w-3 text-primary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-medium text-muted-foreground">
+                        {replyTo.is_admin ? "Поддержка" : profilesMap[replyTo.user_id] || "Клиент"}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">{replyTo.message || "📎 Вложение"}</p>
+                    </div>
+                    <button onClick={() => setReplyTo(null)} className="text-muted-foreground hover:text-foreground">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+                <div className="p-2 flex gap-2 items-center">
+                  <input ref={fileInputRef} type="file" className="hidden" accept="image/*,audio/*,video/*,.pdf,.doc,.docx" onChange={handleFileSelect} />
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    placeholder="Написать ответ..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                    className="h-8 text-xs"
+                  />
+                  <Button size="sm" className="h-8 px-3" onClick={() => sendMessage()} disabled={(!newMessage.trim() && !uploading) || sending}>
+                    <Send className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
             )}
 
