@@ -346,45 +346,25 @@ const Catalog = () => {
                 </div>
               </div>
 
-              {/* Service Cards Carousel */}
+              {/* Service Cards Grid */}
               {categoryServices.length > 0 ? (
                 <div className="relative mb-8">
-                  <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-lg font-bold text-foreground">
-                      {activeCategory}
-                    </h2>
-                    {categoryServices.length > 3 && (
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => scrollCarousel("left")}
-                          className="w-8 h-8 rounded-full bg-muted/60 hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => scrollCarousel("right")}
-                          className="w-8 h-8 rounded-full bg-muted/60 hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <h2 className="text-lg font-bold text-foreground mb-3">
+                    {activeCategory}
+                  </h2>
 
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={activeCategory}
-                      ref={carouselRef}
-                      initial={{ opacity: 0, x: 30 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -30 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
                       transition={{ duration: 0.3, ease: 'easeOut' }}
-                      className="flex gap-3 overflow-x-auto pb-3 pt-1 px-1 scrollbar-none snap-x snap-mandatory"
+                      className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"
                     >
                       {categoryServices.map((service, i) => {
                         const isSelected = selectedService?.id === service.id;
                         const pricePerUnit = service.price / 1000;
-                        // Mark cheapest service as popular
                         const minPrice = Math.min(...categoryServices.map(s => s.price));
                         const isPopular = service.price === minPrice && categoryServices.length > 1;
                         return (
@@ -392,14 +372,14 @@ const Catalog = () => {
                             key={service.id}
                             initial={{ opacity: 0, y: 15 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3, delay: i * 0.06 }}
+                            transition={{ duration: 0.3, delay: i * 0.04 }}
                             onClick={() => {
                               setSelectedService(service);
                               setQuantity(Math.max(service.min_quantity, 10));
                             }}
                             whileHover={{ y: -2 }}
                             whileTap={{ scale: 0.98 }}
-                            className={`snap-start shrink-0 w-[220px] p-4 rounded-2xl text-left transition-all relative overflow-hidden ${
+                            className={`p-4 rounded-2xl text-left transition-all relative overflow-hidden ${
                               isSelected
                                 ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/10'}`
                                 : isPopular
@@ -421,7 +401,7 @@ const Catalog = () => {
                               {service.name}
                             </h3>
                             {service.description && (
-                              <p className="text-xs text-muted-foreground line-clamp-3 mb-3 min-h-[3rem]">
+                              <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
                                 {service.description}
                               </p>
                             )}
