@@ -1,7 +1,8 @@
-import { LayoutDashboard, ShoppingCart, FolderKanban, Settings, LogOut, Wallet, Shield, MessageSquare, Sparkles, ShieldAlert } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, FolderKanban, Settings, LogOut, Wallet, Shield, MessageSquare, Sparkles, ShieldAlert, Home, PlusCircle } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminRole } from "@/hooks/useAdminRole";
+import { Link } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
