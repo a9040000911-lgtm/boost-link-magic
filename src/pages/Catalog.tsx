@@ -445,21 +445,21 @@ const Catalog = () => {
                     }}
                     className={`relative ${
                       isActive
-                        ? `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl ${net.bg} text-white shadow-lg ${net.shadow}`
-                        : "w-9 h-9 rounded-xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border hover:shadow-sm"
+                        ? `inline-flex items-center gap-2 px-4 py-2.5 rounded-xl ${net.bg} text-white shadow-lg ${net.shadow}`
+                        : "w-11 h-11 rounded-xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border hover:shadow-sm"
                     }`}
                     title={net.label}
                   >
                     <motion.div
                       layout
-                      className="flex items-center gap-1.5"
+                      className="flex items-center gap-2"
                       transition={{
                         type: "spring",
                         stiffness: 500,
                         damping: 35,
                       }}
                     >
-                      <PlatformIcon platform={net.icon} className="w-4 h-4" />
+                      <PlatformIcon platform={net.icon} className="w-7 h-7" />
                       <AnimatePresence mode="popLayout">
                         {isActive && (
                           <motion.span
@@ -467,7 +467,7 @@ const Catalog = () => {
                             animate={{ opacity: 1, width: "auto" }}
                             exit={{ opacity: 0, width: 0 }}
                             transition={{ duration: 0.2, ease: "easeInOut" }}
-                            className="text-xs font-semibold hidden sm:inline overflow-hidden whitespace-nowrap"
+                            className="text-sm font-semibold hidden sm:inline overflow-hidden whitespace-nowrap"
                           >
                             {net.label}
                           </motion.span>
@@ -647,7 +647,7 @@ const Catalog = () => {
                                 onClick={() => selectService(service)}
                                 whileHover={{ y: -2 }}
                                 whileTap={{ scale: 0.98 }}
-                                className={`relative p-4 rounded-2xl text-left transition-all flex flex-col h-auto ${
+                                className={`relative p-5 rounded-2xl text-left transition-all flex flex-col min-h-[220px] ${
                                   isSelected
                                     ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/10'}`
                                     : isPopular
@@ -657,46 +657,46 @@ const Catalog = () => {
                               >
                                 {/* Badges top-right */}
                                 {isPopular && !isSelected && (
-                                  <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center gap-1">
-                                    <Sparkles className="w-3 h-3" /> Хит
+                                  <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-primary/15 text-primary text-xs font-bold flex items-center gap-1">
+                                    <Sparkles className="w-3.5 h-3.5" /> Хит
                                   </div>
                                 )}
                                 {isSelected && (
-                                  <div className={`absolute top-3 right-3 w-5 h-5 rounded-full ${activeNetConfig?.bg || 'bg-primary'} flex items-center justify-center`}>
-                                    <Check className="w-3 h-3 text-white" />
+                                  <div className={`absolute top-3 right-3 w-6 h-6 rounded-full ${activeNetConfig?.bg || 'bg-primary'} flex items-center justify-center`}>
+                                    <Check className="w-3.5 h-3.5 text-white" />
                                   </div>
                                 )}
 
                                 {/* Title */}
-                                <h3 className="font-bold text-sm text-foreground mb-2 pr-8">{service.name}</h3>
+                                <h3 className="font-bold text-base text-foreground mb-2 pr-8">{service.name}</h3>
 
                                 {/* Description — adaptive, no line clamp */}
                                 {service.description && (
-                                  <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                                  <p className="text-sm text-muted-foreground leading-relaxed mb-3">
                                     {service.description}
                                   </p>
                                 )}
 
                                 {/* Speed & Guarantee */}
-                                <div className="flex items-center gap-2 mb-2">
+                                <div className="flex items-center gap-2.5 mb-3">
                                   <SpeedBadge speed={service.speed} />
                                   <span className="text-muted-foreground/30">·</span>
                                   <GuaranteeBadge guarantee={service.guarantee} />
                                 </div>
 
                                 {/* Requirements — prominent */}
-                                <div className="flex flex-wrap gap-1.5 mb-3">
-                                  <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-semibold ${activeNetConfig?.color || 'text-primary'} bg-primary/10`}>
+                                <div className="flex flex-wrap gap-2 mb-3">
+                                  <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${activeNetConfig?.color || 'text-primary'} bg-primary/10`}>
                                     от {service.min_quantity.toLocaleString()} шт
                                   </span>
-                                  <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-semibold ${activeNetConfig?.color || 'text-primary'} bg-primary/10`}>
+                                  <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${activeNetConfig?.color || 'text-primary'} bg-primary/10`}>
                                     до {service.max_quantity.toLocaleString()} шт
                                   </span>
                                 </div>
 
                                 {/* Price — bottom */}
                                 <div className="mt-auto">
-                                  <span className={`inline-block px-3 py-1.5 rounded-full text-xs font-bold ${
+                                  <span className={`inline-block px-4 py-2 rounded-full text-sm font-bold ${
                                     isSelected || isPopular
                                       ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
                                       : 'bg-muted text-foreground'
