@@ -69,7 +69,7 @@ export default function DashboardBonuses() {
     if (prizesRes.data) setPrizes(prizesRes.data as WheelPrize[]);
     if (earnedRes.data) setEarnedIds(new Set(earnedRes.data.map((e: any) => e.achievement_id)));
     if (spartanMeRes.data) setSpartanSlot(spartanMeRes.data.slot_number);
-    if (spartanCountRes.count !== null) setSpartanCount(spartanCountRes.count);
+    if (spartanCountRes.data !== null) setSpartanCount(spartanCountRes.data);
     if (refCodeRes.data) setReferralCode(refCodeRes.data.code);
     if (refCountRes.count !== null) setReferralCount(refCountRes.count);
 
