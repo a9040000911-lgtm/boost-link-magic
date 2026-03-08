@@ -268,6 +268,7 @@ const Index = () => {
         <>
           <MarketingSection />
           <TestimonialsSection />
+          <Footer />
         </>
       )}
     </div>
