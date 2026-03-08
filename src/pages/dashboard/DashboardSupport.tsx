@@ -65,6 +65,7 @@ const channelLabels: Record<string, string> = {
 
 const DashboardSupport = () => {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"list" | "chat" | "new">("list");
@@ -72,8 +73,13 @@ const DashboardSupport = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [msgLoading, setMsgLoading] = useState(false);
 
+  // Topics & orders
+  const [topics, setTopics] = useState<SupportTopic[]>([]);
+  const [userOrders, setUserOrders] = useState<UserOrder[]>([]);
+
   // New ticket form
-  const [newSubject, setNewSubject] = useState("");
+  const [selectedTopicId, setSelectedTopicId] = useState("");
+  const [selectedOrderId, setSelectedOrderId] = useState("");
   const [newMessage, setNewMessage] = useState("");
   const [newPriority, setNewPriority] = useState("normal");
   const [creating, setCreating] = useState(false);
@@ -85,11 +91,35 @@ const DashboardSupport = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load tickets
+  // Load tickets & topics
   useEffect(() => {
     if (!user) return;
     loadTickets();
+    loadTopics();
+    loadUserOrders();
   }, [user]);
+
+  // Handle URL params (e.g. ?new=1&order_id=xxx&topic=xxx)
+  useEffect(() => {
+    if (!topics.length) return;
+    const isNew = searchParams.get("new");
+    const orderIdParam = searchParams.get("order_id");
+    const topicParam = searchParams.get("topic");
+    if (isNew) {
+      setView("new");
+      if (orderIdParam) setSelectedOrderId(orderIdParam);
+      if (topicParam) {
+        const found = topics.find(t => t.name.toLowerCase().includes(topicParam.toLowerCase()));
+        if (found) setSelectedTopicId(found.id);
+      } else if (orderIdParam) {
+        // Auto-select first topic that requires order_id
+        const orderTopic = topics.find(t => t.requires_order_id);
+        if (orderTopic) setSelectedTopicId(orderTopic.id);
+      }
+      // Clear params
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, topics]);
 
   const loadTickets = async () => {
     const { data } = await supabase
