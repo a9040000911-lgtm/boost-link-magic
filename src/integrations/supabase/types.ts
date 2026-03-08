@@ -194,6 +194,45 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_alerts: {
+        Row: {
+          actor_id: string | null
+          alert_type: string
+          created_at: string
+          details: Json | null
+          id: string
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          user_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          alert_type: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          user_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          alert_type?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       link_patterns: {
         Row: {
           category_id: string | null
@@ -246,6 +285,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      order_idempotency: {
+        Row: {
+          created_at: string
+          idempotency_key: string
+          order_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          idempotency_key: string
+          order_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          idempotency_key?: string
+          order_id?: string | null
+        }
+        Relationships: []
       }
       orders: {
         Row: {
@@ -1080,6 +1137,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_idempotency_keys: { Args: never; Returns: undefined }
+      credit_balance: {
+        Args: { p_amount: number; p_user_id: string }
+        Returns: number
+      }
+      deduct_balance: {
+        Args: { p_amount: number; p_user_id: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
