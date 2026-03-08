@@ -143,12 +143,15 @@ const AdminServices = () => {
       min_quantity: parseInt(newService.min_quantity) || 100,
       max_quantity: parseInt(newService.max_quantity) || 10000,
       price: parseFloat(newService.price) || 0,
+      speed: newService.speed || "medium",
+      guarantee: newService.guarantee || "none",
+      warning_text: newService.warning_text || null,
     });
     if (error) { toast.error(error.message); return; }
     await logAuditAction("create_service", "service", undefined, { name: newService.name });
     toast.success("Услуга создана");
     setCreateOpen(false);
-    setNewService({ name: "", description: "", category: "", network: "", min_quantity: "100", max_quantity: "10000", price: "0" });
+    setNewService({ name: "", description: "", category: "", network: "", min_quantity: "100", max_quantity: "10000", price: "0", speed: "medium", guarantee: "none", warning_text: "" });
     await loadAll();
   };
 
