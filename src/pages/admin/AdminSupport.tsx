@@ -211,6 +211,8 @@ const AdminSupport = () => {
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
+  const [transcriptions, setTranscriptions] = useState<Record<string, string>>({});
+  const [transcribing, setTranscribing] = useState<Set<string>>(new Set());
 
   // Quick-switch tabs
   const MAX_TABS = 7;
