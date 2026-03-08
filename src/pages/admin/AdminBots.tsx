@@ -31,7 +31,7 @@ export default function AdminBots() {
   const [loading, setLoading] = useState(true);
   const [editingBot, setEditingBot] = useState<TelegramBot | null>(null);
   const [showEditor, setShowEditor] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(false);
+  const [showCreateFlow, setShowCreateFlow] = useState(false);
 
   const fetchBots = async () => {
     const { data } = await supabase.from("telegram_bots").select("*").order("created_at");
@@ -55,6 +55,7 @@ export default function AdminBots() {
     const { data, error } = await supabase.from("telegram_bots").insert(newBot as any).select().single();
     if (error) { toast.error("Ошибка создания бота"); return; }
     toast.success("Бот создан!");
+    setShowCreateFlow(false);
     setEditingBot(data as any);
     setShowEditor(true);
     fetchBots();
@@ -89,14 +90,9 @@ export default function AdminBots() {
           <h1 className="text-2xl font-bold">Telegram-боты</h1>
           <p className="text-sm text-muted-foreground">Управление ботами поддержки и заказов</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowTemplates(true)}>
-            <Sparkles className="mr-2 h-4 w-4" /> Из шаблона
-          </Button>
-          <Button onClick={() => createBot()}>
-            <Plus className="mr-2 h-4 w-4" /> Новый бот
-          </Button>
-        </div>
+        <Button onClick={() => setShowCreateFlow(true)}>
+          <Plus className="mr-2 h-4 w-4" /> Новый бот
+        </Button>
       </div>
 
       {loading ? (
@@ -109,14 +105,9 @@ export default function AdminBots() {
               <h3 className="font-semibold text-lg">Нет ботов</h3>
               <p className="text-sm text-muted-foreground mt-1">Создайте бота с нуля или выберите из шаблонов</p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowTemplates(true)}>
-                <Sparkles className="mr-2 h-4 w-4" /> Из шаблона
-              </Button>
-              <Button onClick={() => createBot()}>
-                <Plus className="mr-2 h-4 w-4" /> Создать
-              </Button>
-            </div>
+            <Button onClick={() => setShowCreateFlow(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Создать бота
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -175,13 +166,31 @@ export default function AdminBots() {
         </DialogContent>
       </Dialog>
 
-      {/* Template Gallery Dialog */}
-      <Dialog open={showTemplates} onOpenChange={setShowTemplates}>
+      {/* Create Flow Dialog — shows templates + blank option */}
+      <Dialog open={showCreateFlow} onOpenChange={setShowCreateFlow}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Шаблоны ботов</DialogTitle>
+            <DialogTitle>Создать бота</DialogTitle>
           </DialogHeader>
-          <BotTemplateGallery onSelect={(t) => { setShowTemplates(false); createBot(t); }} />
+          <div className="space-y-4">
+            <Card className="border-dashed cursor-pointer hover:border-primary/50 transition-colors" onClick={() => createBot()}>
+              <CardContent className="flex items-center gap-3 py-4">
+                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                  <Plus className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Пустой бот</p>
+                  <p className="text-xs text-muted-foreground">Создать бота с нуля без шаблона</p>
+                </div>
+              </CardContent>
+            </Card>
+            <div>
+              <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" /> Или выберите шаблон
+              </h3>
+              <BotTemplateGallery onSelect={(t) => createBot(t)} />
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
