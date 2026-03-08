@@ -197,7 +197,7 @@ const Index = () => {
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ type: 'spring', bounce: 0.5 }}
-                    className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-500 via-rose-500 to-orange-400 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-pink-500/30 relative z-10"
+                    className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 via-rose-500 to-orange-400 flex items-center justify-center mx-auto mb-2 shadow-lg shadow-pink-500/30 relative z-10"
                   >
                     <PartyPopper className="w-7 h-7 text-white" />
                   </motion.div>
