@@ -190,6 +190,90 @@ export type Database = {
         }
         Relationships: []
       }
+      service_provider_mappings: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          priority: number
+          provider_service_id: string
+          service_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          provider_service_id: string
+          service_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          provider_service_id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_provider_mappings_provider_service_id_fkey"
+            columns: ["provider_service_id"]
+            isOneToOne: false
+            referencedRelation: "provider_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_provider_mappings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      services: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_enabled: boolean
+          max_quantity: number
+          min_quantity: number
+          name: string
+          network: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          max_quantity?: number
+          min_quantity?: number
+          name: string
+          network?: string
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          max_quantity?: number
+          min_quantity?: number
+          name?: string
+          network?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
