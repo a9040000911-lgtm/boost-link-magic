@@ -247,17 +247,16 @@ const AdminServices = () => {
 
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <Shield className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">Админ: Услуги</h1>
+          <Shield className="h-5 w-5 text-primary" />
+          <h1 className="text-lg font-bold">Услуги</h1>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <Button onClick={() => handleSync()} disabled={syncing} className="bg-gradient-to-r from-primary to-secondary text-primary-foreground">
-            <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Синхр..." : "Синхр. провайдеров"}
-          </Button>
+        <Button size="sm" onClick={() => handleSync()} disabled={syncing} className="bg-gradient-to-r from-primary to-secondary text-primary-foreground">
+          <RefreshCw className={`h-3 w-3 mr-1 ${syncing ? "animate-spin" : ""}`} />
+          {syncing ? "Синхр..." : "Синхр. провайдеров"}
+        </Button>
         </div>
       </div>
 
