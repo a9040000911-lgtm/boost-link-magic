@@ -259,7 +259,7 @@ const Catalog = () => {
       {/* Platform Tabs */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.15 }} className="border-b border-border/40 bg-card/30">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="flex items-center gap-1 overflow-x-auto py-3 scrollbar-none">
+          <div className="flex items-center gap-1 overflow-x-auto py-3 px-1 scrollbar-none">
             {availableNetworks.map((net) => (
               <button
                 key={net.key}
@@ -363,7 +363,7 @@ const Catalog = () => {
 
                   <div
                     ref={carouselRef}
-                    className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory"
+                    className="flex gap-3 overflow-x-auto pb-3 pt-1 px-1 scrollbar-none snap-x snap-mandatory"
                   >
                     {categoryServices.map((service) => {
                       const isSelected = selectedService?.id === service.id;
