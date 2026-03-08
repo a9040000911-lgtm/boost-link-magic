@@ -367,6 +367,7 @@ const AdminSupport = () => {
     }
 
     setNewMessage("");
+    setReplyTo(null);
     setSending(false);
   };
 
