@@ -687,9 +687,10 @@ const AdminSupport = () => {
   }, [messages, tickets]);
 
   return (
-    <div className="flex gap-0 border rounded-md overflow-hidden" style={{ height: "calc(100vh - 5.5rem)" }}>
+    <div className="border rounded-md overflow-hidden" style={{ height: "calc(100vh - 5.5rem)" }}>
+      <ResizablePanelGroup direction="horizontal" className="h-full">
       {/* Client list */}
-      <div className={`flex flex-col border-r w-[320px] shrink-0 ${selectedUserId ? "hidden lg:flex" : "flex w-full lg:w-[320px]"}`}>
+      <ResizablePanel defaultSize={25} minSize={15} maxSize={50} className={`flex flex-col ${selectedUserId ? "hidden lg:flex" : "flex"}`}>
         <div className="p-2 border-b shrink-0 space-y-1">
           <div className="flex items-center justify-between">
             <h2 className="text-xs font-bold flex items-center gap-1">
