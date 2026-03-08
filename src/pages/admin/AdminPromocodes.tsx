@@ -73,6 +73,8 @@ const AdminPromocodes = () => {
     return codes.filter((c) => c.code.toLowerCase().includes(s));
   }, [codes, search]);
 
+  const pagination = useTableControls({ data: filtered, pageSize: 50 });
+
   const generateCode = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let code = "";
