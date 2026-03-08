@@ -127,7 +127,7 @@ const Index = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-3xl md:text-5xl font-bold tracking-tight mb-10 text-foreground text-center relative z-10"
+            className="text-2xl md:text-3xl font-medium tracking-tight mb-10 text-white text-center relative z-10"
           >
             Продвигайте свои соцсети
           </motion.h1>
