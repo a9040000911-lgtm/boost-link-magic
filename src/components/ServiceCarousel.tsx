@@ -51,7 +51,7 @@ const ServiceCarousel = ({ services, categoryName }: ServiceCarouselProps) => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.5, delay: i * 0.12, type: 'spring', bounce: 0.3 }}
               whileHover={{ y: -10, scale: 1.06, rotate: i % 2 === 0 ? 1.5 : -1.5, filter: 'brightness(1.05) saturate(1.2)' }}
-              className="min-w-[280px] max-w-[300px] flex-shrink-0"
+              className="min-w-[220px] max-w-[240px] flex-shrink-0"
             >
               <div className="relative overflow-hidden glass-card p-6 h-full flex flex-col gap-4 transition-shadow duration-300 hover:shadow-xl hover:shadow-primary/10 group">
                 {/* Shimmer */}

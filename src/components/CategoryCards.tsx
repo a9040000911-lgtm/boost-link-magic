@@ -27,7 +27,7 @@ const gradientClasses = [
 
 const CategoryCards = ({ categories, onSelect }: CategoryCardsProps) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full max-w-3xl mx-auto">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full max-w-4xl mx-auto">
       {categories.map((cat, i) => {
         const Icon = iconMap[cat.icon] || Heart;
         return (
@@ -39,7 +39,7 @@ const CategoryCards = ({ categories, onSelect }: CategoryCardsProps) => {
             whileHover={{ scale: 1.07, rotate: i % 2 === 0 ? 2 : -2, y: -8, filter: 'brightness(1.2) saturate(1.3)' }}
             whileTap={{ scale: 0.96, rotate: 0 }}
             onClick={() => onSelect(cat)}
-            className={`relative overflow-hidden rounded-2xl p-7 text-left cursor-pointer group transition-[filter] duration-300 ${gradientClasses[i % gradientClasses.length]}`}
+            className={`relative overflow-hidden rounded-2xl p-5 text-left cursor-pointer group transition-[filter] duration-300 ${gradientClasses[i % gradientClasses.length]}`}
             style={{ boxShadow: '0 10px 40px -10px rgba(0,0,0,0.25)' }}
           >
             {/* Animated background blobs */}
