@@ -1,7 +1,9 @@
-import { LayoutDashboard, ShoppingCart, FolderKanban, Settings, LogOut, Wallet } from "lucide-react";
+import { useEffect, useState } from "react";
+import { LayoutDashboard, ShoppingCart, FolderKanban, Settings, LogOut, Wallet, Shield } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar,
   SidebarContent,
@@ -16,7 +18,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-const menuItems = [
+const userMenuItems = [
   { title: "Обзор", url: "/dashboard", icon: LayoutDashboard },
   { title: "Заказы", url: "/dashboard/orders", icon: ShoppingCart },
   { title: "Транзакции", url: "/dashboard/transactions", icon: Wallet },
@@ -24,11 +26,27 @@ const menuItems = [
   { title: "Настройки", url: "/dashboard/settings", icon: Settings },
 ];
 
+const adminMenuItems = [
+  { title: "Услуги провайдера", url: "/dashboard/admin/services", icon: Shield },
+];
+
 export function DashboardSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .single()
+      .then(({ data }) => setIsAdmin(!!data));
+  }, [user]);
 
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "User";
   const initials = displayName.slice(0, 2).toUpperCase();
@@ -44,7 +62,7 @@ export function DashboardSidebar() {
           )}
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {userMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
@@ -62,6 +80,34 @@ export function DashboardSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {isAdmin && (
+          <SidebarGroup>
+            {!collapsed && (
+              <SidebarGroupLabel className="text-xs text-muted-foreground px-4 pt-2">
+                Администрирование
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminMenuItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        className="hover:bg-muted/50 transition-colors"
+                        activeClassName="bg-primary/10 text-primary font-medium"
+                      >
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border/60 p-3">
