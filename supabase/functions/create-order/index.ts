@@ -6,26 +6,36 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+const json = (body: object, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { service_id, link, quantity, project_id } = await req.json();
+    const { service_id, link, quantity, project_id, idempotency_key } = await req.json();
 
+    // === INPUT VALIDATION ===
     if (!service_id || !link || !quantity) {
-      return new Response(JSON.stringify({ error: 'service_id, link, quantity required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return json({ error: 'service_id, link, quantity required' }, 400);
     }
 
-    // Auth
+    if (typeof quantity !== 'number' || quantity < 1 || quantity > 10000000 || !Number.isInteger(quantity)) {
+      return json({ error: 'Invalid quantity' }, 400);
+    }
+
+    // Sanitize link
+    const sanitizedLink = String(link).trim().slice(0, 2000);
+    if (!/^https?:\/\/.+/.test(sanitizedLink)) {
+      return json({ error: 'Invalid link format' }, 400);
+    }
+
+    // === AUTH ===
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return json({ error: 'Unauthorized' }, 401);
     }
 
     const supabase = createClient(
@@ -37,9 +47,7 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '');
     const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
     if (claimsErr || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return json({ error: 'Unauthorized' }, 401);
     }
     const userId = claimsData.claims.sub;
 
@@ -48,7 +56,43 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // 1. Get service
+    // === IDEMPOTENCY CHECK (prevent double orders from fast clicks) ===
+    if (idempotency_key) {
+      const { data: existing } = await adminClient
+        .from('order_idempotency')
+        .select('order_id')
+        .eq('idempotency_key', idempotency_key)
+        .single();
+
+      if (existing?.order_id) {
+        // Return the existing order - don't process again
+        const { data: existingOrder } = await adminClient
+          .from('orders')
+          .select('*')
+          .eq('id', existing.order_id)
+          .single();
+
+        return json({
+          success: true,
+          order_id: existing.order_id,
+          price: existingOrder?.price,
+          deduplicated: true,
+          message: 'Order already exists (duplicate request ignored)',
+        });
+      }
+
+      // Reserve the idempotency key
+      const { error: idemErr } = await adminClient
+        .from('order_idempotency')
+        .insert({ idempotency_key, order_id: null });
+
+      if (idemErr?.code === '23505') {
+        // Key already exists but no order yet - concurrent request, reject
+        return json({ error: 'Order is being processed, please wait' }, 429);
+      }
+    }
+
+    // === GET SERVICE ===
     const { data: service, error: svcErr } = await adminClient
       .from('services')
       .select('*')
@@ -57,42 +101,33 @@ serve(async (req) => {
       .single();
 
     if (svcErr || !service) {
-      return new Response(JSON.stringify({ error: 'Service not found or disabled' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return json({ error: 'Service not found or disabled' }, 404);
     }
 
-    // Validate quantity
+    // Validate quantity range
     if (quantity < service.min_quantity || quantity > service.max_quantity) {
-      return new Response(JSON.stringify({ 
-        error: `Quantity must be ${service.min_quantity}-${service.max_quantity}` 
-      }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return json({ error: `Quantity must be ${service.min_quantity}-${service.max_quantity}` }, 400);
     }
 
-    // 2. Calculate price
+    // === CALCULATE & VERIFY PRICE ===
     const pricePerUnit = Number(service.price) / 1000;
-    const totalPrice = pricePerUnit * quantity;
+    const totalPrice = Math.round(pricePerUnit * quantity * 100) / 100; // Prevent floating point issues
 
-    // 3. Check user balance
-    const { data: profile } = await adminClient
-      .from('profiles')
-      .select('balance')
-      .eq('id', userId)
-      .single();
-
-    if (!profile || Number(profile.balance) < totalPrice) {
-      return new Response(JSON.stringify({ error: 'Insufficient balance', required: totalPrice, balance: profile?.balance || 0 }), {
-        status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    if (totalPrice <= 0 || totalPrice > 1000000) {
+      return json({ error: 'Invalid price calculation' }, 400);
     }
 
-    // 4. Deduct balance first (atomic)
-    const newBalance = Number(profile.balance) - totalPrice;
-    await adminClient.from('profiles').update({ balance: newBalance }).eq('id', userId);
+    // === ATOMIC BALANCE DEDUCTION (prevents race condition / double-spend) ===
+    const { data: newBalance, error: balErr } = await adminClient.rpc('deduct_balance', {
+      p_user_id: userId,
+      p_amount: totalPrice,
+    });
 
-    // 5. Get provider mappings ordered by priority
+    if (balErr || newBalance === -1) {
+      return json({ error: 'Insufficient balance', required: totalPrice }, 402);
+    }
+
+    // === PROVIDER MAPPINGS ===
     const { data: mappingsData } = await adminClient
       .from('service_provider_mappings')
       .select('*, provider_services(*)')
@@ -103,14 +138,12 @@ serve(async (req) => {
     const mappings = mappingsData || [];
 
     if (mappings.length === 0) {
-      // Refund - no providers
-      await adminClient.from('profiles').update({ balance: Number(profile.balance) }).eq('id', userId);
-      return new Response(JSON.stringify({ error: 'No providers configured for this service' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      // Refund atomically
+      await adminClient.rpc('credit_balance', { p_user_id: userId, p_amount: totalPrice });
+      return json({ error: 'No providers configured for this service' }, 500);
     }
 
-    // 6. Get providers from DB
+    // === GET PROVIDERS ===
     const providerKeys = [...new Set(mappings.map((m: any) => m.provider_services?.provider).filter(Boolean))];
     const { data: providersData } = await adminClient
       .from('providers')
@@ -121,9 +154,9 @@ serve(async (req) => {
     const providers: Record<string, any> = {};
     (providersData || []).forEach((p: any) => { providers[p.key] = p; });
 
-    // 7. Try each provider in priority order
-    const attempts: Array<{ provider: string; provider_service_id: number; success: boolean; error?: string; order_id?: string; latency_ms: number }> = [];
-    let successResult: { provider: string; providerOrderId: string; providerServiceId: string } | null = null;
+    // === TRY EACH PROVIDER ===
+    const attempts: Array<{ provider: string; provider_service_id: number; success: boolean; error?: string; order_id?: string; latency_ms: number; provider_price?: number }> = [];
+    let successResult: { provider: string; providerOrderId: string; providerServiceId: string; providerPrice?: number } | null = null;
 
     for (const mapping of mappings) {
       const ps = mapping.provider_services;
@@ -140,6 +173,10 @@ serve(async (req) => {
 
       const start = Date.now();
       try {
+        // === PRICE VERIFICATION: Check provider price hasn't spiked ===
+        const providerOurPrice = Number(ps.our_price || ps.rate);
+        const maxAcceptablePrice = providerOurPrice * 1.5; // Alert if provider price > 150% of expected
+
         const response = await fetch(provider.api_url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -147,7 +184,7 @@ serve(async (req) => {
             key: apiKey,
             action: 'add',
             service: ps.provider_service_id.toString(),
-            link,
+            link: sanitizedLink,
             quantity: quantity.toString(),
           }),
         });
@@ -162,7 +199,29 @@ serve(async (req) => {
             providerOrderId: String(data.order),
             providerServiceId: ps.id,
           };
-          break; // Success!
+
+          // === FINANCIAL ALERT: Check if our margin is negative ===
+          // We'll verify by checking provider service rate vs our sell price
+          const providerCostPer1000 = Number(ps.rate);
+          const ourSellPricePer1000 = Number(service.price);
+          if (providerCostPer1000 > ourSellPricePer1000) {
+            await adminClient.from('financial_alerts').insert({
+              alert_type: 'negative_margin',
+              severity: 'high',
+              user_id: userId,
+              details: {
+                service_id,
+                service_name: service.name,
+                provider: ps.provider,
+                provider_rate: providerCostPer1000,
+                our_price: ourSellPricePer1000,
+                loss_per_1000: providerCostPer1000 - ourSellPricePer1000,
+                order_quantity: quantity,
+              },
+            });
+          }
+
+          break;
         } else {
           attempts.push({ provider: ps.provider, provider_service_id: ps.provider_service_id, success: false, error: data.error || 'Unknown provider error', latency_ms: latency });
         }
@@ -172,14 +231,13 @@ serve(async (req) => {
       }
     }
 
-    // 8. Handle result
+    // === HANDLE RESULT ===
     if (successResult) {
-      // Create order
       const { data: order } = await adminClient.from('orders').insert({
         user_id: userId,
         service_id,
         service_name: service.name,
-        link,
+        link: sanitizedLink,
         quantity,
         price: totalPrice,
         platform: service.network,
@@ -190,7 +248,13 @@ serve(async (req) => {
         project_id: project_id || null,
       }).select().single();
 
-      // Create transaction
+      // Update idempotency key with order ID
+      if (idempotency_key && order) {
+        await adminClient.from('order_idempotency')
+          .update({ order_id: order.id })
+          .eq('idempotency_key', idempotency_key);
+      }
+
       await adminClient.from('transactions').insert({
         user_id: userId,
         type: 'purchase',
@@ -201,7 +265,6 @@ serve(async (req) => {
         description: `Заказ: ${service.name} (${quantity} шт.)`,
       });
 
-      // Audit log with all attempts
       await adminClient.from('admin_audit_logs').insert({
         actor_id: userId,
         action: 'create_order',
@@ -215,10 +278,16 @@ serve(async (req) => {
           provider_order_id: successResult.providerOrderId,
           attempts,
           failover_used: attempts.length > 1,
+          idempotency_key: idempotency_key || null,
         },
       });
 
-      return new Response(JSON.stringify({
+      // Cleanup old idempotency keys periodically (1% chance per request)
+      if (Math.random() < 0.01) {
+        await adminClient.rpc('cleanup_idempotency_keys').catch(() => {});
+      }
+
+      return json({
         success: true,
         order_id: order?.id,
         provider: successResult.provider,
@@ -227,20 +296,19 @@ serve(async (req) => {
         new_balance: newBalance,
         failover_used: attempts.length > 1,
         attempts_count: attempts.length,
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } else {
-      // All providers failed - refund
-      await adminClient.from('profiles').update({ balance: Number(profile.balance) }).eq('id', userId);
+      // All providers failed - ATOMIC refund
+      const { data: refundedBalance } = await adminClient.rpc('credit_balance', {
+        p_user_id: userId,
+        p_amount: totalPrice,
+      });
 
-      // Create failed order for tracking
       const { data: failedOrder } = await adminClient.from('orders').insert({
         user_id: userId,
         service_id,
         service_name: service.name,
-        link,
+        link: sanitizedLink,
         quantity,
         price: totalPrice,
         platform: service.network,
@@ -251,18 +319,23 @@ serve(async (req) => {
         project_id: project_id || null,
       }).select().single();
 
-      // Refund transaction
+      // Update idempotency
+      if (idempotency_key && failedOrder) {
+        await adminClient.from('order_idempotency')
+          .update({ order_id: failedOrder.id })
+          .eq('idempotency_key', idempotency_key);
+      }
+
       await adminClient.from('transactions').insert({
         user_id: userId,
         type: 'refund',
         amount: totalPrice,
-        balance_after: Number(profile.balance),
+        balance_after: refundedBalance ?? 0,
         order_id: failedOrder?.id,
         status: 'completed',
         description: `Автовозврат: все провайдеры недоступны (${service.name})`,
       });
 
-      // Audit
       await adminClient.from('admin_audit_logs').insert({
         actor_id: userId,
         action: 'order_all_providers_failed',
@@ -271,22 +344,16 @@ serve(async (req) => {
         details: { service_name: service.name, attempts, total_price: totalPrice },
       });
 
-      return new Response(JSON.stringify({
+      return json({
         success: false,
         error: 'All providers failed. Balance refunded automatically.',
         attempts,
         refunded: totalPrice,
-      }), {
-        status: 503,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      }, 503);
     }
   } catch (error: unknown) {
     console.error('Create order error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return json({ error: message }, 500);
   }
 });

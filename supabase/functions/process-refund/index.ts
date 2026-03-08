@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+const json = (body: object, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -14,18 +17,19 @@ serve(async (req) => {
   try {
     const { order_id, reason } = await req.json();
 
-    if (!order_id) {
-      return new Response(JSON.stringify({ error: 'order_id is required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    if (!order_id || typeof order_id !== 'string') {
+      return json({ error: 'order_id is required' }, 400);
     }
 
-    // Auth check
+    // UUID format validation
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(order_id)) {
+      return json({ error: 'Invalid order_id format' }, 400);
+    }
+
+    // Auth
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return json({ error: 'Unauthorized' }, 401);
     }
 
     const supabase = createClient(
@@ -37,20 +41,17 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '');
     const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
     if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return json({ error: 'Unauthorized' }, 401);
     }
 
     const actorId = claimsData.claims.sub;
 
-    // Use admin client for privileged operations
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Check if actor is admin or moderator with refund permission
+    // Check role
     const { data: roleData } = await adminClient
       .from('user_roles')
       .select('role')
@@ -58,14 +59,12 @@ serve(async (req) => {
       .in('role', ['admin', 'moderator']);
 
     if (!roleData || roleData.length === 0) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return json({ error: 'Access denied' }, 403);
     }
 
     const isAdmin = roleData.some(r => r.role === 'admin');
 
-    // If moderator, check refund permission
+    // Moderator permission check
     if (!isAdmin) {
       const { data: permData } = await adminClient
         .from('staff_permissions')
@@ -75,13 +74,11 @@ serve(async (req) => {
         .single();
 
       if (!permData) {
-        return new Response(JSON.stringify({ error: 'No refund permission' }), {
-          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return json({ error: 'No refund permission' }, 403);
       }
     }
 
-    // Get the order
+    // Get order
     const { data: order, error: orderError } = await adminClient
       .from('orders')
       .select('*')
@@ -89,14 +86,11 @@ serve(async (req) => {
       .single();
 
     if (orderError || !order) {
-      return new Response(JSON.stringify({ error: 'Order not found' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return json({ error: 'Order not found' }, 404);
     }
 
-    // SECURITY: Double refund protection
+    // === DOUBLE REFUND PROTECTION ===
     if (order.refund_status === 'refunded') {
-      // Log the attempt
       await adminClient.from('admin_audit_logs').insert({
         actor_id: actorId,
         action: 'double_refund_attempt',
@@ -105,55 +99,83 @@ serve(async (req) => {
         details: { reason, order_price: order.price, already_refunded: order.refunded_amount },
       });
 
-      return new Response(JSON.stringify({ error: 'Order already refunded', refunded_at: order.refunded_at }), {
-        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      // Create financial alert for suspicious activity
+      await adminClient.from('financial_alerts').insert({
+        alert_type: 'double_refund_attempt',
+        severity: 'high',
+        user_id: order.user_id,
+        actor_id: actorId,
+        details: { order_id, order_price: order.price, reason },
       });
+
+      return json({ error: 'Order already refunded', refunded_at: order.refunded_at }, 409);
     }
 
-    // SECURITY: Check order isn't too old (optional: 30 day limit)
+    // 30-day limit for moderators
     const orderDate = new Date(order.created_at);
     const daysSinceOrder = (Date.now() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
     if (daysSinceOrder > 30 && !isAdmin) {
-      return new Response(JSON.stringify({ error: 'Refund period expired (30 days). Admin required.' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return json({ error: 'Refund period expired (30 days). Admin required.' }, 403);
     }
 
     const refundAmount = Number(order.price);
 
-    // Get user's current balance
-    const { data: profile } = await adminClient
-      .from('profiles')
-      .select('balance')
-      .eq('id', order.user_id)
-      .single();
+    // === PREVENT REFUND OF 0 AMOUNT ===
+    if (refundAmount <= 0) {
+      return json({ error: 'Cannot refund zero-amount order' }, 400);
+    }
 
-    if (!profile) {
-      return new Response(JSON.stringify({ error: 'User profile not found' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    // === LARGE REFUND ALERT ===
+    if (refundAmount > 5000) {
+      await adminClient.from('financial_alerts').insert({
+        alert_type: 'large_refund',
+        severity: 'medium',
+        user_id: order.user_id,
+        actor_id: actorId,
+        details: { order_id, amount: refundAmount, reason, service_name: order.service_name },
       });
     }
 
-    const newBalance = Number(profile.balance) + refundAmount;
-
-    // Execute refund atomically-ish (update order, update balance, create transaction)
+    // === ATOMICALLY mark order as refunded FIRST (prevents double refund race) ===
     const now = new Date().toISOString();
+    const { data: updatedOrder, error: updateErr } = await adminClient
+      .from('orders')
+      .update({
+        refund_status: 'refunded',
+        refunded_amount: refundAmount,
+        refunded_at: now,
+        refunded_by: actorId,
+        status: 'refunded',
+      })
+      .eq('id', order_id)
+      .neq('refund_status', 'refunded') // THIS prevents race condition
+      .select()
+      .single();
 
-    // 1. Mark order as refunded
-    await adminClient.from('orders').update({
-      refund_status: 'refunded',
-      refunded_amount: refundAmount,
-      refunded_at: now,
-      refunded_by: actorId,
-      status: 'refunded',
-    }).eq('id', order_id);
+    if (updateErr || !updatedOrder) {
+      // Another concurrent request already refunded
+      return json({ error: 'Order was already refunded by another request' }, 409);
+    }
 
-    // 2. Credit user balance
-    await adminClient.from('profiles').update({
-      balance: newBalance,
-    }).eq('id', order.user_id);
+    // === ATOMIC BALANCE CREDIT ===
+    const { data: newBalance, error: creditErr } = await adminClient.rpc('credit_balance', {
+      p_user_id: order.user_id,
+      p_amount: refundAmount,
+    });
 
-    // 3. Create refund transaction
+    if (creditErr || newBalance === -1) {
+      // Rollback the order status
+      await adminClient.from('orders').update({
+        refund_status: null,
+        refunded_amount: 0,
+        refunded_at: null,
+        refunded_by: null,
+        status: order.status,
+      }).eq('id', order_id);
+      return json({ error: 'Failed to credit balance' }, 500);
+    }
+
+    // Transaction record
     await adminClient.from('transactions').insert({
       user_id: order.user_id,
       type: 'refund',
@@ -164,7 +186,7 @@ serve(async (req) => {
       description: `Возврат за заказ #${order_id.slice(0, 8)}${reason ? ': ' + reason : ''}`,
     });
 
-    // 4. Audit log
+    // Audit
     await adminClient.from('admin_audit_logs').insert({
       actor_id: actorId,
       action: 'refund_order',
@@ -176,24 +198,40 @@ serve(async (req) => {
         reason: reason || null,
         order_status: order.status,
         service_name: order.service_name,
+        new_balance: newBalance,
       },
     });
 
-    return new Response(JSON.stringify({
+    // === STAFF FRAUD DETECTION: Check if actor refunds same user too often ===
+    const { data: recentRefunds } = await adminClient
+      .from('admin_audit_logs')
+      .select('id')
+      .eq('actor_id', actorId)
+      .eq('action', 'refund_order')
+      .gte('created_at', new Date(Date.now() - 3600000).toISOString()); // Last hour
+
+    if (recentRefunds && recentRefunds.length > 10) {
+      await adminClient.from('financial_alerts').insert({
+        alert_type: 'excessive_refunds_by_staff',
+        severity: 'critical',
+        actor_id: actorId,
+        details: {
+          refund_count_last_hour: recentRefunds.length,
+          latest_order_id: order_id,
+          latest_amount: refundAmount,
+        },
+      });
+    }
+
+    return json({
       success: true,
       refund_amount: refundAmount,
       new_balance: newBalance,
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error: unknown) {
     console.error('Refund error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return json({ error: message }, 500);
   }
 });
