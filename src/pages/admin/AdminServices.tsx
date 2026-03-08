@@ -131,12 +131,13 @@ const AdminServices = () => {
 
   const loadAll = async () => {
     setLoading(true);
-    const [psRes, sRes, mRes, pRes, ladderRes] = await Promise.all([
+    const [psRes, sRes, mRes, pRes, ladderRes, minMarkupRes] = await Promise.all([
       supabase.from("provider_services").select("*").order("provider").order("network"),
       supabase.from("services").select("*").order("network").order("category").order("name"),
       supabase.from("service_provider_mappings").select("*").order("priority"),
       supabase.from("providers").select("*").eq("is_enabled", true),
       supabase.from("app_settings").select("value").eq("key", "markup_ladder").single(),
+      supabase.from("app_settings").select("value").eq("key", "min_markup_percent").single(),
     ]);
     setProviderServices((psRes.data as ProviderService[]) || []);
     setServices((sRes.data as Service[]) || []);
@@ -144,6 +145,9 @@ const AdminServices = () => {
     setProviders(pRes.data || []);
     if (ladderRes.data?.value) {
       try { setMarkupLadder(JSON.parse(ladderRes.data.value)); } catch {}
+    }
+    if (minMarkupRes.data?.value) {
+      setMinMarkup(Number(minMarkupRes.data.value) || MIN_MARKUP_DEFAULT);
     }
     setSelectedIds(new Set());
     setLoading(false);
