@@ -34,6 +34,7 @@ const adminMenuItems = [
   { title: "Поддержка", url: "/admin/support", icon: MessageSquare },
   { title: "Сотрудники", url: "/admin/staff", icon: Shield },
   { title: "Настройки", url: "/admin/settings", icon: Settings },
+  { title: "Документация", url: "/admin/docs", icon: BookOpen },
 ];
 
 export function AdminSidebar() {
