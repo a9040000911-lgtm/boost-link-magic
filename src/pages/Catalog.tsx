@@ -911,7 +911,7 @@ const Catalog = () => {
                   disabled={!link.trim() || (checkboxSettings.show_offer_checkbox && !consentOffer) || (checkboxSettings.show_policy_checkbox && !consentPD) || ordering}
                   className={`flex-1 py-2.5 rounded-xl ${activeNetConfig?.bg || 'bg-primary'} text-white font-bold text-sm disabled:opacity-40 flex items-center justify-center gap-2`}
                 >
-                  {ordering ? 'Оформляем...' : `${totalPrice.toFixed(2)} ₽ — Заказать`}
+                  {ordering ? 'Оформляем...' : `${fmtPrice(totalPrice)} ₽ — Заказать`}
                 </button>
               </div>
             </div>
