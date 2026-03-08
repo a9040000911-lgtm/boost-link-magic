@@ -137,6 +137,41 @@ const Catalog = () => {
   const [consentPD, setConsentPD] = useState(false);
   const [ordering, setOrdering] = useState(false);
 
+  // Settings for checkboxes
+  const [checkboxSettings, setCheckboxSettings] = useState({
+    show_offer_checkbox: true,
+    show_policy_checkbox: true,
+    offer_default_checked: false,
+    policy_default_checked: false,
+  });
+
+  // Load checkbox settings
+  useEffect(() => {
+    const loadCheckboxSettings = async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("key, value")
+        .in("key", ["show_offer_checkbox", "show_policy_checkbox", "offer_default_checked", "policy_default_checked"]);
+      
+      if (data) {
+        const settings: Record<string, boolean> = {};
+        data.forEach((r: any) => {
+          settings[r.key] = r.value === "true";
+        });
+        setCheckboxSettings(prev => ({
+          show_offer_checkbox: settings.show_offer_checkbox ?? true,
+          show_policy_checkbox: settings.show_policy_checkbox ?? true,
+          offer_default_checked: settings.offer_default_checked ?? false,
+          policy_default_checked: settings.policy_default_checked ?? false,
+        }));
+        // Apply defaults
+        if (settings.offer_default_checked) setConsentOffer(true);
+        if (settings.policy_default_checked) setConsentPD(true);
+      }
+    };
+    loadCheckboxSettings();
+  }, []);
+
   useEffect(() => {
     const fetchServices = async () => {
       const { data } = await supabase
