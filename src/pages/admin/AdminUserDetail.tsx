@@ -311,6 +311,10 @@ const AdminUserDetail = () => {
                 </div>
               </div>
               <div>
+                <Label className="text-[11px] text-muted-foreground">Скидка клиента (%)</Label>
+                <Input type="number" value={editDiscount} onChange={e => setEditDiscount(e.target.value)} placeholder="0" className="text-xs h-8 w-[100px]" min="0" max="100" />
+              </div>
+              <div>
                 <Label className="text-[11px] text-muted-foreground">Описание</Label>
                 <Textarea value={editBio} onChange={e => setEditBio(e.target.value)} className="text-xs min-h-[50px]" placeholder="О пользователе..." />
               </div>
