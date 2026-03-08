@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,11 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import {
-  ArrowLeft, User, ExternalLink, Search, Settings2, KeyRound,
-  Wallet, Shield, Ban, CheckCircle, Mail, Clock, AlertTriangle
+  ArrowLeft, User, ExternalLink, Search, KeyRound,
+  Wallet, Shield, Ban, CheckCircle, Mail, Clock, AlertTriangle,
+  Save, Plus, Minus, RefreshCw
 } from "lucide-react";
 import { toast } from "sonner";
 import { logAuditAction } from "@/lib/audit";
@@ -44,25 +44,22 @@ const AdminUserDetail = () => {
   const [txTypeFilter, setTxTypeFilter] = useState("all");
   const [search, setSearch] = useState("");
 
-  // Edit dialog
-  const [editOpen, setEditOpen] = useState(false);
-  const [editTab, setEditTab] = useState("profile");
-  const [authInfo, setAuthInfo] = useState<any>(null);
-  const [authLoading, setAuthLoading] = useState(false);
-
-  // Edit fields
+  // Inline edit fields
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
-  const [editBalance, setEditBalance] = useState("");
-  const [balanceAction, setBalanceAction] = useState<"set" | "add" | "subtract">("set");
   const [editEmail, setEditEmail] = useState("");
   const [editPassword, setEditPassword] = useState("");
-  const [banDuration, setBanDuration] = useState("none");
+  const [balanceAmount, setBalanceAmount] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Auth info
+  const [authInfo, setAuthInfo] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(false);
 
   useEffect(() => {
     if (!user || !userId) return;
     loadData();
+    loadAuthInfo();
   }, [user, userId]);
 
   const loadData = async () => {
@@ -78,7 +75,6 @@ const AdminUserDetail = () => {
     if (profileRes.data) {
       setEditName(profileRes.data.display_name || "");
       setEditBio(profileRes.data.bio || "");
-      setEditBalance(String(profileRes.data.balance || 0));
     }
     setLoading(false);
   };
@@ -92,83 +88,64 @@ const AdminUserDetail = () => {
       if (error) throw error;
       setAuthInfo(data);
       setEditEmail(data.email || "");
-      setBanDuration(data.banned ? "current" : "none");
     } catch (e) {
-      toast.error("Ошибка загрузки данных авторизации");
+      // Non-critical
     }
     setAuthLoading(false);
   };
 
-  const openEditDialog = () => {
-    setEditOpen(true);
-    setEditTab("profile");
-    loadAuthInfo();
-  };
-
-  // Save profile changes
   const saveProfile = async () => {
     setSaving(true);
     try {
       const { error } = await supabase.from("profiles").update({
-        display_name: editName,
-        bio: editBio,
-        updated_at: new Date().toISOString(),
+        display_name: editName, bio: editBio, updated_at: new Date().toISOString(),
       }).eq("id", userId);
       if (error) throw error;
-      await logAuditAction("update_user_balance", "user", userId, { field: "profile", display_name: editName });
-      toast.success("Профиль обновлён");
+      await logAuditAction("update_user_profile", "user", userId, { display_name: editName });
+      toast.success("Профиль сохранён");
       await loadData();
-    } catch (e: any) {
-      toast.error(e.message);
-    }
+    } catch (e: any) { toast.error(e.message); }
     setSaving(false);
   };
 
-  // Save balance
-  const saveBalance = async () => {
+  const addBalance = async () => {
+    const amount = parseFloat(balanceAmount);
+    if (isNaN(amount) || amount <= 0) { toast.error("Введите сумму"); return; }
     setSaving(true);
     try {
-      const amount = parseFloat(editBalance);
-      if (isNaN(amount)) throw new Error("Некорректная сумма");
-
-      let newBalance: number;
-      const currentBalance = Number(profile.balance);
-
-      if (balanceAction === "set") newBalance = amount;
-      else if (balanceAction === "add") newBalance = currentBalance + amount;
-      else newBalance = currentBalance - amount;
-
-      if (newBalance < 0) newBalance = 0;
-
-      const { error } = await supabase.from("profiles").update({
-        balance: newBalance,
-        updated_at: new Date().toISOString(),
-      }).eq("id", userId);
-      if (error) throw error;
-
-      // Log transaction
-      const diff = newBalance - currentBalance;
-      if (diff !== 0) {
-        await supabase.from("transactions").insert({
-          user_id: userId!,
-          type: diff > 0 ? "admin_deposit" : "admin_withdraw",
-          amount: Math.abs(diff),
-          balance_after: newBalance,
-          status: "completed",
-          description: `Корректировка баланса администратором (${balanceAction})`,
-        });
-      }
-
-      await logAuditAction("update_user_balance", "user", userId, { action: balanceAction, amount, new_balance: newBalance });
-      toast.success(`Баланс обновлён: ${newBalance.toFixed(2)}₽`);
+      const newBalance = Number(profile.balance) + amount;
+      await supabase.from("profiles").update({ balance: newBalance, updated_at: new Date().toISOString() }).eq("id", userId);
+      await supabase.from("transactions").insert({
+        user_id: userId!, type: "admin_deposit", amount, balance_after: newBalance,
+        status: "completed", description: "Пополнение администратором",
+      });
+      await logAuditAction("update_user_balance", "user", userId, { action: "add", amount, new_balance: newBalance });
+      toast.success(`+${amount.toFixed(2)}₽ → Баланс: ${newBalance.toFixed(2)}₽`);
+      setBalanceAmount("");
       await loadData();
-    } catch (e: any) {
-      toast.error(e.message);
-    }
+    } catch (e: any) { toast.error(e.message); }
     setSaving(false);
   };
 
-  // Change email
+  const subtractBalance = async () => {
+    const amount = parseFloat(balanceAmount);
+    if (isNaN(amount) || amount <= 0) { toast.error("Введите сумму"); return; }
+    setSaving(true);
+    try {
+      const newBalance = Math.max(0, Number(profile.balance) - amount);
+      await supabase.from("profiles").update({ balance: newBalance, updated_at: new Date().toISOString() }).eq("id", userId);
+      await supabase.from("transactions").insert({
+        user_id: userId!, type: "admin_withdraw", amount, balance_after: newBalance,
+        status: "completed", description: "Списание администратором",
+      });
+      await logAuditAction("update_user_balance", "user", userId, { action: "subtract", amount, new_balance: newBalance });
+      toast.success(`−${amount.toFixed(2)}₽ → Баланс: ${newBalance.toFixed(2)}₽`);
+      setBalanceAmount("");
+      await loadData();
+    } catch (e: any) { toast.error(e.message); }
+    setSaving(false);
+  };
+
   const changeEmail = async () => {
     setSaving(true);
     try {
@@ -177,21 +154,15 @@ const AdminUserDetail = () => {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      await logAuditAction("update_user_balance", "user", userId, { field: "email", email: editEmail });
+      await logAuditAction("update_user_email", "user", userId, { email: editEmail });
       toast.success("Email обновлён");
       await loadAuthInfo();
-    } catch (e: any) {
-      toast.error(e.message);
-    }
+    } catch (e: any) { toast.error(e.message); }
     setSaving(false);
   };
 
-  // Change password
   const changePassword = async () => {
-    if (editPassword.length < 6) {
-      toast.error("Минимум 6 символов");
-      return;
-    }
+    if (editPassword.length < 6) { toast.error("Минимум 6 символов"); return; }
     setSaving(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-user-management", {
@@ -199,53 +170,13 @@ const AdminUserDetail = () => {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      await logAuditAction("update_user_balance", "user", userId, { field: "password" });
+      await logAuditAction("update_user_password", "user", userId, {});
       toast.success("Пароль изменён");
       setEditPassword("");
-    } catch (e: any) {
-      toast.error(e.message);
-    }
+    } catch (e: any) { toast.error(e.message); }
     setSaving(false);
   };
 
-  // Ban/unban
-  const handleBan = async (duration: string) => {
-    setSaving(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("admin-user-management", {
-        body: { action: "ban_user", user_id: userId, duration },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      await logAuditAction("update_user_balance", "user", userId, { field: "ban", duration });
-      toast.success(duration === "none" ? "Пользователь разблокирован" : "Пользователь заблокирован");
-      await loadAuthInfo();
-    } catch (e: any) {
-      toast.error(e.message);
-    }
-    setSaving(false);
-  };
-
-  // Disable MFA
-  const disableMFA = async () => {
-    if (!confirm("Отключить двухфакторную аутентификацию? Пользователь сможет войти без 2FA.")) return;
-    setSaving(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("admin-user-management", {
-        body: { action: "delete_mfa_factors", user_id: userId },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      await logAuditAction("update_user_balance", "user", userId, { field: "mfa", action: "disabled" });
-      toast.success("2FA отключена");
-      await loadAuthInfo();
-    } catch (e: any) {
-      toast.error(e.message);
-    }
-    setSaving(false);
-  };
-
-  // Confirm email
   const confirmEmail = async () => {
     setSaving(true);
     try {
@@ -256,14 +187,42 @@ const AdminUserDetail = () => {
       if (data?.error) throw new Error(data.error);
       toast.success("Email подтверждён");
       await loadAuthInfo();
-    } catch (e: any) {
-      toast.error(e.message);
-    }
+    } catch (e: any) { toast.error(e.message); }
+    setSaving(false);
+  };
+
+  const handleBan = async (duration: string) => {
+    setSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-user-management", {
+        body: { action: "ban_user", user_id: userId, duration },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      await logAuditAction("ban_user", "user", userId, { duration });
+      toast.success(duration === "none" ? "Разблокирован" : "Заблокирован");
+      await loadAuthInfo();
+    } catch (e: any) { toast.error(e.message); }
+    setSaving(false);
+  };
+
+  const disableMFA = async () => {
+    if (!confirm("Отключить 2FA?")) return;
+    setSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-user-management", {
+        body: { action: "delete_mfa_factors", user_id: userId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("2FA отключена");
+      await loadAuthInfo();
+    } catch (e: any) { toast.error(e.message); }
     setSaving(false);
   };
 
   const filteredOrders = useMemo(() => {
-    return orders.filter((o) => {
+    return orders.filter(o => {
       if (orderStatusFilter !== "all" && o.status !== orderStatusFilter) return false;
       if (search && !o.service_name.toLowerCase().includes(search.toLowerCase()) && !o.link.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
@@ -271,7 +230,7 @@ const AdminUserDetail = () => {
   }, [orders, orderStatusFilter, search]);
 
   const filteredTx = useMemo(() => {
-    return transactions.filter((t) => {
+    return transactions.filter(t => {
       if (txTypeFilter !== "all" && t.type !== txTypeFilter) return false;
       return true;
     });
@@ -283,20 +242,15 @@ const AdminUserDetail = () => {
     return date.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "2-digit" }) + " " + date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
   };
 
-  const orderStatuses = useMemo(() => [...new Set(orders.map((o) => o.status))], [orders]);
-  const txTypes = useMemo(() => [...new Set(transactions.map((t) => t.type))], [transactions]);
+  const orderStatuses = useMemo(() => [...new Set(orders.map(o => o.status))], [orders]);
+  const txTypes = useMemo(() => [...new Set(transactions.map(t => t.type))], [transactions]);
   const totalSpent = useMemo(() => orders.reduce((s, o) => s + Number(o.price), 0), [orders]);
 
-  if (loading) {
-    return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>;
-  }
-
-  if (!profile) {
-    return <div className="text-center py-12 text-muted-foreground">Пользователь не найден</div>;
-  }
+  if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>;
+  if (!profile) return <div className="text-center py-12 text-muted-foreground">Пользователь не найден</div>;
 
   return (
-    <div className="flex flex-col h-full gap-2">
+    <div className="flex flex-col h-full gap-3 overflow-auto">
       {/* Header */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
@@ -304,373 +258,271 @@ const AdminUserDetail = () => {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <User className="h-4 w-4 text-primary" />
-          <h1 className="text-base font-bold">{profile.display_name || "Без имени"}</h1>
-          <span className="text-[10px] text-muted-foreground font-mono">{profile.id}</span>
+          <h1 className="text-base font-bold">Редактирование</h1>
+          <span className="text-xs text-muted-foreground">{authInfo?.email || profile.id.slice(0, 8)}</span>
         </div>
-        <Button size="sm" className="h-7 text-xs" onClick={openEditDialog}>
-          <Settings2 className="h-3 w-3 mr-1" />Управление
+        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { loadData(); loadAuthInfo(); }}>
+          <RefreshCw className="h-3 w-3 mr-1" />Обновить
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-2 shrink-0">
-        <Card className="border-border/60"><CardContent className="p-2">
-          <p className="text-[10px] text-muted-foreground">Баланс</p>
-          <p className="text-sm font-bold">{Number(profile.balance).toFixed(2)}₽</p>
-        </CardContent></Card>
-        <Card className="border-border/60"><CardContent className="p-2">
-          <p className="text-[10px] text-muted-foreground">Заказов</p>
-          <p className="text-sm font-bold">{orders.length}</p>
-        </CardContent></Card>
-        <Card className="border-border/60"><CardContent className="p-2">
-          <p className="text-[10px] text-muted-foreground">Потрачено</p>
-          <p className="text-sm font-bold">{totalSpent.toFixed(2)}₽</p>
-        </CardContent></Card>
-        <Card className="border-border/60"><CardContent className="p-2">
-          <p className="text-[10px] text-muted-foreground">Регистрация</p>
-          <p className="text-sm font-bold">{formatDate(profile.created_at)}</p>
-        </CardContent></Card>
-      </div>
-
-      {/* Tabs */}
-      <Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-1 min-h-0">
-        <div className="flex items-center gap-2 shrink-0">
-          <TabsList className="h-7">
-            <TabsTrigger value="orders" className="text-xs h-6 px-2">Заказы ({orders.length})</TabsTrigger>
-            <TabsTrigger value="transactions" className="text-xs h-6 px-2">Транзакции ({transactions.length})</TabsTrigger>
-          </TabsList>
-          {tab === "orders" && (
-            <>
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                <Input placeholder="Услуга, ссылка..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-7 h-7 w-[180px] text-xs" />
-              </div>
-              <Select value={orderStatusFilter} onValueChange={setOrderStatusFilter}>
-                <SelectTrigger className="w-[110px] h-7 text-xs"><SelectValue placeholder="Статус" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все</SelectItem>
-                  {orderStatuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </>
-          )}
-          {tab === "transactions" && (
-            <Select value={txTypeFilter} onValueChange={setTxTypeFilter}>
-              <SelectTrigger className="w-[110px] h-7 text-xs"><SelectValue placeholder="Тип" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все</SelectItem>
-                {txTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-
-        <div className="flex-1 min-h-0 overflow-auto border rounded-md mt-2">
-          <TabsContent value="orders" className="mt-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="text-[11px]">
-                  <TableHead className="px-1">ID</TableHead>
-                  <TableHead className="px-1">Дата</TableHead>
-                  <TableHead className="px-1 whitespace-nowrap">Соцсеть</TableHead>
-                  <TableHead className="px-1">Услуга</TableHead>
-                  <TableHead className="px-1">Ссылка</TableHead>
-                  <TableHead className="px-1 whitespace-nowrap">Кол-во</TableHead>
-                  <TableHead className="px-1 whitespace-nowrap">Прогресс</TableHead>
-                  <TableHead className="px-1 whitespace-nowrap">Цена</TableHead>
-                  <TableHead className="px-1">Статус</TableHead>
-                  <TableHead className="px-1">Пров.</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredOrders.map((o) => (
-                  <TableRow key={o.id} className="text-[11px]">
-                    <TableCell className="px-1 font-mono text-[10px] text-muted-foreground">{o.id.slice(0, 8)}</TableCell>
-                    <TableCell className="px-1 whitespace-nowrap">{formatDate(o.created_at)}</TableCell>
-                    <TableCell className="px-1">{o.platform && <Badge variant="outline" className="text-[9px] px-1">{o.platform}</Badge>}</TableCell>
-                    <TableCell className="px-1 max-w-[180px] truncate">{o.service_name}</TableCell>
-                    <TableCell className="px-1">
-                      <a href={o.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-[10px]">
-                        {o.link.replace(/^https?:\/\/(www\.)?/, "").slice(0, 25)}<ExternalLink className="h-2 w-2 inline ml-0.5" />
-                      </a>
-                    </TableCell>
-                    <TableCell className="px-1 whitespace-nowrap">{o.quantity}</TableCell>
-                    <TableCell className="px-1 whitespace-nowrap">{o.progress}/{o.quantity}</TableCell>
-                    <TableCell className="px-1 whitespace-nowrap font-medium">{Number(o.price).toFixed(2)}₽</TableCell>
-                    <TableCell className="px-1">
-                      <span className={`px-1 py-0.5 rounded text-[9px] ${statusColors[o.status] || "bg-muted"}`}>{o.status}</span>
-                    </TableCell>
-                    <TableCell className="px-1">{o.provider && <Badge variant="secondary" className="text-[9px] px-1">{o.provider}</Badge>}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TabsContent>
-
-          <TabsContent value="transactions" className="mt-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="text-[11px]">
-                  <TableHead className="px-1">Дата</TableHead>
-                  <TableHead className="px-1">Тип</TableHead>
-                  <TableHead className="px-1">Сумма</TableHead>
-                  <TableHead className="px-1">Баланс после</TableHead>
-                  <TableHead className="px-1">Статус</TableHead>
-                  <TableHead className="px-1">Описание</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTx.map((t) => (
-                  <TableRow key={t.id} className="text-[11px]">
-                    <TableCell className="px-1 whitespace-nowrap">{formatDate(t.created_at)}</TableCell>
-                    <TableCell className="px-1"><Badge variant="outline" className="text-[9px]">{t.type}</Badge></TableCell>
-                    <TableCell className={`px-1 font-medium ${t.type === "deposit" || t.type === "refund" || t.type === "admin_deposit" ? "text-green-600" : "text-red-500"}`}>
-                      {t.type === "deposit" || t.type === "refund" || t.type === "admin_deposit" ? "+" : "−"}{Number(t.amount).toFixed(2)}₽
-                    </TableCell>
-                    <TableCell className="px-1">{Number(t.balance_after).toFixed(2)}₽</TableCell>
-                    <TableCell className="px-1"><Badge variant="secondary" className="text-[9px]">{t.status}</Badge></TableCell>
-                    <TableCell className="px-1 text-muted-foreground max-w-[200px] truncate">{t.description || "—"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TabsContent>
-        </div>
-      </Tabs>
-
-      {/* ── Management Dialog ── */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Settings2 className="h-4 w-4" />
-              Управление: {profile.display_name || "Пользователь"}
-            </DialogTitle>
-          </DialogHeader>
-
-          <Tabs value={editTab} onValueChange={setEditTab}>
-            <TabsList className="w-full">
-              <TabsTrigger value="profile" className="flex-1 text-xs"><User className="h-3 w-3 mr-1" />Профиль</TabsTrigger>
-              <TabsTrigger value="balance" className="flex-1 text-xs"><Wallet className="h-3 w-3 mr-1" />Баланс</TabsTrigger>
-              <TabsTrigger value="security" className="flex-1 text-xs"><Shield className="h-3 w-3 mr-1" />Безопасность</TabsTrigger>
-              <TabsTrigger value="access" className="flex-1 text-xs"><Ban className="h-3 w-3 mr-1" />Доступ</TabsTrigger>
-            </TabsList>
-
-            {/* ── Profile Tab ── */}
-            <TabsContent value="profile" className="space-y-4 mt-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-3 flex-1 min-h-0">
+        {/* Left column: Edit fields */}
+        <div className="space-y-3 overflow-auto">
+          {/* Profile card */}
+          <Card className="border-border/60">
+            <CardHeader className="p-3 pb-2">
+              <CardTitle className="text-xs font-bold flex items-center gap-1"><User className="h-3 w-3" />Профиль</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0 space-y-2.5">
               <div>
-                <Label className="text-xs">Имя пользователя</Label>
-                <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="mt-1" />
+                <Label className="text-[11px] text-muted-foreground">ID</Label>
+                <Input value={profile.id} readOnly className="text-xs h-8 bg-muted/50 font-mono text-[10px]" />
               </div>
               <div>
-                <Label className="text-xs">Описание / Био</Label>
-                <Textarea value={editBio} onChange={(e) => setEditBio(e.target.value)} className="mt-1" rows={3} placeholder="О пользователе..." />
-              </div>
-              <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md text-xs text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                Зарегистрирован: {formatDate(profile.created_at)}
-              </div>
-              <Button onClick={saveProfile} disabled={saving} className="w-full">
-                {saving ? "Сохранение..." : "Сохранить профиль"}
-              </Button>
-            </TabsContent>
-
-            {/* ── Balance Tab ── */}
-            <TabsContent value="balance" className="space-y-4 mt-4">
-              <div className="p-3 bg-muted/50 rounded-lg text-center">
-                <p className="text-[10px] text-muted-foreground">Текущий баланс</p>
-                <p className="text-2xl font-bold">{Number(profile.balance).toFixed(2)}₽</p>
-              </div>
-
-              <div>
-                <Label className="text-xs">Действие</Label>
-                <Select value={balanceAction} onValueChange={(v) => setBalanceAction(v as any)}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="set">Установить точную сумму</SelectItem>
-                    <SelectItem value="add">Добавить к балансу</SelectItem>
-                    <SelectItem value="subtract">Списать с баланса</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="text-[11px] text-muted-foreground">Имя</Label>
+                <Input value={editName} onChange={e => setEditName(e.target.value)} className="text-xs h-8" />
               </div>
               <div>
-                <Label className="text-xs">Сумма (₽)</Label>
-                <Input type="number" value={editBalance} onChange={(e) => setEditBalance(e.target.value)} className="mt-1" />
-                {balanceAction !== "set" && (
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Итого: {balanceAction === "add"
-                      ? (Number(profile.balance) + parseFloat(editBalance || "0")).toFixed(2)
-                      : Math.max(0, Number(profile.balance) - parseFloat(editBalance || "0")).toFixed(2)
-                    }₽
-                  </p>
+                <Label className="text-[11px] text-muted-foreground">Email</Label>
+                <div className="flex gap-1">
+                  <Input value={editEmail} onChange={e => setEditEmail(e.target.value)} className="text-xs h-8 flex-1" disabled={authLoading} />
+                  {authInfo && editEmail !== authInfo.email && (
+                    <Button size="sm" className="h-8 text-[10px] px-2" onClick={changeEmail} disabled={saving}>
+                      <Save className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+                {authInfo && !authInfo.email_confirmed && (
+                  <Button variant="link" size="sm" className="h-5 text-[10px] px-0 text-orange-500" onClick={confirmEmail} disabled={saving}>
+                    <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />Подтвердить email
+                  </Button>
                 )}
               </div>
-              <Button onClick={saveBalance} disabled={saving} className="w-full">
-                {saving ? "Сохранение..." : "Обновить баланс"}
+              <div>
+                <Label className="text-[11px] text-muted-foreground">Пароль</Label>
+                <div className="flex gap-1">
+                  <Input type="password" value={editPassword} onChange={e => setEditPassword(e.target.value)} placeholder="Новый пароль" className="text-xs h-8 flex-1" />
+                  <Button size="sm" className="h-8 text-[10px] px-2" onClick={changePassword} disabled={saving || editPassword.length < 6}>
+                    <KeyRound className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <Label className="text-[11px] text-muted-foreground">Описание</Label>
+                <Textarea value={editBio} onChange={e => setEditBio(e.target.value)} className="text-xs min-h-[50px]" placeholder="О пользователе..." />
+              </div>
+              <Button size="sm" className="w-full h-8 text-xs" onClick={saveProfile} disabled={saving}>
+                <Save className="h-3 w-3 mr-1" />{saving ? "..." : "Сохранить изменения"}
               </Button>
-              <p className="text-[10px] text-muted-foreground text-center">
-                Изменение будет записано в транзакции и аудит-лог
-              </p>
-            </TabsContent>
+            </CardContent>
+          </Card>
 
-            {/* ── Security Tab ── */}
-            <TabsContent value="security" className="space-y-4 mt-4">
+          {/* Balance card */}
+          <Card className="border-border/60">
+            <CardHeader className="p-3 pb-2">
+              <CardTitle className="text-xs font-bold flex items-center gap-1"><Wallet className="h-3 w-3" />Баланс</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0 space-y-2.5">
+              <div className="text-center py-2 bg-muted/30 rounded-md">
+                <p className="text-[10px] text-muted-foreground">Текущий баланс</p>
+                <p className="text-xl font-bold">{Number(profile.balance).toFixed(2)}₽</p>
+              </div>
+              <div>
+                <Label className="text-[11px] text-muted-foreground">Сумма</Label>
+                <Input type="number" value={balanceAmount} onChange={e => setBalanceAmount(e.target.value)} placeholder="0.00" className="text-xs h-8" />
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <Button size="sm" variant="outline" className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50" onClick={addBalance} disabled={saving || !balanceAmount}>
+                  <Plus className="h-3 w-3 mr-1" />Пополнить
+                </Button>
+                <Button size="sm" variant="outline" className="h-8 text-xs text-destructive border-red-200 hover:bg-red-50" onClick={subtractBalance} disabled={saving || !balanceAmount}>
+                  <Minus className="h-3 w-3 mr-1" />Списать
+                </Button>
+              </div>
+              <p className="text-[9px] text-muted-foreground text-center">Записывается в транзакции и аудит-лог</p>
+            </CardContent>
+          </Card>
+
+          {/* Security & access card */}
+          <Card className="border-border/60">
+            <CardHeader className="p-3 pb-2">
+              <CardTitle className="text-xs font-bold flex items-center gap-1"><Shield className="h-3 w-3" />Безопасность и доступ</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0 space-y-2.5">
               {authLoading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
-                </div>
+                <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" /></div>
               ) : authInfo ? (
                 <>
-                  {/* Auth info */}
-                  <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Email</span>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs font-medium">{authInfo.email}</span>
-                        {authInfo.email_confirmed ? (
-                          <CheckCircle className="h-3 w-3 text-green-500" />
-                        ) : (
-                          <AlertTriangle className="h-3 w-3 text-yellow-500" />
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Последний вход</span>
-                      <span className="text-xs">{authInfo.last_sign_in ? formatDate(authInfo.last_sign_in) : "—"}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">2FA</span>
-                      <Badge variant={authInfo.mfa_enabled ? "default" : "secondary"} className="text-[9px]">
-                        {authInfo.mfa_enabled ? "Включена" : "Выключена"}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Change email */}
-                  <Separator />
-                  <div>
-                    <Label className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" />Изменить email</Label>
-                    <div className="flex gap-2 mt-1">
-                      <Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="flex-1" />
-                      <Button size="sm" onClick={changeEmail} disabled={saving || editEmail === authInfo.email}>
-                        Сохранить
-                      </Button>
-                    </div>
-                    {!authInfo.email_confirmed && (
-                      <Button variant="outline" size="sm" className="mt-2 text-xs w-full" onClick={confirmEmail} disabled={saving}>
-                        <CheckCircle className="h-3 w-3 mr-1" />Подтвердить email вручную
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Change password */}
-                  <Separator />
-                  <div>
-                    <Label className="text-xs flex items-center gap-1"><KeyRound className="h-3 w-3" />Новый пароль</Label>
-                    <div className="flex gap-2 mt-1">
-                      <Input
-                        type="password"
-                        value={editPassword}
-                        onChange={(e) => setEditPassword(e.target.value)}
-                        placeholder="Минимум 6 символов"
-                        className="flex-1"
-                      />
-                      <Button size="sm" onClick={changePassword} disabled={saving || editPassword.length < 6}>
-                        Изменить
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* 2FA */}
-                  <Separator />
-                  <div>
-                    <Label className="text-xs flex items-center gap-1"><Shield className="h-3 w-3" />Двухфакторная аутентификация</Label>
-                    {authInfo.mfa_enabled ? (
-                      <div className="mt-2 space-y-2">
-                        <div className="p-2 bg-green-500/10 rounded border border-green-500/20">
-                          <p className="text-xs text-green-600 font-medium">✓ 2FA активна</p>
-                          <p className="text-[10px] text-muted-foreground">
-                            Факторов: {authInfo.factors?.length || 0}
-                          </p>
-                        </div>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="w-full text-xs"
-                          onClick={disableMFA}
-                          disabled={saving}
-                        >
-                          Отключить 2FA
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="mt-2 p-2 bg-muted/50 rounded">
-                        <p className="text-xs text-muted-foreground">2FA не включена. Пользователь может включить её в настройках личного кабинета.</p>
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <p className="text-xs text-muted-foreground text-center py-4">Не удалось загрузить данные</p>
-              )}
-            </TabsContent>
-
-            {/* ── Access Tab ── */}
-            <TabsContent value="access" className="space-y-4 mt-4">
-              {authLoading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
-                </div>
-              ) : authInfo ? (
-                <>
-                  <div className={`p-3 rounded-lg border ${authInfo.banned ? "bg-destructive/10 border-destructive/20" : "bg-green-500/10 border-green-500/20"}`}>
-                    <div className="flex items-center gap-2">
-                      {authInfo.banned ? (
-                        <Ban className="h-4 w-4 text-destructive" />
-                      ) : (
-                        <CheckCircle className="h-4 w-4 text-green-500" />
+                  {/* Status */}
+                  <div className={`p-2 rounded-md flex items-center gap-2 ${authInfo.banned ? "bg-destructive/10" : "bg-green-500/10"}`}>
+                    {authInfo.banned ? <Ban className="h-3.5 w-3.5 text-destructive" /> : <CheckCircle className="h-3.5 w-3.5 text-green-500" />}
+                    <div>
+                      <p className="text-xs font-medium">{authInfo.banned ? "Заблокирован" : "Активен"}</p>
+                      {authInfo.banned && authInfo.banned_until && (
+                        <p className="text-[9px] text-muted-foreground">До: {formatDate(authInfo.banned_until)}</p>
                       )}
-                      <div>
-                        <p className="text-sm font-medium">{authInfo.banned ? "Заблокирован" : "Активен"}</p>
-                        {authInfo.banned && authInfo.banned_until && (
-                          <p className="text-[10px] text-muted-foreground">До: {formatDate(authInfo.banned_until)}</p>
+                    </div>
+                  </div>
+
+                  {/* Quick info */}
+                  <div className="space-y-1 text-[11px]">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Последний вход</span><span>{authInfo.last_sign_in ? formatDate(authInfo.last_sign_in) : "—"}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Регистрация</span><span>{formatDate(profile.created_at)}</span></div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">2FA</span>
+                      <div className="flex items-center gap-1">
+                        <Badge variant={authInfo.mfa_enabled ? "default" : "secondary"} className="text-[8px] h-4">{authInfo.mfa_enabled ? "Вкл" : "Выкл"}</Badge>
+                        {authInfo.mfa_enabled && (
+                          <Button variant="ghost" size="sm" className="h-4 text-[9px] px-1 text-destructive" onClick={disableMFA} disabled={saving}>Сбросить</Button>
                         )}
                       </div>
                     </div>
                   </div>
 
+                  <Separator />
+
+                  {/* Ban actions */}
                   {authInfo.banned ? (
-                    <Button className="w-full" onClick={() => handleBan("none")} disabled={saving}>
+                    <Button size="sm" className="w-full h-8 text-xs" onClick={() => handleBan("none")} disabled={saving}>
                       <CheckCircle className="h-3 w-3 mr-1" />Разблокировать
                     </Button>
                   ) : (
-                    <div className="space-y-2">
-                      <Label className="text-xs">Заблокировать пользователя</Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button variant="outline" size="sm" className="text-xs" onClick={() => handleBan("24h")} disabled={saving}>
-                          На 24 часа
-                        </Button>
-                        <Button variant="outline" size="sm" className="text-xs" onClick={() => handleBan("7d")} disabled={saving}>
-                          На 7 дней
-                        </Button>
-                        <Button variant="outline" size="sm" className="text-xs" onClick={() => handleBan("30d")} disabled={saving}>
-                          На 30 дней
-                        </Button>
-                        <Button variant="destructive" size="sm" className="text-xs" onClick={() => handleBan("permanent")} disabled={saving}>
-                          Навсегда
-                        </Button>
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] text-muted-foreground">Заблокировать</Label>
+                      <div className="grid grid-cols-2 gap-1">
+                        <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => handleBan("24h")} disabled={saving}>24 часа</Button>
+                        <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => handleBan("7d")} disabled={saving}>7 дней</Button>
+                        <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => handleBan("30d")} disabled={saving}>30 дней</Button>
+                        <Button variant="destructive" size="sm" className="h-7 text-[10px]" onClick={() => handleBan("permanent")} disabled={saving}>Навсегда</Button>
                       </div>
-                      <p className="text-[10px] text-muted-foreground">
-                        Заблокированный пользователь не сможет войти в систему
-                      </p>
                     </div>
                   )}
                 </>
-              ) : null}
-            </TabsContent>
+              ) : (
+                <p className="text-xs text-muted-foreground py-2">Не удалось загрузить</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Stats card */}
+          <Card className="border-border/60">
+            <CardContent className="p-3 space-y-1 text-[11px]">
+              <div className="flex justify-between"><span className="text-muted-foreground">Заказов</span><span className="font-bold">{orders.length}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Потрачено</span><span className="font-bold">{totalSpent.toFixed(2)}₽</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Транзакций</span><span className="font-bold">{transactions.length}</span></div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right column: Orders & Transactions */}
+        <div className="flex flex-col min-h-0">
+          <Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-1 min-h-0">
+            <div className="flex items-center gap-2 shrink-0">
+              <TabsList className="h-7">
+                <TabsTrigger value="orders" className="text-xs h-6 px-2">Заказы ({orders.length})</TabsTrigger>
+                <TabsTrigger value="transactions" className="text-xs h-6 px-2">Транзакции ({transactions.length})</TabsTrigger>
+              </TabsList>
+              {tab === "orders" && (
+                <>
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                    <Input placeholder="Услуга, ссылка..." value={search} onChange={e => setSearch(e.target.value)} className="pl-7 h-7 w-[160px] text-xs" />
+                  </div>
+                  <Select value={orderStatusFilter} onValueChange={setOrderStatusFilter}>
+                    <SelectTrigger className="w-[100px] h-7 text-xs"><SelectValue placeholder="Статус" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Все</SelectItem>
+                      {orderStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
+              {tab === "transactions" && (
+                <Select value={txTypeFilter} onValueChange={setTxTypeFilter}>
+                  <SelectTrigger className="w-[100px] h-7 text-xs"><SelectValue placeholder="Тип" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все</SelectItem>
+                    {txTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-auto border rounded-md mt-2">
+              <TabsContent value="orders" className="mt-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="text-[11px]">
+                      <TableHead className="px-1">Дата</TableHead>
+                      <TableHead className="px-1">Соцсеть</TableHead>
+                      <TableHead className="px-1">Услуга</TableHead>
+                      <TableHead className="px-1">Ссылка</TableHead>
+                      <TableHead className="px-1">Кол-во</TableHead>
+                      <TableHead className="px-1">Цена</TableHead>
+                      <TableHead className="px-1">Статус</TableHead>
+                      <TableHead className="px-1">Пров.</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredOrders.length === 0 ? (
+                      <TableRow><TableCell colSpan={8} className="text-center text-xs text-muted-foreground py-8">Нет заказов</TableCell></TableRow>
+                    ) : filteredOrders.map(o => (
+                      <TableRow key={o.id} className="text-[11px]">
+                        <TableCell className="px-1 whitespace-nowrap">{formatDate(o.created_at)}</TableCell>
+                        <TableCell className="px-1">{o.platform && <Badge variant="outline" className="text-[9px] px-1">{o.platform}</Badge>}</TableCell>
+                        <TableCell className="px-1 max-w-[180px] truncate">{o.service_name}</TableCell>
+                        <TableCell className="px-1">
+                          <a href={o.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-[10px]">
+                            {o.link.replace(/^https?:\/\/(www\.)?/, "").slice(0, 25)}<ExternalLink className="h-2 w-2 inline ml-0.5" />
+                          </a>
+                        </TableCell>
+                        <TableCell className="px-1 whitespace-nowrap">{o.progress}/{o.quantity}</TableCell>
+                        <TableCell className="px-1 whitespace-nowrap font-medium">{Number(o.price).toFixed(2)}₽</TableCell>
+                        <TableCell className="px-1">
+                          <span className={`px-1 py-0.5 rounded text-[9px] ${statusColors[o.status] || "bg-muted"}`}>{o.status}</span>
+                        </TableCell>
+                        <TableCell className="px-1">{o.provider && <Badge variant="secondary" className="text-[9px] px-1">{o.provider}</Badge>}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TabsContent>
+
+              <TabsContent value="transactions" className="mt-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="text-[11px]">
+                      <TableHead className="px-1">Дата</TableHead>
+                      <TableHead className="px-1">Тип</TableHead>
+                      <TableHead className="px-1">Сумма</TableHead>
+                      <TableHead className="px-1">Баланс после</TableHead>
+                      <TableHead className="px-1">Статус</TableHead>
+                      <TableHead className="px-1">Описание</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTx.length === 0 ? (
+                      <TableRow><TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-8">Нет транзакций</TableCell></TableRow>
+                    ) : filteredTx.map(t => (
+                      <TableRow key={t.id} className="text-[11px]">
+                        <TableCell className="px-1 whitespace-nowrap">{formatDate(t.created_at)}</TableCell>
+                        <TableCell className="px-1"><Badge variant="outline" className="text-[9px]">{t.type}</Badge></TableCell>
+                        <TableCell className={`px-1 font-medium ${["deposit", "refund", "admin_deposit"].includes(t.type) ? "text-green-600" : "text-destructive"}`}>
+                          {["deposit", "refund", "admin_deposit"].includes(t.type) ? "+" : "−"}{Number(t.amount).toFixed(2)}₽
+                        </TableCell>
+                        <TableCell className="px-1">{Number(t.balance_after).toFixed(2)}₽</TableCell>
+                        <TableCell className="px-1"><Badge variant="secondary" className="text-[9px]">{t.status}</Badge></TableCell>
+                        <TableCell className="px-1 text-muted-foreground max-w-[200px] truncate">{t.description || "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TabsContent>
+            </div>
           </Tabs>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </div>
     </div>
   );
 };
