@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Link2 } from 'lucide-react';
+import { ArrowUp, Link2 } from 'lucide-react';
 
 interface HeroInputProps {
   onSubmit: (url: string) => void;
@@ -32,11 +32,11 @@ const HeroInput = ({ onSubmit, isLoading }: HeroInputProps) => {
           className="w-full bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-base mb-3"
         />
         <div className="flex items-center justify-between">
-          <Link2 className="w-5 h-5 text-muted-foreground" />
+          <Link2 className="w-5 h-5 text-muted-foreground/60" />
           <button
             type="submit"
             disabled={!url.trim() || isLoading}
-            className="w-9 h-9 rounded-full bg-foreground text-background flex items-center justify-center transition-all hover:scale-110 disabled:opacity-30 disabled:hover:scale-100"
+            className="w-9 h-9 rounded-full bg-foreground text-background flex items-center justify-center transition-all hover:scale-110 disabled:opacity-25 disabled:hover:scale-100"
           >
             {isLoading ? (
               <motion.div
@@ -45,7 +45,7 @@ const HeroInput = ({ onSubmit, isLoading }: HeroInputProps) => {
                 className="w-4 h-4 border-2 border-background border-t-transparent rounded-full"
               />
             ) : (
-              <ArrowRight className="w-4 h-4" />
+              <ArrowUp className="w-4 h-4" />
             )}
           </button>
         </div>
