@@ -786,7 +786,7 @@ const AdminServices = () => {
                               <div className="truncate max-w-[240px] font-medium">{svc.name}</div>
                             </TableCell>
                             <TableCell className="px-2"><Badge variant="outline" className="text-[10px]">{svc.network}</Badge></TableCell>
-                            <TableCell className="px-2 text-right font-mono">{Number(svc.rate).toFixed(2)}₽</TableCell>
+                            <TableCell className="px-2 text-right font-mono">{fmtPrice(Number(svc.rate))}</TableCell>
                             <TableCell className="px-2 text-right">
                               <Badge variant={effectiveMarkup >= ladderMarkup ? "default" : "secondary"} className="text-[9px] px-1">
                                 {effectiveMarkup}%
