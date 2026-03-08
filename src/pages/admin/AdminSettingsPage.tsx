@@ -68,6 +68,9 @@ const SETTINGS_META: SettingMeta[] = [
   { key: "min_withdraw_amount", label: "Мин. сумма вывода", hint: "Минимальная сумма для запроса вывода средств", type: "number", suffix: "₽", group: "finance" },
   { key: "new_user_bonus", label: "Бонус новому пользователю", hint: "Сумма, которая автоматически начисляется на баланс при регистрации (0 = отключено)", type: "number", suffix: "₽", group: "finance" },
 
+  // License
+  { key: "license_key", label: "Лицензионный ключ", hint: "Введите лицензионный ключ один раз — он будет действовать для всего сайта. Получите ключ при покупке лицензии", type: "text", group: "license" },
+
   // System
   { key: "maintenance_mode", label: "Режим обслуживания", hint: "Когда включено — обычные пользователи видят заглушку «сайт временно недоступен», админы работают как обычно", type: "boolean", group: "system" },
   { key: "telegram_notifications", label: "Telegram уведомления", hint: "Отправлять ли уведомления о новых заказах и тикетах в Telegram-бот", type: "boolean", group: "system" },
