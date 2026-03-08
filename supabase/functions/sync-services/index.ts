@@ -117,10 +117,14 @@ serve(async (req) => {
           .eq('provider_service_id', svc.service)
           .single();
 
+        const rawCategory = svc.category || 'Uncategorized';
+        const rawNetwork = svc.network || svc.category?.split(' ')[0] || 'Other';
+        const rawName = svc.name || '';
+
         const serviceData = {
-          name: svc.name,
-          category: svc.category || 'Uncategorized',
-          network: svc.network || svc.category?.split(' ')[0] || 'Other',
+          name: applyCleanup('name', rawName),
+          category: applyCleanup('category', rawCategory),
+          network: applyCleanup('network', rawNetwork),
           description: svc.description || null,
           type: svc.type || 'Default',
           rate: parseFloat(svc.rate),
