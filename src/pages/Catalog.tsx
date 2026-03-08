@@ -36,6 +36,7 @@ const networkConfig: { key: string; label: string; icon: string; color: string; 
 
 const Catalog = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [services, setServices] = useState<CatalogService[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,8 +47,9 @@ const Catalog = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedService, setSelectedService] = useState<CatalogService | null>(null);
 
-  // Order form
-  const [link, setLink] = useState("");
+  // Order form — pre-fill link from query param
+  const prefillLink = searchParams.get('link') || '';
+  const [link, setLink] = useState(prefillLink);
   const [email, setEmail] = useState("");
   const [quantity, setQuantity] = useState(10);
   const [consentOffer, setConsentOffer] = useState(false);
