@@ -589,7 +589,7 @@ const Catalog = () => {
                                 onClick={() => selectService(service)}
                                 whileHover={{ y: -2 }}
                                 whileTap={{ scale: 0.98 }}
-                                className={`relative p-4 rounded-2xl text-left transition-all flex flex-col min-h-[180px] ${
+                                className={`relative p-4 rounded-2xl text-left transition-all flex flex-col h-auto ${
                                   isSelected
                                     ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/10'}`
                                     : isPopular
