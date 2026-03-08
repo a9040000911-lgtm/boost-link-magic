@@ -21,6 +21,7 @@ const adminMenuItems = [
   { title: "Транзакции", url: "/admin/transactions", icon: Receipt },
   { title: "Пользователи", url: "/admin/users", icon: Users },
   { title: "Услуги", url: "/admin/services", icon: Package },
+  { title: "Категории", url: "/admin/categories", icon: FolderOpen },
   { title: "Провайдеры", url: "/admin/providers", icon: Server },
   { title: "Поддержка", url: "/admin/support", icon: MessageSquare },
   { title: "Сотрудники", url: "/admin/staff", icon: Shield },
