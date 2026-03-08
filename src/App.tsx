@@ -29,7 +29,10 @@ import AdminCategories from "./pages/admin/AdminCategories";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import AdminPromocodes from "./pages/admin/AdminPromocodes";
 import AdminPages from "./pages/admin/AdminPages";
+import AdminFAQ from "./pages/admin/AdminFAQ";
+import AdminWidgets from "./pages/admin/AdminWidgets";
 import CookieConsent from "./components/CookieConsent";
+import SiteWidgets from "./components/SiteWidgets";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +66,8 @@ const App = () => (
             <Route path="promocodes" element={<AdminPromocodes />} />
             <Route path="settings" element={<AdminSettingsPage />} />
             <Route path="pages" element={<AdminPages />} />
+            <Route path="faq" element={<AdminFAQ />} />
+            <Route path="widgets" element={<AdminWidgets />} />
             <Route path="support" element={<AdminSupport />} />
             <Route path="staff" element={<AdminStaff />} />
             <Route path="providers" element={<AdminProviders />} />
@@ -70,6 +75,7 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
         <CookieConsent />
+        <SiteWidgets />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
