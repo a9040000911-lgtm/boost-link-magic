@@ -84,7 +84,13 @@ const DashboardOrders = () => {
     return orders.filter((o) => {
       if (statusFilter !== "all" && o.status !== statusFilter) return false;
       if (platformFilter !== "all" && o.platform !== platformFilter) return false;
-      if (search && !o.service_name.toLowerCase().includes(search.toLowerCase()) && !o.link.toLowerCase().includes(search.toLowerCase()) && !o.id.toLowerCase().includes(search.toLowerCase())) return false;
+      if (search) {
+        const s = search.toLowerCase().replace(/^#/, '');
+        const matchesNumber = o.order_number != null && String(o.order_number).includes(s);
+        const matchesName = o.service_name.toLowerCase().includes(s);
+        const matchesLink = o.link.toLowerCase().includes(s);
+        if (!matchesNumber && !matchesName && !matchesLink) return false;
+      }
       return true;
     });
   }, [orders, search, statusFilter, platformFilter]);
