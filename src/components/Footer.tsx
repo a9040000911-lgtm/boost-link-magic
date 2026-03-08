@@ -12,8 +12,8 @@ const Footer = () => {
     <footer className="bg-foreground border-t border-border py-10 px-4">
       <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="text-center md:text-left">
-          <p className="text-sm font-semibold text-foreground">SMM Panel</p>
-          <p className="text-xs text-muted-foreground mt-1">Продвижение в социальных сетях</p>
+          <p className="text-sm font-semibold text-background">SMM Panel</p>
+          <p className="text-xs text-background/60 mt-1">Продвижение в социальных сетях</p>
         </div>
 
         <div className="flex items-center gap-4">
