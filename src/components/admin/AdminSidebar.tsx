@@ -33,6 +33,7 @@ const adminMenuItems = [
   { title: "Ссылки", url: "/admin/links", icon: Link2, badgeKey: "links" as const },
   { title: "Поддержка", url: "/admin/support", icon: MessageSquare },
   { title: "Сотрудники", url: "/admin/staff", icon: Shield },
+  { title: "Telegram-боты", url: "/admin/bots", icon: Bot },
   { title: "Настройки", url: "/admin/settings", icon: Settings },
   { title: "Документация", url: "/admin/docs", icon: BookOpen },
 ];
