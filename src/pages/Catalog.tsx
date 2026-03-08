@@ -569,7 +569,7 @@ const Catalog = () => {
                           </table>
                         </div>
                       ) : (
-                        /* ─── Square Cards Grid ─── */
+                        /* ─── Adaptive Cards Grid ─── */
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                           {categoryServices.map((service, i) => {
                             const isSelected = selectedService?.id === service.id;
@@ -584,7 +584,7 @@ const Catalog = () => {
                                 onClick={() => selectService(service)}
                                 whileHover={{ y: -2 }}
                                 whileTap={{ scale: 0.98 }}
-                                className={`relative p-4 rounded-2xl text-left transition-all flex flex-col aspect-square ${
+                                className={`relative p-4 rounded-2xl text-left transition-all flex flex-col min-h-[180px] ${
                                   isSelected
                                     ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/10'}`
                                     : isPopular
@@ -605,11 +605,11 @@ const Catalog = () => {
                                 )}
 
                                 {/* Title */}
-                                <h3 className="font-bold text-sm text-foreground mb-2 pr-8 line-clamp-2">{service.name}</h3>
+                                <h3 className="font-bold text-sm text-foreground mb-2 pr-8">{service.name}</h3>
 
-                                {/* Description — prominent */}
+                                {/* Description — adaptive, no line clamp */}
                                 {service.description && (
-                                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3 mb-3">
+                                  <p className="text-xs text-muted-foreground leading-relaxed mb-3">
                                     {service.description}
                                   </p>
                                 )}
