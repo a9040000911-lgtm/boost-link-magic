@@ -155,7 +155,7 @@ const MarketingSection = () => {
               whileHover={{ scale: 1.06 }}
               whileTap={{ scale: 0.96 }}
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="px-8 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:shadow-lg hover:shadow-primary/30 transition-shadow"
+              className="px-8 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-primary-foreground font-semibold text-sm shadow-lg shadow-primary/40 hover:shadow-xl hover:shadow-primary/50 transition-all"
             >
               Попробовать бесплатно ↑
             </motion.button>
