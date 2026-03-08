@@ -351,61 +351,225 @@ const sections: Section[] = [
       <>
         <H2><Link2 className="h-5 w-5" /> Ссылки и платформы</H2>
         <P>
-          Раздел управляет распознаванием ссылок, которые пользователи вводят при заказе. Три вкладки:
+          Этот раздел — ключевой для расширения панели на новые соцсети. Здесь вы управляете тем, какие ссылки система умеет распознавать. Три вкладки: Нераспознанные, Платформы, Паттерны.
         </P>
 
+        {/* ── Нераспознанные ── */}
         <H3>Вкладка «Нераспознанные»</H3>
         <P>
-          Когда пользователь вводит ссылку, которую система не может определить (не соответствует ни одному паттерну и домену), 
-          она попадает сюда. Бейдж в боковом меню показывает количество необработанных ссылок.
+          Когда клиент вводит ссылку, которую система не понимает, она сохраняется здесь. 
+          Бейдж-счётчик в боковом меню показывает сколько необработанных ссылок ждут вашего внимания.
         </P>
-        <Step n={1}>Просмотрите список нераспознанных URL</Step>
-        <Step n={2}>Если ссылка относится к известной соцсети — добавьте платформу или паттерн</Step>
-        <Step n={3}>Пометьте как обработанную кнопкой <strong>«✓»</strong></Step>
-
-        <H3>Вкладка «Платформы»</H3>
-        <P>
-          Справочник социальных сетей. Каждая платформа содержит:
-        </P>
-        <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1 mb-3">
-          <li><strong>Ключ</strong> — уникальный код (instagram, youtube, tiktok...)</li>
-          <li><strong>Название</strong> — отображаемое имя</li>
-          <li><strong>Домены</strong> — список доменов для автоопределения (instagram.com, instagr.am)</li>
-          <li><strong>Иконка</strong> — имя lucide-иконки</li>
-          <li><strong>Цвет</strong> — HSL-значение для брендирования</li>
-        </ul>
-
-        <P><strong>Добавление новой соцсети:</strong></P>
-        <Step n={1}>Нажмите <strong>«+ Платформа»</strong></Step>
-        <Step n={2}>Заполните ключ (латиницей, одним словом), название и домены через запятую</Step>
-        <Step n={3}>Укажите иконку (имя из lucide-react) и цвет в формате HSL (например, <code>330 80% 60%</code>)</Step>
-        <Step n={4}>Нажмите <strong>«Сохранить»</strong></Step>
+        <Step n={1}>Просмотрите URL-адреса в списке</Step>
+        <Step n={2}>Если видите повторяющийся домен (например, <code>threads.net</code>) — это сигнал добавить новую платформу</Step>
+        <Step n={3}>После добавления платформы/паттерна, пометьте ссылку как обработанную кнопкой <strong>✓</strong></Step>
 
         <Tip>
-          После добавления платформы с доменами, ссылки с этих доменов будут автоматически распознаваться — без создания паттернов.
+          Регулярно проверяйте этот раздел — он показывает какие соцсети ваши клиенты используют, но система пока не поддерживает.
         </Tip>
 
-        <H3>Вкладка «Паттерны»</H3>
+        {/* ── Платформы: подробный гайд ── */}
+        <H3>Вкладка «Платформы» — добавление новой соцсети</H3>
         <P>
-          Регулярные выражения для точного распознавания типов ссылок (профиль, пост, видео и т.д.).
+          Платформа — это запись о социальной сети в справочнике. Достаточно добавить платформу с доменами, 
+          и ссылки с этих доменов уже начнут распознаваться автоматически.
         </P>
 
-        <P><strong>Добавление паттерна:</strong></P>
-        <Step n={1}>Нажмите <strong>«+ Паттерн»</strong></Step>
-        <Step n={2}>Выберите <strong>платформу</strong> из выпадающего списка</Step>
-        <Step n={3}>Укажите <strong>тип ссылки</strong> (profile, post, video, reel...)</Step>
-        <Step n={4}>Введите <strong>регулярное выражение</strong> (regex). Например: <code>instagram\.com/p/([A-Za-z0-9_-]+)</code></Step>
-        <Step n={5}>Опционально: укажите группы извлечения (username group, ID group)</Step>
-        <Step n={6}>Протестируйте паттерн: вставьте URL в поле «Тест» и убедитесь что он матчится</Step>
-        <Step n={7}>Нажмите <strong>«Сохранить»</strong></Step>
+        <P><strong>Пошаговый пример: добавляем Threads</strong></P>
+        <Step n={1}>Откройте <Path>Ссылки</Path> → вкладка <strong>«Платформы»</strong></Step>
+        <Step n={2}>Нажмите <strong>«+ Платформа»</strong></Step>
+        <Step n={3}>Заполните поля:
+          <div className="bg-muted/50 rounded-md p-3 mt-2 space-y-2 text-xs">
+            <div><strong>Ключ:</strong> <code>threads</code> — уникальный код латиницей, без пробелов, строчными буквами. Используется внутри системы.</div>
+            <div><strong>Название:</strong> <code>Threads</code> — красивое имя, которое увидят клиенты в каталоге.</div>
+            <div><strong>Домены:</strong> <code>threads.net, www.threads.net</code> — через запятую. Это домены, по которым система определит, что ссылка относится к Threads.</div>
+            <div><strong>Иконка:</strong> <code>at-sign</code> — имя иконки из библиотеки Lucide. См. раздел «Где брать иконки» ниже.</div>
+            <div><strong>Цвет:</strong> <code>0 0% 10%</code> — HSL-значение для брендирования. См. раздел «Как подбирать цвет» ниже.</div>
+          </div>
+        </Step>
+        <Step n={4}>Нажмите <strong>«Сохранить»</strong></Step>
+        <Step n={5}>Проверьте: вставьте ссылку <code>https://threads.net/@username</code> на главной странице — она должна распознаться</Step>
+
+        <Warn>
+          Ключ платформы нельзя менять после создания — он используется в привязках услуг. Выбирайте осмысленный ключ сразу.
+        </Warn>
+
+        <P><strong>Как найти домены соцсети?</strong></P>
+        <P>
+          Откройте нужную соцсеть в браузере. Посмотрите на адресную строку — домен это часть URL до первого <code>/</code>. 
+          Например, для <code>https://www.threads.net/@zuck</code> домен — <code>threads.net</code>. 
+          Добавьте варианты с <code>www.</code> и без, а также короткие ссылки (если есть). Примеры:
+        </P>
+        <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1 mb-3">
+          <li>Instagram: <code>instagram.com</code>, <code>instagr.am</code></li>
+          <li>YouTube: <code>youtube.com</code>, <code>youtu.be</code></li>
+          <li>TikTok: <code>tiktok.com</code>, <code>vm.tiktok.com</code></li>
+          <li>Telegram: <code>t.me</code>, <code>telegram.org</code></li>
+          <li>X (Twitter): <code>x.com</code>, <code>twitter.com</code></li>
+        </ul>
+
+        <P><strong>Где брать иконки?</strong></P>
+        <P>
+          Откройте сайт <code>lucide.dev/icons</code> в браузере. Введите в поиске название соцсети или похожее слово. 
+          Скопируйте имя иконки (например, <code>instagram</code>, <code>youtube</code>, <code>music</code>, <code>send</code>, <code>message-circle</code>).
+          Если точной иконки нет — выберите подходящую по смыслу (например, для Threads — <code>at-sign</code>, для Discord — <code>gamepad-2</code>).
+        </P>
+        <div className="bg-muted/50 rounded-md p-3 mt-2 mb-3 text-xs space-y-1">
+          <div><strong>Популярные иконки:</strong></div>
+          <div><code>instagram</code> — Instagram, <code>youtube</code> — YouTube, <code>music</code> — TikTok</div>
+          <div><code>send</code> — Telegram, <code>message-circle</code> — VK, <code>twitter</code> — X/Twitter</div>
+          <div><code>at-sign</code> — Threads, <code>twitch</code> — Twitch, <code>facebook</code> — Facebook</div>
+          <div><code>globe</code> — универсальная (для неизвестных сетей)</div>
+        </div>
+
+        <P><strong>Как подбирать цвет (HSL)?</strong></P>
+        <P>
+          Цвет задаётся в формате HSL: три числа через пробел — <strong>оттенок</strong> (0-360), <strong>насыщенность</strong> (0-100%), <strong>яркость</strong> (0-100%).
+        </P>
+        <div className="bg-muted/50 rounded-md p-3 mt-2 mb-3 text-xs space-y-1">
+          <div><strong>Готовые цвета для популярных платформ:</strong></div>
+          <div>🟣 Instagram: <code>330 80% 60%</code> (розово-фиолетовый)</div>
+          <div>🔴 YouTube: <code>0 80% 55%</code> (красный)</div>
+          <div>⚫ TikTok: <code>170 80% 50%</code> (бирюзовый)</div>
+          <div>🔵 Telegram: <code>200 80% 55%</code> (голубой)</div>
+          <div>🔵 VK: <code>215 70% 55%</code> (синий)</div>
+          <div>⬛ X/Twitter: <code>0 0% 10%</code> (почти чёрный)</div>
+          <div>🟢 Spotify: <code>140 70% 45%</code> (зелёный)</div>
+          <div>🟣 Twitch: <code>265 80% 60%</code> (фиолетовый)</div>
+          <div>⚫ Threads: <code>0 0% 10%</code> (чёрный)</div>
+          <div>🔵 Facebook: <code>220 70% 55%</code> (синий)</div>
+        </div>
+        <P>
+          Если нужен свой цвет: откройте Google, введите «HSL color picker» — используйте визуальный подборщик. 
+          Скопируйте три числа и вставьте через пробел.
+        </P>
+
+        {/* ── Категории для платформы ── */}
+        <H3>Добавление категорий для новой платформы</H3>
+        <P>
+          После добавления платформы нужно создать категории услуг для неё (лайки, подписчики, просмотры и т.д.). 
+          Это делается в отдельном разделе «Категории».
+        </P>
+        <Step n={1}>Перейдите в <Path>Категории</Path></Step>
+        <Step n={2}>Проверьте, есть ли уже нужные категории (например, «Лайки» может уже существовать)</Step>
+        <Step n={3}>Если нет — введите название категории (например, «Подписчики Threads») и нажмите <strong>«Добавить»</strong></Step>
+        <Step n={4}>Повторите для всех типов услуг, которые планируете продавать для этой платформы</Step>
+
+        <Tip>
+          Категории не привязаны к конкретной платформе — они общие. Услуга сама указывает, к какой сети она относится (поле «network»). 
+          Поэтому можно использовать одну категорию «Лайки» для всех соцсетей, либо делать отдельные «Лайки Instagram», «Лайки YouTube» — на ваш выбор.
+        </Tip>
+
+        {/* ── Паттерны: подробный гайд ── */}
+        <H3>Вкладка «Паттерны» — детальное распознавание ссылок</H3>
+        <P>
+          Паттерны нужны, когда вы хотите <strong>точно определить тип ссылки</strong>: профиль это, пост, видео или сторис. 
+          Без паттернов система определит только <strong>какая</strong> это соцсеть (по домену), но не <strong>что</strong> именно по ссылке.
+        </P>
+
+        <Warn>
+          Паттерны используют регулярные выражения (regex). Если вы не знакомы с regex — не переживайте! 
+          Ниже готовые шаблоны для всех популярных случаев. Просто копируйте и вставляйте.
+        </Warn>
+
+        <P><strong>Пошаговый пример: паттерн для профиля Threads</strong></P>
+        <Step n={1}>Откройте <Path>Ссылки</Path> → вкладка <strong>«Паттерны»</strong></Step>
+        <Step n={2}>Нажмите <strong>«+ Паттерн»</strong></Step>
+        <Step n={3}>Заполните:
+          <div className="bg-muted/50 rounded-md p-3 mt-2 space-y-2 text-xs">
+            <div><strong>Платформа:</strong> выберите <code>Threads</code> из списка (должна быть уже добавлена)</div>
+            <div><strong>Тип ссылки:</strong> выберите <code>profile</code></div>
+            <div><strong>Метка:</strong> <code>Профиль Threads</code> — понятное описание для вас</div>
+            <div><strong>Паттерн (regex):</strong> <code>threads\.net/@([A-Za-z0-9_.]+)</code></div>
+            <div><strong>Username group:</strong> <code>1</code> — система извлечёт имя пользователя из скобок в regex</div>
+          </div>
+        </Step>
+        <Step n={4}>Протестируйте: вставьте <code>https://www.threads.net/@zuck</code> в поле «Тест URL» и проверьте что появилась зелёная галочка</Step>
+        <Step n={5}>Нажмите <strong>«Сохранить»</strong></Step>
+
+        <H3>Готовые паттерны для копирования</H3>
+        <P>Ниже таблица готовых regex-паттернов. Копируйте значение из колонки «Паттерн» и вставляйте в поле при создании.</P>
+        
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full text-xs border border-border rounded-md">
+            <thead>
+              <tr className="bg-muted/50">
+                <th className="text-left p-2 font-medium">Платформа</th>
+                <th className="text-left p-2 font-medium">Тип</th>
+                <th className="text-left p-2 font-medium">Паттерн (regex)</th>
+                <th className="text-left p-2 font-medium">Пример URL</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              <tr><td className="p-2">Instagram</td><td className="p-2">profile</td><td className="p-2"><code>instagram\.com/([A-Za-z0-9_.]+)/?$</code></td><td className="p-2 text-muted-foreground">instagram.com/username</td></tr>
+              <tr><td className="p-2">Instagram</td><td className="p-2">post</td><td className="p-2"><code>instagram\.com/p/([A-Za-z0-9_-]+)</code></td><td className="p-2 text-muted-foreground">instagram.com/p/ABC123</td></tr>
+              <tr><td className="p-2">Instagram</td><td className="p-2">reel</td><td className="p-2"><code>instagram\.com/reel/([A-Za-z0-9_-]+)</code></td><td className="p-2 text-muted-foreground">instagram.com/reel/ABC123</td></tr>
+              <tr><td className="p-2">Instagram</td><td className="p-2">story</td><td className="p-2"><code>instagram\.com/stories/([A-Za-z0-9_.]+)</code></td><td className="p-2 text-muted-foreground">instagram.com/stories/username/123</td></tr>
+              <tr><td className="p-2">YouTube</td><td className="p-2">video</td><td className="p-2"><code>(?:youtube\.com/watch\?v=|youtu\.be/)([A-Za-z0-9_-]+)</code></td><td className="p-2 text-muted-foreground">youtube.com/watch?v=dQw4w9WgXcQ</td></tr>
+              <tr><td className="p-2">YouTube</td><td className="p-2">shorts</td><td className="p-2"><code>youtube\.com/shorts/([A-Za-z0-9_-]+)</code></td><td className="p-2 text-muted-foreground">youtube.com/shorts/ABC123</td></tr>
+              <tr><td className="p-2">YouTube</td><td className="p-2">channel</td><td className="p-2"><code>youtube\.com/(?:@|channel/)([A-Za-z0-9_-]+)</code></td><td className="p-2 text-muted-foreground">youtube.com/@username</td></tr>
+              <tr><td className="p-2">TikTok</td><td className="p-2">profile</td><td className="p-2"><code>tiktok\.com/@([A-Za-z0-9_.]+)/?$</code></td><td className="p-2 text-muted-foreground">tiktok.com/@username</td></tr>
+              <tr><td className="p-2">TikTok</td><td className="p-2">video</td><td className="p-2"><code>tiktok\.com/@[^/]+/video/(\d+)</code></td><td className="p-2 text-muted-foreground">tiktok.com/@user/video/123456</td></tr>
+              <tr><td className="p-2">Telegram</td><td className="p-2">channel</td><td className="p-2"><code>t\.me/([A-Za-z0-9_]+)/?$</code></td><td className="p-2 text-muted-foreground">t.me/channelname</td></tr>
+              <tr><td className="p-2">Telegram</td><td className="p-2">post</td><td className="p-2"><code>t\.me/([A-Za-z0-9_]+)/(\d+)</code></td><td className="p-2 text-muted-foreground">t.me/channel/123</td></tr>
+              <tr><td className="p-2">VK</td><td className="p-2">profile</td><td className="p-2"><code>vk\.com/([A-Za-z0-9_.]+)/?$</code></td><td className="p-2 text-muted-foreground">vk.com/username</td></tr>
+              <tr><td className="p-2">VK</td><td className="p-2">wall</td><td className="p-2"><code>vk\.com/wall(-?\d+_\d+)</code></td><td className="p-2 text-muted-foreground">vk.com/wall-123_456</td></tr>
+              <tr><td className="p-2">Threads</td><td className="p-2">profile</td><td className="p-2"><code>threads\.net/@([A-Za-z0-9_.]+)</code></td><td className="p-2 text-muted-foreground">threads.net/@username</td></tr>
+              <tr><td className="p-2">Threads</td><td className="p-2">post</td><td className="p-2"><code>threads\.net/@[^/]+/post/([A-Za-z0-9_-]+)</code></td><td className="p-2 text-muted-foreground">threads.net/@user/post/ABC</td></tr>
+              <tr><td className="p-2">X (Twitter)</td><td className="p-2">profile</td><td className="p-2"><code>(?:x|twitter)\.com/([A-Za-z0-9_]+)/?$</code></td><td className="p-2 text-muted-foreground">x.com/username</td></tr>
+              <tr><td className="p-2">X (Twitter)</td><td className="p-2">post</td><td className="p-2"><code>(?:x|twitter)\.com/[^/]+/status/(\d+)</code></td><td className="p-2 text-muted-foreground">x.com/user/status/123456</td></tr>
+              <tr><td className="p-2">Facebook</td><td className="p-2">profile</td><td className="p-2"><code>facebook\.com/([A-Za-z0-9_.]+)/?$</code></td><td className="p-2 text-muted-foreground">facebook.com/username</td></tr>
+              <tr><td className="p-2">Twitch</td><td className="p-2">channel</td><td className="p-2"><code>twitch\.tv/([A-Za-z0-9_]+)/?$</code></td><td className="p-2 text-muted-foreground">twitch.tv/streamer</td></tr>
+              <tr><td className="p-2">Spotify</td><td className="p-2">profile</td><td className="p-2"><code>open\.spotify\.com/user/([A-Za-z0-9]+)</code></td><td className="p-2 text-muted-foreground">open.spotify.com/user/123</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <H3>Как создать свой паттерн (для новичков)</H3>
+        <P>Если нужной соцсети нет в таблице выше, создайте паттерн по шаблону:</P>
+        <Step n={1}>Откройте нужную соцсеть, скопируйте ссылку на профиль/пост</Step>
+        <Step n={2}>Определите «постоянную часть» URL. Например, в <code>https://example.com/user/john123</code> постоянная часть — <code>example\.com/user/</code></Step>
+        <Step n={3}>Определите «переменную часть» — то, что меняется от пользователя к пользователю. Обычно это имя или ID. Оберните в скобки: <code>([A-Za-z0-9_]+)</code></Step>
+        <Step n={4}>Соберите: <code>example\.com/user/([A-Za-z0-9_]+)</code></Step>
+        <Step n={5}>Вставьте в поле «Паттерн» и протестируйте на реальном URL</Step>
+
+        <div className="bg-muted/50 rounded-md p-3 mt-2 mb-3 text-xs space-y-2">
+          <div><strong>Шпаргалка по regex (только нужное):</strong></div>
+          <div><code>\.</code> — точка (буквально). Пишите <code>\.</code> вместо просто <code>.</code></div>
+          <div><code>[A-Za-z0-9_]</code> — любая буква, цифра или подчёркивание</div>
+          <div><code>[A-Za-z0-9_-]</code> — то же + дефис</div>
+          <div><code>+</code> — один или более символов</div>
+          <div><code>*</code> — ноль или более символов</div>
+          <div><code>(\d+)</code> — одна или более цифр (захват в группу)</div>
+          <div><code>(...)</code> — группа захвата. Номер группы = порядковый номер открывающей скобки</div>
+          <div><code>/?$</code> — необязательный слеш в конце URL</div>
+          <div><code>(?:...|...)</code> — или (без захвата). Например <code>(?:x|twitter)\.com</code> матчит и x.com и twitter.com</div>
+        </div>
+
+        <Tip>
+          Всегда проверяйте паттерн через встроенный тестер! Вставьте 2-3 реальных URL и убедитесь, что все определяются правильно. 
+          Если не работает — проверьте, что точки экранированы (<code>\.</code>) и скобки расставлены верно.
+        </Tip>
+
+        <H3>Полный workflow: добавление новой соцсети от А до Я</H3>
+        <div className="bg-muted/30 rounded-md p-4 mt-2 mb-3 text-sm space-y-3 border border-border">
+          <Step n={1}><strong>Платформа:</strong> <Path>Ссылки → Платформы → + Платформа</Path>. Заполните ключ, название, домены, иконку, цвет.</Step>
+          <Step n={2}><strong>Паттерны:</strong> <Path>Ссылки → Паттерны → + Паттерн</Path>. Добавьте regex для каждого типа ссылки (профиль, пост, видео). Используйте таблицу готовых паттернов или создайте свои.</Step>
+          <Step n={3}><strong>Категории:</strong> <Path>Категории</Path>. Создайте категории для типов услуг (лайки, подписчики, просмотры).</Step>
+          <Step n={4}><strong>Провайдер:</strong> <Path>Провайдеры</Path>. Убедитесь, что у вашего провайдера есть услуги для этой соцсети.</Step>
+          <Step n={5}><strong>Синхронизация:</strong> <Path>Услуги → Синхронизация</Path>. Подтяните услуги провайдера.</Step>
+          <Step n={6}><strong>Каталог:</strong> <Path>Услуги → вкладка Провайдеры</Path>. Найдите нужные услуги и нажмите «→ Каталог» для каждой.</Step>
+          <Step n={7}><strong>Проверка:</strong> Откройте публичный каталог, выберите новую соцсеть и попробуйте оформить тестовый заказ.</Step>
+        </div>
 
         <H3>Трёхуровневая система распознавания</H3>
         <P>Система проверяет ссылку в порядке приоритета:</P>
         <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1 mb-3">
-          <li><strong>Встроенные паттерны</strong> — hardcoded regex для основных соцсетей</li>
-          <li><strong>Домены платформ</strong> — если URL содержит домен из справочника</li>
-          <li><strong>Паттерны из БД</strong> — кастомные regex, добавленные администратором</li>
+          <li><strong>Встроенные паттерны</strong> — hardcoded regex для основных соцсетей (Instagram, YouTube, TikTok, Telegram, VK)</li>
+          <li><strong>Домены платформ</strong> — если URL содержит домен из справочника платформ</li>
+          <li><strong>Паттерны из БД</strong> — кастомные regex, добавленные вами в разделе «Паттерны»</li>
         </ol>
+        <P>Если ссылка не прошла ни один уровень — она попадёт в «Нераспознанные».</P>
       </>
     ),
   },
