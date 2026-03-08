@@ -13,6 +13,7 @@ import { Search, Filter, MessageSquare, ExternalLink, ChevronDown, ChevronUp } f
 
 interface Order {
   id: string;
+  order_number: number | null;
   service_name: string;
   platform: string | null;
   link: string;
@@ -174,7 +175,7 @@ const DashboardOrders = () => {
                     onClick={() => setExpandedId(isExpanded ? null : order.id)}
                   >
                     <TableCell className="px-3 py-3 font-mono text-xs text-muted-foreground">
-                      #{order.id.slice(0, 8)}
+                      #{order.order_number || "—"}
                     </TableCell>
                     <TableCell className="px-3 py-3">
                       <div className="space-y-0.5 text-sm">

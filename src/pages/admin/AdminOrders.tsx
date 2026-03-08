@@ -285,7 +285,7 @@ const AdminOrders = () => {
                 return (
                   <TableRow key={o.id} className="text-sm align-top border-b">
                     <TableCell className="px-3 py-3 font-mono text-xs text-muted-foreground">
-                      {pagination.from + idx}
+                      #{(o as any).order_number || pagination.from + idx}
                     </TableCell>
                     <TableCell className="px-3 py-3">
                       <button
