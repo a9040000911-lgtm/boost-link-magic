@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import HeroInput from '@/components/HeroInput';
 import CategoryCards from '@/components/CategoryCards';
 import ServiceCarousel from '@/components/ServiceCarousel';
+import MarketingSection from '@/components/MarketingSection';
 import {
   detectPlatform,
   categoriesByPlatform,
@@ -176,6 +177,9 @@ const Index = () => {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Marketing */}
+      <MarketingSection />
     </div>
   );
 };
