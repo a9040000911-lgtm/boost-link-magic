@@ -10,7 +10,7 @@ import Footer from '@/components/Footer';
 import { detectPlatformWithDb, type DbLinkPattern, type DbPlatform } from '@/lib/smm-data';
 import { supabase } from '@/integrations/supabase/client';
 import { useSiteContent } from '@/hooks/useSiteContent';
-import { Sparkles, Check, ExternalLink, Mail, PartyPopper, Zap, AlertTriangle, BookOpen, ArrowRight, X, Lock, KeyRound } from 'lucide-react';
+import { Sparkles, Check, ExternalLink, Mail, PartyPopper, Zap, AlertTriangle, BookOpen, ArrowRight, X, Lock, KeyRound, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Index = () => {
