@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { MessageSquare, Send, Search, User, Clock, ChevronLeft, Paperclip, Mail, MessageCircle, AlertTriangle, Ban, ShieldOff, ShieldCheck, Timer, TimerOff, Reply, X, Sparkles, FileText, BookOpen, Loader2 } from "lucide-react";
+import { MessageSquare, Send, Search, User, Clock, ChevronLeft, Paperclip, Mail, MessageCircle, AlertTriangle, Ban, ShieldOff, ShieldCheck, Timer, TimerOff, Reply, X, Sparkles, FileText, BookOpen, Loader2, Mic } from "lucide-react";
 import { ImageViewer } from "@/components/support/ImageViewer";
 import { AudioPlayer } from "@/components/support/AudioPlayer";
 import { VideoPlayer } from "@/components/support/VideoPlayer";
