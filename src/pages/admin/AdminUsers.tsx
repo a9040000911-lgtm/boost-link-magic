@@ -1,15 +1,17 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdminRole } from "@/hooks/useAdminRole";
 import { useNavigate } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Users, RefreshCw, Eye, Ban, CheckCircle, Download } from "lucide-react";
+import { Search, Users, RefreshCw, Eye, Ban, CheckCircle, Download, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useTableControls, exportToCsv } from "@/hooks/useTableControls";
 import { TablePagination } from "@/components/admin/TablePagination";
+import { logAuditAction } from "@/lib/audit";
 
 interface Profile {
   id: string;
