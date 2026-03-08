@@ -34,6 +34,16 @@
     --input: 230 20% 91%;
     --ring: 335 85% 56%;
 
+    --status-pending: 45 90% 50%;
+    --status-processing: 215 80% 55%;
+    --status-in-progress: 215 80% 55%;
+    --status-completed: 142 70% 42%;
+    --status-partial: 30 85% 52%;
+    --status-canceled: 0 72% 51%;
+    --status-refunded: 270 60% 55%;
+    --status-active: 142 70% 42%;
+    --status-banned: 0 72% 51%;
+
     --radius: 1rem;
 
     --sidebar-background: 0 0% 98%;
