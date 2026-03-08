@@ -541,30 +541,42 @@ export type Database = {
       }
       support_tickets: {
         Row: {
+          auto_close_at: string | null
+          auto_closed: boolean
           channel: string
           created_at: string
           id: string
+          last_admin_reply_at: string | null
           priority: string
+          reopened_at: string | null
           status: string
           subject: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          auto_close_at?: string | null
+          auto_closed?: boolean
           channel?: string
           created_at?: string
           id?: string
+          last_admin_reply_at?: string | null
           priority?: string
+          reopened_at?: string | null
           status?: string
           subject: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          auto_close_at?: string | null
+          auto_closed?: boolean
           channel?: string
           created_at?: string
           id?: string
+          last_admin_reply_at?: string | null
           priority?: string
+          reopened_at?: string | null
           status?: string
           subject?: string
           updated_at?: string
