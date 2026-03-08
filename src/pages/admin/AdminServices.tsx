@@ -722,9 +722,10 @@ const AdminServices = () => {
                         const isBelowMin = markupPct !== null && markupPct < minMarkup;
 
                         return (
+                          <Tooltip key={svc.id}>
+                            <TooltipTrigger asChild>
                           <TableRow
-                            key={svc.id}
-                            className={`text-xs cursor-pointer hover:bg-muted/50 ${selectedIds.has(svc.id) ? "bg-primary/5" : ""} ${!svc.is_enabled ? "opacity-40" : ""} ${isOrphan ? "bg-destructive/5" : ""} ${isBelowMin ? "bg-destructive/10" : ""}`}
+                            className={`text-xs cursor-pointer hover:bg-muted/50 ${selectedIds.has(svc.id) ? "bg-primary/5" : ""} ${!svc.is_enabled ? "opacity-40" : ""} ${isOrphan ? "bg-destructive/5" : ""} ${isBelowMin ? "border-l-2 border-l-destructive bg-destructive/10" : ""}`}
                             onClick={() => openEditDialog(svc)}
                           >
                             <TableCell className="px-2" onClick={(e) => e.stopPropagation()}>
