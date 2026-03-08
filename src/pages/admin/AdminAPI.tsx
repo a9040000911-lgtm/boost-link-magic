@@ -260,6 +260,11 @@ export default function AdminAPI() {
           </Card>
         </TabsContent>
 
+        {/* ─── Gemini Keys Tab ─── */}
+        <TabsContent value="keys" className="space-y-3">
+          <AdminAPIKeys />
+        </TabsContent>
+
         {/* ─── Logs Tab ─── */}
         <TabsContent value="logs" className="space-y-3">
           <Card>
