@@ -777,6 +777,15 @@ const AdminServices = () => {
                               <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
                             </TableCell>
                           </TableRow>
+                            </TooltipTrigger>
+                            {isBelowMin && (
+                              <TooltipContent side="top" className="text-xs max-w-[220px]">
+                                <p className="font-semibold text-destructive">⚠ Наценка ниже минимума!</p>
+                                <p>Текущая: {markupPct}% · Мин: {minMarkup}%</p>
+                                <p className="text-muted-foreground">Увеличьте цену или примените наценку</p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
                         );
                       })}
                     </TableBody>
