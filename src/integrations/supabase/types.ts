@@ -1572,10 +1572,12 @@ export type Database = {
           created_at: string
           id: string
           last_admin_reply_at: string | null
+          order_id: string | null
           priority: string
           reopened_at: string | null
           status: string
           subject: string
+          topic_id: string | null
           updated_at: string
           user_id: string
         }
@@ -1586,10 +1588,12 @@ export type Database = {
           created_at?: string
           id?: string
           last_admin_reply_at?: string | null
+          order_id?: string | null
           priority?: string
           reopened_at?: string | null
           status?: string
           subject: string
+          topic_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1600,12 +1604,59 @@ export type Database = {
           created_at?: string
           id?: string
           last_admin_reply_at?: string | null
+          order_id?: string | null
           priority?: string
           reopened_at?: string | null
           status?: string
           subject?: string
+          topic_id?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "support_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_topics: {
+        Row: {
+          created_at: string
+          icon: string | null
+          id: string
+          is_enabled: boolean
+          name: string
+          requires_order_id: boolean
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_enabled?: boolean
+          name: string
+          requires_order_id?: boolean
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_enabled?: boolean
+          name?: string
+          requires_order_id?: boolean
+          sort_order?: number
         }
         Relationships: []
       }

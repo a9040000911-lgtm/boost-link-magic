@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageSquare, Plus, Send, ArrowLeft, Clock, CheckCircle2,
@@ -10,8 +11,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { format } from "date-fns";
+
+interface SupportTopic {
+  id: string;
+  name: string;
+  icon: string;
+  requires_order_id: boolean;
+  sort_order: number;
+}
+
+interface UserOrder {
+  id: string;
+  service_name: string;
+  created_at: string;
+  status: string;
+}
 
 interface Ticket {
   id: string;
@@ -48,6 +65,7 @@ const channelLabels: Record<string, string> = {
 
 const DashboardSupport = () => {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"list" | "chat" | "new">("list");
@@ -55,8 +73,13 @@ const DashboardSupport = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [msgLoading, setMsgLoading] = useState(false);
 
+  // Topics & orders
+  const [topics, setTopics] = useState<SupportTopic[]>([]);
+  const [userOrders, setUserOrders] = useState<UserOrder[]>([]);
+
   // New ticket form
-  const [newSubject, setNewSubject] = useState("");
+  const [selectedTopicId, setSelectedTopicId] = useState("");
+  const [selectedOrderId, setSelectedOrderId] = useState("");
   const [newMessage, setNewMessage] = useState("");
   const [newPriority, setNewPriority] = useState("normal");
   const [creating, setCreating] = useState(false);
@@ -68,11 +91,35 @@ const DashboardSupport = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load tickets
+  // Load tickets & topics
   useEffect(() => {
     if (!user) return;
     loadTickets();
+    loadTopics();
+    loadUserOrders();
   }, [user]);
+
+  // Handle URL params (e.g. ?new=1&order_id=xxx&topic=xxx)
+  useEffect(() => {
+    if (!topics.length) return;
+    const isNew = searchParams.get("new");
+    const orderIdParam = searchParams.get("order_id");
+    const topicParam = searchParams.get("topic");
+    if (isNew) {
+      setView("new");
+      if (orderIdParam) setSelectedOrderId(orderIdParam);
+      if (topicParam) {
+        const found = topics.find(t => t.name.toLowerCase().includes(topicParam.toLowerCase()));
+        if (found) setSelectedTopicId(found.id);
+      } else if (orderIdParam) {
+        // Auto-select first topic that requires order_id
+        const orderTopic = topics.find(t => t.requires_order_id);
+        if (orderTopic) setSelectedTopicId(orderTopic.id);
+      }
+      // Clear params
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, topics]);
 
   const loadTickets = async () => {
     const { data } = await supabase
@@ -83,6 +130,28 @@ const DashboardSupport = () => {
     setTickets(data || []);
     setLoading(false);
   };
+
+  const loadTopics = async () => {
+    const { data } = await supabase
+      .from("support_topics")
+      .select("id, name, icon, requires_order_id, sort_order")
+      .eq("is_enabled", true)
+      .order("sort_order");
+    setTopics((data as SupportTopic[]) || []);
+  };
+
+  const loadUserOrders = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("orders")
+      .select("id, service_name, created_at, status")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setUserOrders((data as UserOrder[]) || []);
+  };
+
+  const selectedTopic = topics.find(t => t.id === selectedTopicId);
 
   // Load messages for ticket
   const openTicket = async (ticket: Ticket) => {
@@ -119,21 +188,31 @@ const DashboardSupport = () => {
 
   // Create ticket
   const handleCreate = async () => {
-    if (!user) return;
-    if (!newSubject.trim() || !newMessage.trim()) {
-      toast.error("Заполните тему и сообщение");
+    if (!user || !selectedTopicId) return;
+    const topic = topics.find(t => t.id === selectedTopicId);
+    if (!topic) return;
+    if (topic.requires_order_id && !selectedOrderId) {
+      toast.error("Выберите заказ");
+      return;
+    }
+    if (!newMessage.trim()) {
+      toast.error("Заполните сообщение");
       return;
     }
     setCreating(true);
+
+    const subject = `${topic.icon} ${topic.name}${selectedOrderId ? ` [#${selectedOrderId.slice(0, 8)}]` : ""}`;
 
     const { data: ticket, error: tErr } = await supabase
       .from("support_tickets")
       .insert({
         user_id: user.id,
-        subject: newSubject.trim(),
+        subject,
         priority: newPriority,
         channel: "web",
-      })
+        topic_id: selectedTopicId,
+        order_id: selectedOrderId || null,
+      } as any)
       .select()
       .single();
 
@@ -151,7 +230,8 @@ const DashboardSupport = () => {
     });
 
     toast.success("Обращение создано!");
-    setNewSubject("");
+    setSelectedTopicId("");
+    setSelectedOrderId("");
     setNewMessage("");
     setNewPriority("normal");
     setCreating(false);
@@ -332,39 +412,73 @@ const DashboardSupport = () => {
         <div className="rounded-xl border border-border/60 bg-card p-5 space-y-4">
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Тема обращения *</label>
-            <Input
-              value={newSubject}
-              onChange={(e) => setNewSubject(e.target.value)}
-              placeholder="Кратко опишите проблему"
-              className="text-sm"
-            />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {topics.map((topic) => (
+                <button
+                  key={topic.id}
+                  onClick={() => { setSelectedTopicId(topic.id); setSelectedOrderId(""); }}
+                  className={`flex items-center gap-2 p-3 rounded-lg border text-left transition-colors text-sm ${
+                    selectedTopicId === topic.id
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border/60 bg-background hover:bg-muted/30 text-muted-foreground"
+                  }`}
+                >
+                  <span className="text-base">{topic.icon}</span>
+                  <span className="text-xs font-medium leading-tight">{topic.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
+
+          {selectedTopic?.requires_order_id && (
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Заказ *</label>
+              <Select value={selectedOrderId} onValueChange={setSelectedOrderId}>
+                <SelectTrigger className="text-sm">
+                  <SelectValue placeholder="Выберите заказ" />
+                </SelectTrigger>
+                <SelectContent>
+                  {userOrders.length === 0 ? (
+                    <div className="p-3 text-xs text-muted-foreground text-center">У вас нет заказов</div>
+                  ) : (
+                    userOrders.map((o) => (
+                      <SelectItem key={o.id} value={o.id}>
+                        <span className="truncate">#{o.id.slice(0, 8)} — {o.service_name}</span>
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Сообщение *</label>
             <Textarea
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Подробно опишите проблему, укажите номер заказа если есть..."
+              placeholder="Подробно опишите проблему..."
               rows={5}
               className="text-sm"
             />
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Приоритет</label>
-            <select
-              value={newPriority}
-              onChange={(e) => setNewPriority(e.target.value)}
-              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="low">Низкий — общий вопрос</option>
-              <option value="normal">Обычный</option>
-              <option value="high">Высокий — срочная проблема</option>
-              <option value="critical">Критический — не работает сервис</option>
-            </select>
+            <Select value={newPriority} onValueChange={setNewPriority}>
+              <SelectTrigger className="text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Низкий — общий вопрос</SelectItem>
+                <SelectItem value="normal">Обычный</SelectItem>
+                <SelectItem value="high">Высокий — срочная проблема</SelectItem>
+                <SelectItem value="critical">Критический — не работает сервис</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <Button
             onClick={handleCreate}
-            disabled={creating || !newSubject.trim() || !newMessage.trim()}
+            disabled={creating || !selectedTopicId || !newMessage.trim() || (selectedTopic?.requires_order_id && !selectedOrderId)}
             className="w-full bg-gradient-to-r from-primary to-secondary text-primary-foreground"
           >
             <Send className="w-4 h-4 mr-2" /> {creating ? "Создание..." : "Отправить обращение"}

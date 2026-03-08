@@ -1,13 +1,15 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, MessageSquare } from "lucide-react";
 
 interface Order {
   id: string;
@@ -31,6 +33,7 @@ const statusMap: Record<string, { label: string; variant: "default" | "secondary
 
 const DashboardOrders = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -124,17 +127,18 @@ const DashboardOrders = () => {
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Услуга</TableHead>
-                    <TableHead>Платформа</TableHead>
-                    <TableHead>Кол-во</TableHead>
-                    <TableHead>Цена</TableHead>
-                    <TableHead>Прогресс</TableHead>
-                    <TableHead>Статус</TableHead>
-                    <TableHead>Дата</TableHead>
-                  </TableRow>
-                </TableHeader>
+                 <TableHeader>
+                   <TableRow>
+                     <TableHead>Услуга</TableHead>
+                     <TableHead>Платформа</TableHead>
+                     <TableHead>Кол-во</TableHead>
+                     <TableHead>Цена</TableHead>
+                     <TableHead>Прогресс</TableHead>
+                     <TableHead>Статус</TableHead>
+                     <TableHead>Дата</TableHead>
+                     <TableHead className="w-10"></TableHead>
+                   </TableRow>
+                 </TableHeader>
                 <TableBody>
                   {filtered.map((order) => {
                     const st = statusMap[order.status] || { label: order.status, variant: "outline" as const };
@@ -155,6 +159,17 @@ const DashboardOrders = () => {
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
                           {new Date(order.created_at).toLocaleDateString("ru-RU")}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Создать тикет по заказу"
+                            onClick={() => navigate(`/dashboard/support?new=1&order_id=${order.id}`)}
+                          >
+                            <MessageSquare className="h-3.5 w-3.5" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
