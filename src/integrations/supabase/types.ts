@@ -142,6 +142,7 @@ export type Database = {
           name: string
           network: string
           our_price: number | null
+          provider: string
           provider_service_id: number
           rate: number
           type: string
@@ -161,6 +162,7 @@ export type Database = {
           name: string
           network: string
           our_price?: number | null
+          provider?: string
           provider_service_id: number
           rate?: number
           type?: string
@@ -180,6 +182,7 @@ export type Database = {
           name?: string
           network?: string
           our_price?: number | null
+          provider?: string
           provider_service_id?: number
           rate?: number
           type?: string
