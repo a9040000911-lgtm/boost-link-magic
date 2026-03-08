@@ -159,6 +159,37 @@ export function analyzeLink(url: string): LinkAnalysis | null {
   return { platform, linkType: 'unknown', label: 'Ссылка', raw: url };
 }
 
+/**
+ * Returns the recommended category ID suffix based on link type.
+ * E.g. for a Reel → 'views', for a profile → 'followers'/'subs'/'members'.
+ * Maps to category IDs like 'ig-views', 'yt-subs', etc.
+ */
+const linkTypeToCategory: Record<LinkType, string[]> = {
+  profile: ['followers', 'subs', 'members', 'friends'],
+  post: ['likes', 'comments'],
+  reel: ['views', 'likes'],
+  story: ['views'],
+  video: ['views', 'likes'],
+  shorts: ['views', 'likes'],
+  channel: ['subs', 'members'],
+  playlist: ['views'],
+  live: ['views'],
+  group: ['subs', 'members'],
+  wall: ['likes', 'reposts'],
+  photo: ['likes'],
+  unknown: [],
+};
+
+export function getRecommendedCategoryIds(analysis: LinkAnalysis | null, categories: Category[]): string[] {
+  if (!analysis) return [];
+  const keywords = linkTypeToCategory[analysis.linkType] || [];
+  if (keywords.length === 0) return [];
+
+  return categories
+    .filter((cat) => keywords.some((kw) => cat.id.toLowerCase().includes(kw)))
+    .map((cat) => cat.id);
+}
+
 export const platformNames: Record<Platform, string> = {
   instagram: 'Instagram',
   youtube: 'YouTube',

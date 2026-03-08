@@ -8,6 +8,7 @@ import {
   detectPlatform,
   categoriesByPlatform,
   getServicesForCategory,
+  getRecommendedCategoryIds,
   platformNames,
   type Platform,
   type Category,
@@ -49,6 +50,7 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
   if (!current) return null;
 
   const categories = categoriesByPlatform[current.platform];
+  const recommendedIds = getRecommendedCategoryIds(current.analysis, categories);
   const services = current.category ? getServicesForCategory(current.category.id) : [];
 
   const handleCategorySelect = (cat: Category) => {
@@ -179,11 +181,14 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
               exit={{ opacity: 0, x: -50 }}
               transition={{ duration: 0.35 }}
             >
-              <p className="text-sm text-muted-foreground mb-3 text-center">Выберите категорию</p>
+              <p className="text-sm text-muted-foreground mb-3 text-center">
+                {recommendedIds.length > 0 ? 'Рекомендуем для этого типа ссылки' : 'Выберите категорию'}
+              </p>
               <CategoryCards
                 categories={categories}
                 onSelect={handleCategorySelect}
                 selectedId={null}
+                recommendedIds={recommendedIds}
               />
             </motion.div>
           )}

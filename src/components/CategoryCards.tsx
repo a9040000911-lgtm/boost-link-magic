@@ -10,6 +10,7 @@ interface CategoryCardsProps {
   categories: Category[];
   onSelect: (category: Category) => void;
   selectedId: string | null;
+  recommendedIds?: string[];
 }
 
 const iconMap: Record<string, LucideIcon> = {
@@ -25,11 +26,18 @@ const gradientClasses = [
   'card-gradient-amber',
 ];
 
-const CategoryCards = ({ categories, onSelect }: CategoryCardsProps) => {
+const CategoryCards = ({ categories, onSelect, recommendedIds = [] }: CategoryCardsProps) => {
+  // Sort: recommended first
+  const sorted = [...categories].sort((a, b) => {
+    const aRec = recommendedIds.includes(a.id) ? 0 : 1;
+    const bRec = recommendedIds.includes(b.id) ? 0 : 1;
+    return aRec - bRec;
+  });
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full max-w-4xl mx-auto">
-      {categories.map((cat, i) => {
+      {sorted.map((cat, i) => {
         const Icon = iconMap[cat.icon] || Heart;
+        const isRecommended = recommendedIds.includes(cat.id);
         return (
           <motion.button
             key={cat.id}
@@ -39,8 +47,8 @@ const CategoryCards = ({ categories, onSelect }: CategoryCardsProps) => {
             whileHover={{ scale: 1.07, rotate: i % 2 === 0 ? 2 : -2, y: -8, filter: 'brightness(1.2) saturate(1.3)' }}
             whileTap={{ scale: 0.96, rotate: 0 }}
             onClick={() => onSelect(cat)}
-            className={`relative overflow-hidden rounded-2xl p-5 text-left cursor-pointer group transition-[filter] duration-300 ${gradientClasses[i % gradientClasses.length]}`}
-            style={{ boxShadow: '0 10px 40px -10px rgba(0,0,0,0.25)' }}
+            className={`relative overflow-hidden rounded-2xl p-5 text-left cursor-pointer group transition-[filter] duration-300 ${gradientClasses[i % gradientClasses.length]} ${isRecommended ? 'ring-2 ring-white/60 ring-offset-2 ring-offset-background' : ''}`}
+            style={{ boxShadow: isRecommended ? '0 10px 40px -5px rgba(0,0,0,0.35)' : '0 10px 40px -10px rgba(0,0,0,0.25)' }}
           >
             {/* Animated background blobs */}
             <motion.div
@@ -69,7 +77,7 @@ const CategoryCards = ({ categories, onSelect }: CategoryCardsProps) => {
             >
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-white text-[10px] font-semibold">
                 <Sparkles className="w-2.5 h-2.5" />
-                {cat.highlight}
+                {isRecommended ? '✨ Рекомендуем' : cat.highlight}
               </span>
             </motion.div>
 
