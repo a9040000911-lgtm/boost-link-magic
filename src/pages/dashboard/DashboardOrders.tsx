@@ -231,20 +231,6 @@ const DashboardOrders = () => {
                           <div className="mt-2 pt-2 border-t border-dashed space-y-0.5 text-xs text-muted-foreground">
                             <div><span className="font-medium text-foreground">Создан:</span> {formatDate(order.created_at)}</div>
                             <div><span className="font-medium text-foreground">Обновлён:</span> {formatDate(order.updated_at)}</div>
-                            <div className="pt-1">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 text-xs gap-1.5"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/dashboard/support?new=1&order_id=${order.id}`);
-                                }}
-                              >
-                                <MessageSquare className="h-3 w-3" />
-                                Создать тикет
-                              </Button>
-                            </div>
                           </div>
                         )}
                       </div>
@@ -253,7 +239,21 @@ const DashboardOrders = () => {
                       {Number(order.price).toFixed(2)} ₽
                     </TableCell>
                     <TableCell className="px-3 py-3 text-center">
-                      <Badge variant={variant}>{label}</Badge>
+                      <div className="flex flex-col items-center gap-1.5">
+                        <Badge variant={variant}>{label}</Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-[10px] gap-1 px-2 text-muted-foreground hover:text-primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/dashboard/support?new=1&order_id=${order.id}`);
+                          }}
+                        >
+                          <MessageSquare className="h-3 w-3" />
+                          Тикет
+                        </Button>
+                      </div>
                     </TableCell>
                     <TableCell className="px-3 py-3 text-center">
                       {isExpanded ? (
