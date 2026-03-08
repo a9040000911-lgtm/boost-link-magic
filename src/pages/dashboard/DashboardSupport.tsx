@@ -131,6 +131,28 @@ const DashboardSupport = () => {
     setLoading(false);
   };
 
+  const loadTopics = async () => {
+    const { data } = await supabase
+      .from("support_topics")
+      .select("id, name, icon, requires_order_id, sort_order")
+      .eq("is_enabled", true)
+      .order("sort_order");
+    setTopics((data as SupportTopic[]) || []);
+  };
+
+  const loadUserOrders = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("orders")
+      .select("id, service_name, created_at, status")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setUserOrders((data as UserOrder[]) || []);
+  };
+
+  const selectedTopic = topics.find(t => t.id === selectedTopicId);
+
   // Load messages for ticket
   const openTicket = async (ticket: Ticket) => {
     setActiveTicket(ticket);
