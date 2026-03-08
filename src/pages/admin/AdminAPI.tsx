@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import AdminAPIKeys from "./AdminAPIKeys";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -109,6 +110,10 @@ export default function AdminAPI() {
           <TabsTrigger value="tools" className="text-xs gap-1.5">
             <Activity className="h-3.5 w-3.5" />
             Инструменты
+          </TabsTrigger>
+          <TabsTrigger value="keys" className="text-xs gap-1.5">
+            <Key className="h-3.5 w-3.5" />
+            Gemini ключи
           </TabsTrigger>
           <TabsTrigger value="logs" className="text-xs gap-1.5">
             <ScrollText className="h-3.5 w-3.5" />
@@ -253,6 +258,11 @@ export default function AdminAPI() {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ─── Gemini Keys Tab ─── */}
+        <TabsContent value="keys" className="space-y-3">
+          <AdminAPIKeys />
         </TabsContent>
 
         {/* ─── Logs Tab ─── */}

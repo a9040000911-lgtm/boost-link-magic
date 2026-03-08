@@ -16,12 +16,48 @@ interface AICallParams {
   userPrompt: string;
   endpoint?: string;
   apiKeyEnv?: string;
+  supabase?: any;
 }
 
-async function callAI({ provider, model, systemPrompt, userPrompt, endpoint, apiKeyEnv }: AICallParams): Promise<{ content: string; model: string }> {
+/** Pick the least-used enabled Gemini key from ai_api_keys table */
+async function getRotatedKey(supabase: any): Promise<{ id: string; api_key: string } | null> {
+  const { data } = await supabase
+    .from("ai_api_keys")
+    .select("id, api_key")
+    .eq("provider", "gemini")
+    .eq("is_enabled", true)
+    .order("usage_count", { ascending: true })
+    .order("last_used_at", { ascending: true, nullsFirst: true })
+    .limit(1)
+    .maybeSingle();
+  return data;
+}
+
+/** Increment usage counter for a key */
+async function markKeyUsed(supabase: any, keyId: string, error?: string) {
+  if (error) {
+    await supabase
+      .from("ai_api_keys")
+      .update({ error_count: supabase.rpc ? undefined : 0, last_error: error, last_used_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq("id", keyId);
+    // increment error_count via raw update
+    await supabase.rpc("increment_ai_key_error", { key_id: keyId }).catch(() => {});
+  }
+  // Always increment usage_count
+  await supabase.rpc("increment_ai_key_usage", { key_id: keyId }).catch(() => {
+    // Fallback if RPC doesn't exist yet
+    supabase
+      .from("ai_api_keys")
+      .update({ last_used_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq("id", keyId);
+  });
+}
+
+async function callAI({ provider, model, systemPrompt, userPrompt, endpoint, apiKeyEnv, supabase: sb }: AICallParams): Promise<{ content: string; model: string }> {
   let url: string;
   let apiKey: string;
   let actualModel = model;
+  let rotatedKeyId: string | null = null;
 
   switch (provider) {
     case "lovable":
@@ -31,12 +67,24 @@ async function callAI({ provider, model, systemPrompt, userPrompt, endpoint, api
       actualModel = model || "google/gemini-3-flash-preview";
       break;
 
-    case "gemini":
-      // Google Gemini via their OpenAI-compatible endpoint
+    case "gemini": {
       url = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
-      apiKey = Deno.env.get(apiKeyEnv || "GEMINI_API_KEY") || "";
       actualModel = model || "gemini-2.5-flash";
+      // Rotate keys from DB
+      if (sb) {
+        const rotated = await getRotatedKey(sb);
+        if (rotated) {
+          apiKey = rotated.api_key;
+          rotatedKeyId = rotated.id;
+        } else {
+          // Fallback to env
+          apiKey = Deno.env.get(apiKeyEnv || "GEMINI_API_KEY") || "";
+        }
+      } else {
+        apiKey = Deno.env.get(apiKeyEnv || "GEMINI_API_KEY") || "";
+      }
       break;
+    }
 
     case "openclaw":
       url = endpoint || "https://api.openclaw.com/v1/chat/completions";
@@ -52,7 +100,7 @@ async function callAI({ provider, model, systemPrompt, userPrompt, endpoint, api
   }
 
   if (!url) throw new Error(`AI endpoint not configured for provider: ${provider}`);
-  if (!apiKey) throw new Error(`API key not configured for provider: ${provider}. Set secret: ${apiKeyEnv || "LOVABLE_API_KEY"}`);
+  if (!apiKey) throw new Error(`API key not configured for provider: ${provider}. ${provider === "gemini" ? "Добавьте ключи в разделе API & Интеграции" : `Set secret: ${apiKeyEnv || "LOVABLE_API_KEY"}`}`);
 
   const response = await fetch(url, {
     method: "POST",
@@ -70,11 +118,20 @@ async function callAI({ provider, model, systemPrompt, userPrompt, endpoint, api
   });
 
   if (!response.ok) {
+    // Mark key error if rotated
+    if (rotatedKeyId && sb) {
+      await markKeyUsed(sb, rotatedKeyId, `HTTP ${response.status}`);
+    }
     if (response.status === 429) throw new Error("RATE_LIMIT");
     if (response.status === 402) throw new Error("PAYMENT_REQUIRED");
     const errText = await response.text();
     console.error(`AI provider ${provider} error:`, response.status, errText);
     throw new Error(`AI provider error (${response.status})`);
+  }
+
+  // Mark key success
+  if (rotatedKeyId && sb) {
+    await markKeyUsed(sb, rotatedKeyId);
   }
 
   const data = await response.json();
@@ -218,6 +275,7 @@ Deno.serve(async (req) => {
       userPrompt,
       endpoint: s.support_ai_custom_endpoint,
       apiKeyEnv: s.support_ai_custom_key_env,
+      supabase,
     });
 
     // Parse response based on mode

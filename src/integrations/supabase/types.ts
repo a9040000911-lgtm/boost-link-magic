@@ -47,6 +47,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_api_keys: {
+        Row: {
+          api_key: string
+          created_at: string
+          error_count: number
+          id: string
+          is_enabled: boolean
+          label: string
+          last_error: string | null
+          last_used_at: string | null
+          provider: string
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          error_count?: number
+          id?: string
+          is_enabled?: boolean
+          label?: string
+          last_error?: string | null
+          last_used_at?: string | null
+          provider?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          error_count?: number
+          id?: string
+          is_enabled?: boolean
+          label?: string
+          last_error?: string | null
+          last_used_at?: string | null
+          provider?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           key: string
@@ -1439,6 +1481,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_ai_key_error: { Args: { key_id: string }; Returns: undefined }
+      increment_ai_key_usage: { Args: { key_id: string }; Returns: undefined }
       validate_promocode: { Args: { p_code: string }; Returns: Json }
     }
     Enums: {
