@@ -44,8 +44,8 @@ const ServiceCarousel = ({ services, categoryName, onServiceSelect, selectedServ
         </div>
       </div>
 
-      <div className="overflow-hidden" ref={emblaRef}>
-        <div className="flex gap-4">
+      <div className="overflow-visible py-4 -my-4" ref={emblaRef}>
+        <div className="flex gap-4 px-1">
           {services.map((service, i) => (
             <motion.div
               key={service.id}
