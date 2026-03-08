@@ -47,6 +47,9 @@ interface Service {
   max_quantity: number;
   price: number;
   is_enabled: boolean;
+  speed: string;
+  guarantee: string;
+  warning_text: string | null;
 }
 
 interface Mapping {
