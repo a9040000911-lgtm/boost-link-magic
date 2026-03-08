@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { logAuditAction } from "@/lib/audit";
+import { CleanupRulesDialog } from "@/components/admin/CleanupRulesDialog";
 
 interface MarkupTier {
   maxRate: number;
