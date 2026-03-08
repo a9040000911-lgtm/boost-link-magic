@@ -21,9 +21,11 @@ interface AICallParams {
 
 /** Pick the least-used enabled Gemini key from ai_api_keys table */
 async function getRotatedKey(supabase: any): Promise<{ id: string; api_key: string } | null> {
+/** Pick the least-used enabled Gemini key from ai_api_keys table */
+async function getRotatedKey(supabase: any): Promise<{ id: string; api_key: string; model: string } | null> {
   const { data } = await supabase
     .from("ai_api_keys")
-    .select("id, api_key")
+    .select("id, api_key, model")
     .eq("provider", "gemini")
     .eq("is_enabled", true)
     .order("usage_count", { ascending: true })
