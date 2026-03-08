@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 const menuItems = [
   { title: "Обзор", url: "/dashboard", icon: LayoutDashboard },
   { title: "Заказы", url: "/dashboard/orders", icon: ShoppingCart },
+  { title: "Транзакции", url: "/dashboard/transactions", icon: Wallet },
   { title: "Проекты", url: "/dashboard/projects", icon: FolderKanban },
   { title: "Настройки", url: "/dashboard/settings", icon: Settings },
 ];
