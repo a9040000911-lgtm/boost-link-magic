@@ -2,14 +2,14 @@ import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, MessageSquare } from "lucide-react";
+import { Search, Filter, MessageSquare, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
 
 interface Order {
   id: string;
@@ -25,11 +25,31 @@ interface Order {
   updated_at: string;
 }
 
-const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  pending: { label: "Ожидание", variant: "outline" },
-  in_progress: { label: "В процессе", variant: "secondary" },
-  completed: { label: "Выполнен", variant: "default" },
-  cancelled: { label: "Отменён", variant: "destructive" },
+const statusLabels: Record<string, string> = {
+  pending: "Ожидание",
+  processing: "В обработке",
+  in_progress: "В процессе",
+  completed: "Выполнен",
+  partial: "Частично",
+  canceled: "Отменён",
+  cancelled: "Отменён",
+  refunded: "Возврат",
+};
+
+const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  pending: "outline",
+  processing: "secondary",
+  in_progress: "secondary",
+  completed: "default",
+  partial: "outline",
+  canceled: "destructive",
+  cancelled: "destructive",
+  refunded: "destructive",
+};
+
+const formatDate = (d: string) => {
+  const date = new Date(d);
+  return date.toLocaleDateString("ru-RU") + " " + date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
 };
 
 const DashboardOrders = () => {
@@ -40,6 +60,7 @@ const DashboardOrders = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [platformFilter, setPlatformFilter] = useState("all");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -69,142 +90,166 @@ const DashboardOrders = () => {
   const totalSum = useMemo(() => filtered.reduce((s, o) => s + Number(o.price), 0), [filtered]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Заказы</h1>
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Итого:</span>
-          <span className="font-bold text-lg gradient-text">{totalSum.toFixed(2)} ₽</span>
+          <span className="text-muted-foreground">Найдено: <strong className="text-foreground">{filtered.length}</strong></span>
+          <span className="text-muted-foreground">Сумма: <strong className="text-foreground gradient-text">{totalSum.toFixed(2)} ₽</strong></span>
         </div>
       </div>
 
-      <Card className="border-border/60">
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Поиск по услуге или ссылке..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[160px]">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Статус" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все статусы</SelectItem>
-                <SelectItem value="pending">Ожидание</SelectItem>
-                <SelectItem value="in_progress">В процессе</SelectItem>
-                <SelectItem value="completed">Выполнен</SelectItem>
-                <SelectItem value="cancelled">Отменён</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={platformFilter} onValueChange={setPlatformFilter}>
-              <SelectTrigger className="w-full sm:w-[160px]">
-                <SelectValue placeholder="Платформа" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все платформы</SelectItem>
-                {platforms.map((p) => (
-                  <SelectItem key={p} value={p!}>{p}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="ID, услуга или ссылка..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-9 text-sm"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-[150px] h-9 text-sm">
+            <Filter className="h-3.5 w-3.5 mr-1.5" />
+            <SelectValue placeholder="Статус" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все статусы</SelectItem>
+            <SelectItem value="pending">Ожидание</SelectItem>
+            <SelectItem value="processing">В обработке</SelectItem>
+            <SelectItem value="in_progress">В процессе</SelectItem>
+            <SelectItem value="completed">Выполнен</SelectItem>
+            <SelectItem value="partial">Частично</SelectItem>
+            <SelectItem value="canceled">Отменён</SelectItem>
+            <SelectItem value="refunded">Возврат</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={platformFilter} onValueChange={setPlatformFilter}>
+          <SelectTrigger className="w-full sm:w-[150px] h-9 text-sm">
+            <SelectValue placeholder="Платформа" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все платформы</SelectItem>
+            {platforms.map((p) => (
+              <SelectItem key={p} value={p!}>{p}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Table */}
+      <div className="border rounded-lg overflow-auto">
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
           </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              {orders.length === 0 ? "У вас пока нет заказов" : "Ничего не найдено"}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-               <TableHeader>
-                   <TableRow>
-                     <TableHead>ID</TableHead>
-                     <TableHead>Услуга</TableHead>
-                     <TableHead>Ссылка</TableHead>
-                     <TableHead>Платформа</TableHead>
-                     <TableHead>Кол-во</TableHead>
-                     <TableHead>Цена</TableHead>
-                     <TableHead>Прогресс</TableHead>
-                     <TableHead>Статус</TableHead>
-                     <TableHead>Создан</TableHead>
-                     <TableHead>Обновлён</TableHead>
-                     <TableHead className="w-10"></TableHead>
-                   </TableRow>
-                 </TableHeader>
-                <TableBody>
-                  {filtered.map((order) => {
-                    const st = statusMap[order.status] || { label: order.status, variant: "outline" as const };
-                    return (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-mono text-xs text-muted-foreground" title={order.id}>
-                          #{order.id.slice(0, 8)}
-                        </TableCell>
-                        <TableCell className="font-medium max-w-[200px] truncate">{order.service_name}</TableCell>
-                        <TableCell className="max-w-[180px]">
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground text-sm">
+            {orders.length === 0 ? "У вас пока нет заказов" : "Ничего не найдено"}
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="text-xs uppercase tracking-wider">
+                <TableHead className="px-3 w-[70px]">ID</TableHead>
+                <TableHead className="px-3">Информация</TableHead>
+                <TableHead className="px-3 w-[90px] text-right">Цена</TableHead>
+                <TableHead className="px-3 w-[100px] text-center">Статус</TableHead>
+                <TableHead className="px-3 w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((order) => {
+                const label = statusLabels[order.status] || order.status;
+                const variant = statusVariant[order.status] || "outline";
+                const isExpanded = expandedId === order.id;
+                const progressPct = order.quantity > 0 ? Math.min(100, Math.round((order.progress / order.quantity) * 100)) : 0;
+
+                return (
+                  <TableRow
+                    key={order.id}
+                    className="align-top border-b cursor-pointer hover:bg-muted/30 transition-colors"
+                    onClick={() => setExpandedId(isExpanded ? null : order.id)}
+                  >
+                    <TableCell className="px-3 py-3 font-mono text-xs text-muted-foreground">
+                      #{order.id.slice(0, 8)}
+                    </TableCell>
+                    <TableCell className="px-3 py-3">
+                      <div className="space-y-0.5 text-sm">
+                        <div>
+                          <span className="font-semibold">{order.service_name}</span>
+                          {order.platform && (
+                            <Badge variant="outline" className="ml-2 text-[10px] py-0">{order.platform}</Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <ExternalLink className="w-3 h-3 shrink-0" />
                           <a
                             href={order.link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-primary hover:underline truncate block"
-                            title={order.link}
+                            className="text-primary hover:underline truncate max-w-[300px]"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            {order.link.replace(/^https?:\/\/(www\.)?/, "").slice(0, 30)}{order.link.length > 40 ? "…" : ""}
+                            {order.link.replace(/^https?:\/\/(www\.)?/, "").slice(0, 40)}{order.link.length > 50 ? "…" : ""}
                           </a>
-                        </TableCell>
-                        <TableCell>{order.platform || "—"}</TableCell>
-                        <TableCell>{order.quantity}</TableCell>
-                        <TableCell>{Number(order.price).toFixed(2)} ₽</TableCell>
-                        <TableCell className="min-w-[120px]">
-                          <div className="flex items-center gap-2">
-                            <Progress value={order.progress} className="h-2 flex-1" />
-                            <span className="text-xs text-muted-foreground">{order.progress}%</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          <span className="font-medium text-foreground">Кол-во:</span> {order.quantity}
+                          {order.progress > 0 && order.progress < order.quantity && (
+                            <span className="ml-1">(выполнено: {order.progress})</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Progress value={progressPct} className="h-1.5 flex-1 max-w-[150px]" />
+                          <span className="text-[10px] text-muted-foreground">{progressPct}%</span>
+                        </div>
+
+                        {isExpanded && (
+                          <div className="mt-2 pt-2 border-t border-dashed space-y-0.5 text-xs text-muted-foreground">
+                            <div><span className="font-medium text-foreground">Создан:</span> {formatDate(order.created_at)}</div>
+                            <div><span className="font-medium text-foreground">Обновлён:</span> {formatDate(order.updated_at)}</div>
+                            <div><span className="font-medium text-foreground">ID заказа:</span> <span className="font-mono">{order.id}</span></div>
+                            <div className="pt-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs gap-1.5"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/dashboard/support?new=1&order_id=${order.id}`);
+                                }}
+                              >
+                                <MessageSquare className="h-3 w-3" />
+                                Создать тикет
+                              </Button>
+                            </div>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={st.variant}>{st.label}</Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                          {new Date(order.created_at).toLocaleDateString("ru-RU")}
-                          <br />
-                          <span className="text-[10px] opacity-70">{new Date(order.created_at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</span>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                          {new Date(order.updated_at).toLocaleDateString("ru-RU")}
-                          <br />
-                          <span className="text-[10px] opacity-70">{new Date(order.updated_at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</span>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            title="Создать тикет по заказу"
-                            onClick={() => navigate(`/dashboard/support?new=1&order_id=${order.id}`)}
-                          >
-                            <MessageSquare className="h-3.5 w-3.5" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-3 py-3 text-right font-semibold text-sm whitespace-nowrap">
+                      {Number(order.price).toFixed(2)} ₽
+                    </TableCell>
+                    <TableCell className="px-3 py-3 text-center">
+                      <Badge variant={variant}>{label}</Badge>
+                    </TableCell>
+                    <TableCell className="px-3 py-3 text-center">
+                      {isExpanded ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </div>
     </div>
   );
 };
