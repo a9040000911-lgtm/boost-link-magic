@@ -188,21 +188,31 @@ const DashboardSupport = () => {
 
   // Create ticket
   const handleCreate = async () => {
-    if (!user) return;
-    if (!newSubject.trim() || !newMessage.trim()) {
-      toast.error("Заполните тему и сообщение");
+    if (!user || !selectedTopicId) return;
+    const topic = topics.find(t => t.id === selectedTopicId);
+    if (!topic) return;
+    if (topic.requires_order_id && !selectedOrderId) {
+      toast.error("Выберите заказ");
+      return;
+    }
+    if (!newMessage.trim()) {
+      toast.error("Заполните сообщение");
       return;
     }
     setCreating(true);
+
+    const subject = `${topic.icon} ${topic.name}${selectedOrderId ? ` [#${selectedOrderId.slice(0, 8)}]` : ""}`;
 
     const { data: ticket, error: tErr } = await supabase
       .from("support_tickets")
       .insert({
         user_id: user.id,
-        subject: newSubject.trim(),
+        subject,
         priority: newPriority,
         channel: "web",
-      })
+        topic_id: selectedTopicId,
+        order_id: selectedOrderId || null,
+      } as any)
       .select()
       .single();
 
@@ -220,7 +230,8 @@ const DashboardSupport = () => {
     });
 
     toast.success("Обращение создано!");
-    setNewSubject("");
+    setSelectedTopicId("");
+    setSelectedOrderId("");
     setNewMessage("");
     setNewPriority("normal");
     setCreating(false);
