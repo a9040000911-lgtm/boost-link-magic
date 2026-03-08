@@ -319,6 +319,22 @@ const AdminOrders = () => {
                   {selectedOrder.link} <ExternalLink className="h-2.5 w-2.5 inline" />
                 </a>
               </div>
+              {/* Refund section */}
+              <div className="border-t pt-2">
+                {selectedOrder.refund_status === "refunded" ? (
+                  <div className="text-xs bg-destructive/10 rounded p-2">
+                    <p className="font-medium text-destructive">Возврат выполнен</p>
+                    <p className="text-muted-foreground">Сумма: {Number(selectedOrder.refunded_amount).toFixed(2)}₽ | {selectedOrder.refunded_at ? formatDate(selectedOrder.refunded_at) : ""}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Textarea placeholder="Причина возврата..." value={refundReason} onChange={(e) => setRefundReason(e.target.value)} className="text-xs h-16" />
+                    <Button variant="destructive" size="sm" className="w-full text-xs" onClick={handleRefund} disabled={refunding}>
+                      <Undo2 className="h-3 w-3 mr-1" />{refunding ? "Обработка..." : `Возврат ${Number(selectedOrder.price).toFixed(2)}₽`}
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
