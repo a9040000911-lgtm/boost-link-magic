@@ -1,4 +1,4 @@
-import { Package, ShoppingCart, Users, MessageSquare, LogOut, ArrowLeft, BarChart3, Shield, Server, Receipt, FolderOpen, Settings, Tag } from "lucide-react";
+import { Package, ShoppingCart, Users, MessageSquare, LogOut, ArrowLeft, BarChart3, Shield, Server, Receipt, FolderOpen, Settings, Tag, FileText } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -24,6 +24,7 @@ const adminMenuItems = [
   { title: "Категории", url: "/admin/categories", icon: FolderOpen },
   { title: "Провайдеры", url: "/admin/providers", icon: Server },
   { title: "Промокоды", url: "/admin/promocodes", icon: Tag },
+  { title: "Страницы и SEO", url: "/admin/pages", icon: FileText },
   { title: "Поддержка", url: "/admin/support", icon: MessageSquare },
   { title: "Сотрудники", url: "/admin/staff", icon: Shield },
   { title: "Настройки", url: "/admin/settings", icon: Settings },
