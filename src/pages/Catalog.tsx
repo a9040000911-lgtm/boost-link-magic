@@ -739,29 +739,35 @@ const Catalog = () => {
                     <div className="flex-1" />
 
                     {/* Consents */}
-                    <div className="space-y-1.5 shrink-0">
-                      <label className="flex items-start gap-1.5 cursor-pointer group" onClick={() => setConsentOffer(!consentOffer)}>
-                        <span className={`mt-0.5 w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${consentOffer ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent` : 'border-border bg-background'}`}>
-                          {consentOffer && <Check className="w-2.5 h-2.5 text-white" />}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors leading-tight">
-                          Принимаю условия <Link to="/page/offer" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Оферты</Link>
-                        </span>
-                      </label>
-                      <label className="flex items-start gap-1.5 cursor-pointer group" onClick={() => setConsentPD(!consentPD)}>
-                        <span className={`mt-0.5 w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${consentPD ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent` : 'border-border bg-background'}`}>
-                          {consentPD && <Check className="w-2.5 h-2.5 text-white" />}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors leading-tight">
-                          Согласен с <Link to="/page/privacy-policy" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Политикой</Link> и <Link to="/page/terms" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Правилами</Link>
-                        </span>
-                      </label>
-                    </div>
+                    {(checkboxSettings.show_offer_checkbox || checkboxSettings.show_policy_checkbox) && (
+                      <div className="space-y-1.5 shrink-0">
+                        {checkboxSettings.show_offer_checkbox && (
+                          <label className="flex items-start gap-1.5 cursor-pointer group" onClick={() => setConsentOffer(!consentOffer)}>
+                            <span className={`mt-0.5 w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${consentOffer ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent` : 'border-border bg-background'}`}>
+                              {consentOffer && <Check className="w-2.5 h-2.5 text-white" />}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors leading-tight">
+                              Принимаю условия <Link to="/page/offer" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Оферты</Link>
+                            </span>
+                          </label>
+                        )}
+                        {checkboxSettings.show_policy_checkbox && (
+                          <label className="flex items-start gap-1.5 cursor-pointer group" onClick={() => setConsentPD(!consentPD)}>
+                            <span className={`mt-0.5 w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${consentPD ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent` : 'border-border bg-background'}`}>
+                              {consentPD && <Check className="w-2.5 h-2.5 text-white" />}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors leading-tight">
+                              Согласен с <Link to="/page/privacy-policy" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Политикой</Link> и <Link to="/page/terms" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Правилами</Link>
+                            </span>
+                          </label>
+                        )}
+                      </div>
+                    )}
 
                     {/* Submit */}
                     <button
                       onClick={handleOrder}
-                      disabled={!link.trim() || !consentOffer || !consentPD || ordering}
+                      disabled={!link.trim() || (checkboxSettings.show_offer_checkbox && !consentOffer) || (checkboxSettings.show_policy_checkbox && !consentPD) || ordering}
                       className={`w-full py-3 rounded-xl ${activeNetConfig?.bg || 'bg-gradient-to-r from-primary to-secondary'} text-white font-bold text-sm shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/20'} hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shrink-0`}
                     >
                       {ordering ? (
