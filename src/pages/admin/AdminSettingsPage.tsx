@@ -35,10 +35,16 @@ const SETTINGS_META: SettingMeta[] = [
   { key: "support_smtp_password", label: "SMTP пароль", hint: "Пароль для SMTP (хранится безопасно в настройках)", type: "text", group: "email_support" },
   { key: "support_email_from_name", label: "Имя отправителя", hint: "Имя которое увидит клиент в письме (например 'CoolLike Support')", type: "text", group: "email_support" },
 
+  // AI Support
+  { key: "support_ai_enabled", label: "ИИ-подсказки включены", hint: "Включить виджет ИИ-подсказок для операторов в чате поддержки", type: "boolean", group: "ai_support" },
+  { key: "support_ai_model", label: "Модель ИИ", hint: "Название модели Lovable AI (например google/gemini-2.5-flash, google/gemini-2.5-pro, openai/gpt-5-mini). Модель можно менять без перезапуска", type: "text", group: "ai_support" },
+  { key: "support_ai_system_prompt", label: "Системный промпт", hint: "Инструкция для ИИ — как генерировать подсказки для операторов", type: "textarea", group: "ai_support" },
+
   // Support
   { key: "ticket_auto_close_hours", label: "Автозакрытие тикетов", hint: "Через сколько часов тикет закроется автоматически после ответа поддержки, если клиент не отвечает", type: "number", suffix: "ч", group: "support" },
   { key: "ticket_reopen_window_hours", label: "Окно переоткрытия", hint: "Сколько часов после закрытия клиент может заново открыть тикет, не создавая новый", type: "number", suffix: "ч", group: "support" },
   { key: "support_welcome_message", label: "Приветственное сообщение", hint: "Текст, который клиент видит при создании нового обращения в поддержку", type: "textarea", group: "support" },
+  { key: "support_staff_rules", label: "Правила для сотрудников", hint: "Правила и инструкции для операторов поддержки. Отображаются в чате поддержки", type: "textarea", group: "support" },
 
   // Orders
   { key: "max_orders_per_day", label: "Лимит заказов в день", hint: "Максимальное количество заказов, которое один пользователь может сделать за сутки (0 = без ограничений)", type: "number", group: "orders" },
