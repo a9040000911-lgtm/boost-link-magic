@@ -50,6 +50,7 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
   if (!current) return null;
 
   const categories = categoriesByPlatform[current.platform];
+  const recommendedIds = getRecommendedCategoryIds(current.analysis, categories);
   const services = current.category ? getServicesForCategory(current.category.id) : [];
 
   const handleCategorySelect = (cat: Category) => {
