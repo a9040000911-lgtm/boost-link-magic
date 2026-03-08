@@ -1,5 +1,6 @@
 import { Mail, MessageCircle, Send } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 const socials = [
   { name: 'Telegram', href: 'https://t.me/smmpanel', icon: Send },
