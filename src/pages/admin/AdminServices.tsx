@@ -15,7 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   RefreshCw, Search, Package, Plus, Link2, Trash2, ArrowUp, ArrowDown,
-  Zap, ShieldCheck, AlertTriangle, Settings2, ChevronRight, Percent, Layers
+  Zap, ShieldCheck, AlertTriangle, Settings2, ChevronRight, Percent, Layers,
+  DollarSign, Hash
 } from "lucide-react";
 import { toast } from "sonner";
 import { logAuditAction } from "@/lib/audit";
@@ -124,6 +125,11 @@ const AdminServices = () => {
   const [showBulkBar, setShowBulkBar] = useState(false);
   const [markupLadder, setMarkupLadder] = useState<MarkupTier[]>(DEFAULT_MARKUP_LADDER);
 
+  // Price display toggles
+  const [priceMode, setPriceMode] = useState<"per1k" | "per1">("per1k");
+  const [currency, setCurrency] = useState<"RUB" | "USD">("RUB");
+  const [usdRate, setUsdRate] = useState<number>(0);
+
   useEffect(() => {
     if (!user) return;
     loadAll();
@@ -131,13 +137,14 @@ const AdminServices = () => {
 
   const loadAll = async () => {
     setLoading(true);
-    const [psRes, sRes, mRes, pRes, ladderRes, minMarkupRes] = await Promise.all([
+    const [psRes, sRes, mRes, pRes, ladderRes, minMarkupRes, rateRes] = await Promise.all([
       supabase.from("provider_services").select("*").order("provider").order("network"),
       supabase.from("services").select("*").order("network").order("category").order("name"),
       supabase.from("service_provider_mappings").select("*").order("priority"),
       supabase.from("providers").select("*").eq("is_enabled", true),
       supabase.from("app_settings").select("value").eq("key", "markup_ladder").single(),
       supabase.from("app_settings").select("value").eq("key", "min_markup_percent").single(),
+      supabase.from("exchange_rates").select("rate").eq("base_currency", "USD").eq("target_currency", "RUB").order("fetched_at", { ascending: false }).limit(1).single(),
     ]);
     setProviderServices((psRes.data as ProviderService[]) || []);
     setServices((sRes.data as Service[]) || []);
@@ -149,9 +156,23 @@ const AdminServices = () => {
     if (minMarkupRes.data?.value) {
       setMinMarkup(Number(minMarkupRes.data.value) || MIN_MARKUP_DEFAULT);
     }
+    if (rateRes.data?.rate) {
+      setUsdRate(Number(rateRes.data.rate));
+    }
     setSelectedIds(new Set());
     setLoading(false);
   };
+
+  // Price formatting helper
+  const fmtPrice = (pricePerK: number): string => {
+    let val = priceMode === "per1" ? pricePerK / 1000 : pricePerK;
+    if (currency === "USD" && usdRate > 0) val = val / usdRate;
+    const sym = currency === "USD" ? "$" : "₽";
+    return currency === "USD" ? `${sym}${val.toFixed(4)}` : `${val.toFixed(2)}${sym}`;
+  };
+
+  const priceLabel = priceMode === "per1" ? "Цена/1шт" : "Цена/1к";
+  const currLabel = currency === "USD" ? "USD" : "RUB";
 
   const handleSync = async (providerKey?: string) => {
     setSyncing(true);
@@ -511,6 +532,45 @@ const AdminServices = () => {
               </SelectContent>
             </Select>
           )}
+          {/* Price display toggles */}
+          <div className="flex items-center gap-0.5 ml-auto border rounded-md">
+            <Button
+              size="sm"
+              variant={priceMode === "per1" ? "default" : "ghost"}
+              className="h-7 text-[10px] px-2 rounded-r-none"
+              onClick={() => setPriceMode("per1")}
+            >
+              <Hash className="h-3 w-3 mr-0.5" />1шт
+            </Button>
+            <Button
+              size="sm"
+              variant={priceMode === "per1k" ? "default" : "ghost"}
+              className="h-7 text-[10px] px-2 rounded-l-none"
+              onClick={() => setPriceMode("per1k")}
+            >
+              1000
+            </Button>
+          </div>
+          <div className="flex items-center gap-0.5 border rounded-md">
+            <Button
+              size="sm"
+              variant={currency === "RUB" ? "default" : "ghost"}
+              className="h-7 text-[10px] px-2 rounded-r-none"
+              onClick={() => setCurrency("RUB")}
+            >
+              ₽
+            </Button>
+            <Button
+              size="sm"
+              variant={currency === "USD" ? "default" : "ghost"}
+              className="h-7 text-[10px] px-2 rounded-l-none"
+              onClick={() => setCurrency("USD")}
+              disabled={!usdRate}
+              title={!usdRate ? "Курс USD не загружен" : `1 USD = ${usdRate.toFixed(2)} ₽`}
+            >
+              <DollarSign className="h-3 w-3" />
+            </Button>
+          </div>
           {activeTab === "catalog" && (
             <>
               <Select value={enabledFilter} onValueChange={setEnabledFilter}>
@@ -599,7 +659,7 @@ const AdminServices = () => {
                         <TableHead className="px-2">Название</TableHead>
                         <TableHead className="px-2 w-[100px]">Сеть</TableHead>
                         <TableHead className="px-2 w-[120px]">Категория</TableHead>
-                        <TableHead className="px-2 w-[80px] text-right">Цена/1к</TableHead>
+                        <TableHead className="px-2 w-[90px] text-right">{priceLabel}</TableHead>
                         <TableHead className="px-2 w-[140px]">Провайдеры</TableHead>
                         <TableHead className="px-2 w-10"></TableHead>
                       </TableRow>
@@ -624,7 +684,7 @@ const AdminServices = () => {
                               <Badge variant="outline" className="text-[10px] px-1.5">{svc.network}</Badge>
                             </TableCell>
                             <TableCell className="px-2 text-muted-foreground">{svc.category}</TableCell>
-                            <TableCell className="px-2 text-right font-mono">{Number(svc.price).toFixed(2)}</TableCell>
+                            <TableCell className="px-2 text-right font-mono">{fmtPrice(Number(svc.price))}</TableCell>
                             <TableCell className="px-2">
                               {isOrphan ? (
                                 <Badge variant="destructive" className="text-[9px] px-1">
@@ -675,7 +735,7 @@ const AdminServices = () => {
                       Сбросить
                     </Button>
                     <span className="text-[9px] text-muted-foreground ml-auto">
-                      Лестница: {markupLadder.map(t => `≤${t.maxRate === Infinity ? '∞' : t.maxRate}₽→${t.markup}%`).join(', ')}
+                      Мин. наценка: {minMarkup}% · Лестница: {markupLadder.map(t => `≤${t.maxRate === Infinity ? '∞' : t.maxRate}₽→${t.markup}%`).join(', ')}
                     </span>
                   </div>
                 )}
@@ -698,9 +758,9 @@ const AdminServices = () => {
                         <TableHead className="px-2">SID</TableHead>
                         <TableHead className="px-2">Услуга</TableHead>
                         <TableHead className="px-2 w-[90px]">Сеть</TableHead>
-                        <TableHead className="px-2 w-[80px] text-right">Закупка</TableHead>
+                        <TableHead className="px-2 w-[90px] text-right">Закупка</TableHead>
                         <TableHead className="px-2 w-[60px] text-right">Нац.%</TableHead>
-                        <TableHead className="px-2 w-[80px] text-right">Наша цена</TableHead>
+                        <TableHead className="px-2 w-[90px] text-right">Наша цена</TableHead>
                         <TableHead className="px-2 w-[80px]">Привязки</TableHead>
                         <TableHead className="px-2 w-[80px]"></TableHead>
                       </TableRow>
@@ -726,13 +786,13 @@ const AdminServices = () => {
                               <div className="truncate max-w-[240px] font-medium">{svc.name}</div>
                             </TableCell>
                             <TableCell className="px-2"><Badge variant="outline" className="text-[10px]">{svc.network}</Badge></TableCell>
-                            <TableCell className="px-2 text-right font-mono">{Number(svc.rate).toFixed(2)}₽</TableCell>
+                            <TableCell className="px-2 text-right font-mono">{fmtPrice(Number(svc.rate))}</TableCell>
                             <TableCell className="px-2 text-right">
                               <Badge variant={effectiveMarkup >= ladderMarkup ? "default" : "secondary"} className="text-[9px] px-1">
                                 {effectiveMarkup}%
                               </Badge>
                             </TableCell>
-                            <TableCell className="px-2 text-right font-mono font-medium">{ourPrice.toFixed(2)}₽</TableCell>
+                            <TableCell className="px-2 text-right font-mono font-medium">{fmtPrice(ourPrice)}</TableCell>
                             <TableCell className="px-2">
                               {svcMappings.length > 0 ? (
                                 <Badge variant="outline" className="text-[9px]">{svcMappings.length}</Badge>
