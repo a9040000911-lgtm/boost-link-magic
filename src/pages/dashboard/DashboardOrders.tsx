@@ -127,17 +127,18 @@ const DashboardOrders = () => {
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Услуга</TableHead>
-                    <TableHead>Платформа</TableHead>
-                    <TableHead>Кол-во</TableHead>
-                    <TableHead>Цена</TableHead>
-                    <TableHead>Прогресс</TableHead>
-                    <TableHead>Статус</TableHead>
-                    <TableHead>Дата</TableHead>
-                  </TableRow>
-                </TableHeader>
+                 <TableHeader>
+                   <TableRow>
+                     <TableHead>Услуга</TableHead>
+                     <TableHead>Платформа</TableHead>
+                     <TableHead>Кол-во</TableHead>
+                     <TableHead>Цена</TableHead>
+                     <TableHead>Прогресс</TableHead>
+                     <TableHead>Статус</TableHead>
+                     <TableHead>Дата</TableHead>
+                     <TableHead className="w-10"></TableHead>
+                   </TableRow>
+                 </TableHeader>
                 <TableBody>
                   {filtered.map((order) => {
                     const st = statusMap[order.status] || { label: order.status, variant: "outline" as const };
