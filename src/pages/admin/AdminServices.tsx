@@ -784,6 +784,34 @@ const AdminServices = () => {
 
               {/* === PROVIDER SERVICES TABLE === */}
               <TabsContent value="providers" className="mt-0">
+                {/* Bulk action bar for providers */}
+                {selectedIds.size > 0 && activeTab === "providers" && (
+                  <div className="flex items-center gap-2 p-2 bg-primary/5 border-b border-primary/20 sticky top-0 z-10">
+                    <Badge variant="default" className="text-[10px]">{selectedIds.size} выбрано</Badge>
+                    <Button size="sm" className="h-7 text-xs" onClick={async () => {
+                      const ids = [...selectedIds];
+                      let created = 0;
+                      let skipped = 0;
+                      for (const id of ids) {
+                        const ps = providerServices.find(p => p.id === id);
+                        if (!ps) { skipped++; continue; }
+                        // Check if already mapped
+                        const alreadyMapped = mappings.some(m => m.provider_service_id === id);
+                        if (alreadyMapped) { skipped++; continue; }
+                        await createFromProvider(ps);
+                        created++;
+                      }
+                      toast.success(`Добавлено в каталог: ${created}${skipped ? ` (${skipped} пропущено)` : ""}`);
+                      setSelectedIds(new Set());
+                      await loadAll();
+                    }}>
+                      <Plus className="h-3 w-3 mr-1" />В каталог ({selectedIds.size})
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+                      Сбросить
+                    </Button>
+                  </div>
+                )}
                 {filteredProviderServices.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground text-sm">
                     <Package className="h-8 w-8 mx-auto mb-2 opacity-40" /><p>Синхронизируйте провайдеров</p>
@@ -792,6 +820,13 @@ const AdminServices = () => {
                   <Table>
                     <TableHeader>
                       <TableRow className="text-[11px]">
+                        <TableHead className="px-2 w-8">
+                          <Checkbox
+                            checked={selectedIds.size === filteredProviderServices.length && filteredProviderServices.length > 0}
+                            onCheckedChange={toggleSelectAll}
+                            className="scale-[0.75]"
+                          />
+                        </TableHead>
                         <TableHead className="px-2">Пров.</TableHead>
                         <TableHead className="px-2">SID</TableHead>
                         <TableHead className="px-2">Услуга</TableHead>
@@ -804,8 +839,16 @@ const AdminServices = () => {
                     <TableBody>
                       {filteredProviderServices.map((svc) => {
                         const svcMappings = mappings.filter((m) => m.provider_service_id === svc.id);
+                        const alreadyInCatalog = svcMappings.length > 0;
                         return (
-                          <TableRow key={svc.id} className="text-xs">
+                          <TableRow key={svc.id} className={`text-xs ${selectedIds.has(svc.id) ? "bg-primary/5" : ""} ${alreadyInCatalog ? "opacity-60" : ""}`}>
+                            <TableCell className="px-2">
+                              <Checkbox
+                                checked={selectedIds.has(svc.id)}
+                                onCheckedChange={() => toggleSelect(svc.id)}
+                                className="scale-[0.75]"
+                              />
+                            </TableCell>
                             <TableCell className="px-2"><Badge variant="secondary" className="text-[10px]">{svc.provider}</Badge></TableCell>
                             <TableCell className="px-2 text-muted-foreground font-mono">{svc.provider_service_id}</TableCell>
                             <TableCell className="px-2">
@@ -819,8 +862,8 @@ const AdminServices = () => {
                               ) : <span className="text-muted-foreground text-[10px]">—</span>}
                             </TableCell>
                             <TableCell className="px-2">
-                              <Button variant="outline" size="sm" className="h-6 text-[10px] px-1.5" onClick={() => createFromProvider(svc)}>
-                                <Plus className="h-2.5 w-2.5 mr-0.5" />В каталог
+                              <Button variant="outline" size="sm" className="h-6 text-[10px] px-1.5" onClick={() => createFromProvider(svc)} disabled={alreadyInCatalog}>
+                                <Plus className="h-2.5 w-2.5 mr-0.5" />{alreadyInCatalog ? "Уже" : "В каталог"}
                               </Button>
                             </TableCell>
                           </TableRow>
