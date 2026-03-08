@@ -406,7 +406,7 @@ const AdminStaff = () => {
                           <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => openEditDialog(s)}>
                             <Settings2 className="h-3 w-3" />
                           </Button>
-                          {!isAdmin && (
+                          {!isFullAccess && (
                             <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive hover:text-destructive" onClick={() => removeStaff(s.user_id, s.role.split(", ")[0])}>
                               <Trash2 className="h-3 w-3" />
                             </Button>
