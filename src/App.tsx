@@ -25,6 +25,7 @@ import AdminStaff from "./pages/admin/AdminStaff";
 import AdminProviders from "./pages/admin/AdminProviders";
 import AdminTransactions from "./pages/admin/AdminTransactions";
 import AdminCategories from "./pages/admin/AdminCategories";
+import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import CookieConsent from "./components/CookieConsent";
 
 const queryClient = new QueryClient();
