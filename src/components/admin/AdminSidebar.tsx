@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Package, ShoppingCart, Users, MessageSquare, LogOut, ArrowLeft, BarChart3, Shield, Server, Receipt, FolderOpen, Settings, Tag, FileText, HelpCircle, Puzzle, Link2, BookOpen, Bot } from "lucide-react";
+import { Package, ShoppingCart, Users, MessageSquare, LogOut, ArrowLeft, BarChart3, Shield, Server, Receipt, FolderOpen, Settings, Tag, FileText, HelpCircle, Puzzle, Link2, BookOpen, Bot, ChevronDown } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar,
@@ -17,31 +18,71 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-const adminMenuItems = [
-  { title: "Дашборд", url: "/admin", icon: BarChart3, end: true },
-  { title: "Заказы", url: "/admin/orders", icon: ShoppingCart },
-  { title: "Транзакции", url: "/admin/transactions", icon: Receipt },
-  { title: "Пользователи", url: "/admin/users", icon: Users },
-  { title: "Услуги", url: "/admin/services", icon: Package },
-  { title: "Категории", url: "/admin/categories", icon: FolderOpen },
-  { title: "Провайдеры", url: "/admin/providers", icon: Server },
-  { title: "Промокоды", url: "/admin/promocodes", icon: Tag },
-  { title: "Страницы и SEO", url: "/admin/pages", icon: FileText },
-  { title: "FAQ", url: "/admin/faq", icon: HelpCircle },
-  { title: "Виджеты", url: "/admin/widgets", icon: Puzzle },
-  { title: "Ссылки", url: "/admin/links", icon: Link2, badgeKey: "links" as const },
-  { title: "Поддержка", url: "/admin/support", icon: MessageSquare },
-  { title: "Сотрудники", url: "/admin/staff", icon: Shield },
-  { title: "Telegram-боты", url: "/admin/bots", icon: Bot },
-  { title: "Настройки", url: "/admin/settings", icon: Settings },
-  { title: "Документация", url: "/admin/docs", icon: BookOpen },
+interface MenuItem {
+  title: string;
+  url: string;
+  icon: any;
+  end?: boolean;
+  badgeKey?: "links";
+}
+
+interface MenuGroup {
+  label: string;
+  items: MenuItem[];
+}
+
+const menuGroups: MenuGroup[] = [
+  {
+    label: "Основное",
+    items: [
+      { title: "Дашборд", url: "/admin", icon: BarChart3, end: true },
+      { title: "Заказы", url: "/admin/orders", icon: ShoppingCart },
+      { title: "Транзакции", url: "/admin/transactions", icon: Receipt },
+      { title: "Пользователи", url: "/admin/users", icon: Users },
+    ],
+  },
+  {
+    label: "Каталог",
+    items: [
+      { title: "Услуги", url: "/admin/services", icon: Package },
+      { title: "Категории", url: "/admin/categories", icon: FolderOpen },
+      { title: "Провайдеры", url: "/admin/providers", icon: Server },
+      { title: "Промокоды", url: "/admin/promocodes", icon: Tag },
+    ],
+  },
+  {
+    label: "Контент",
+    items: [
+      { title: "Страницы и SEO", url: "/admin/pages", icon: FileText },
+      { title: "FAQ", url: "/admin/faq", icon: HelpCircle },
+      { title: "Виджеты", url: "/admin/widgets", icon: Puzzle },
+      { title: "Ссылки", url: "/admin/links", icon: Link2, badgeKey: "links" as const },
+    ],
+  },
+  {
+    label: "Коммуникации",
+    items: [
+      { title: "Поддержка", url: "/admin/support", icon: MessageSquare },
+      { title: "Telegram-боты", url: "/admin/bots", icon: Bot },
+    ],
+  },
+  {
+    label: "Система",
+    items: [
+      { title: "Сотрудники", url: "/admin/staff", icon: Shield },
+      { title: "Настройки", url: "/admin/settings", icon: Settings },
+      { title: "Документация", url: "/admin/docs", icon: BookOpen },
+    ],
+  },
 ];
 
 export function AdminSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { user, signOut } = useAuth();
+  const location = useLocation();
   const [unresolvedCount, setUnresolvedCount] = useState(0);
 
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Admin";
@@ -57,44 +98,62 @@ export function AdminSidebar() {
       });
   }, []);
 
+  const isGroupActive = (group: MenuGroup) =>
+    group.items.some(item => item.end ? location.pathname === item.url : location.pathname.startsWith(item.url));
+
   return (
     <Sidebar collapsible="icon" className="border-r border-border/60">
       <SidebarContent>
-        <SidebarGroup>
-          {!collapsed && (
+        {!collapsed && (
+          <SidebarGroup>
             <SidebarGroupLabel className="text-destructive font-bold text-sm px-4 py-2">
               Админ-панель
             </SidebarGroupLabel>
-          )}
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {adminMenuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.end}
-                      className="hover:bg-muted/50 transition-colors"
-                      activeClassName="bg-primary/10 text-primary font-medium"
-                    >
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && (
-                        <span className="text-sm flex-1 flex items-center justify-between">
-                          {item.title}
-                          {item.badgeKey === 'links' && unresolvedCount > 0 && (
-                            <Badge variant="destructive" className="text-[9px] px-1.5 py-0 ml-auto">
-                              {unresolvedCount}
-                            </Badge>
-                          )}
-                        </span>
-                      )}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+          </SidebarGroup>
+        )}
+
+        {menuGroups.map((group) => (
+          <Collapsible key={group.label} defaultOpen={collapsed || isGroupActive(group)}>
+            {!collapsed && (
+              <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
+                {group.label}
+                <ChevronDown className="h-3 w-3 transition-transform duration-200 [&[data-state=open]]:rotate-180" />
+              </CollapsibleTrigger>
+            )}
+            <CollapsibleContent>
+              <SidebarGroup className="py-0">
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {group.items.map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild>
+                          <NavLink
+                            to={item.url}
+                            end={item.end}
+                            className="hover:bg-muted/50 transition-colors"
+                            activeClassName="bg-primary/10 text-primary font-medium"
+                          >
+                            <item.icon className="mr-2 h-4 w-4" />
+                            {!collapsed && (
+                              <span className="text-sm flex-1 flex items-center justify-between">
+                                {item.title}
+                                {item.badgeKey === 'links' && unresolvedCount > 0 && (
+                                  <Badge variant="destructive" className="text-[9px] px-1.5 py-0 ml-auto">
+                                    {unresolvedCount}
+                                  </Badge>
+                                )}
+                              </span>
+                            )}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            </CollapsibleContent>
+          </Collapsible>
+        ))}
 
         <SidebarGroup>
           <SidebarGroupContent>
