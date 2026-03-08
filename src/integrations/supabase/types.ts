@@ -47,6 +47,33 @@ export type Database = {
         }
         Relationships: []
       }
+      exchange_rates: {
+        Row: {
+          base_currency: string
+          fetched_at: string
+          id: string
+          rate: number
+          source: string
+          target_currency: string
+        }
+        Insert: {
+          base_currency?: string
+          fetched_at?: string
+          id?: string
+          rate?: number
+          source?: string
+          target_currency?: string
+        }
+        Update: {
+          base_currency?: string
+          fetched_at?: string
+          id?: string
+          rate?: number
+          source?: string
+          target_currency?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           created_at: string
@@ -278,6 +305,7 @@ export type Database = {
           key: string
           label: string
           last_health_check: string | null
+          rate_currency: string
           services_count: number | null
           updated_at: string
         }
@@ -294,6 +322,7 @@ export type Database = {
           key: string
           label: string
           last_health_check?: string | null
+          rate_currency?: string
           services_count?: number | null
           updated_at?: string
         }
@@ -310,6 +339,7 @@ export type Database = {
           key?: string
           label?: string
           last_health_check?: string | null
+          rate_currency?: string
           services_count?: number | null
           updated_at?: string
         }

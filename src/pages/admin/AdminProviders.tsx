@@ -9,7 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Server, Plus, Trash2, RefreshCw, Activity, DollarSign, Wifi, WifiOff, Clock } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Server, Plus, Trash2, RefreshCw, Activity, DollarSign, Wifi, WifiOff, Clock, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
 import { logAuditAction } from "@/lib/audit";
 
@@ -25,9 +26,19 @@ interface Provider {
   health_latency_ms: number | null;
   balance: number | null;
   balance_currency: string | null;
+  rate_currency: string;
   services_count: number | null;
   created_at: string;
 }
+
+interface ExchangeRate {
+  base_currency: string;
+  target_currency: string;
+  rate: number;
+  fetched_at: string;
+}
+
+const CURRENCIES = ["RUB", "USD", "EUR", "GBP", "TRY", "UAH", "KZT", "BRL", "INR", "CNY"];
 
 const AdminProviders = () => {
   const { user } = useAuth();
@@ -35,17 +46,21 @@ const AdminProviders = () => {
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [newProvider, setNewProvider] = useState({ key: "", label: "", api_url: "", api_key_env: "" });
+  const [newProvider, setNewProvider] = useState({ key: "", label: "", api_url: "", api_key_env: "", balance_currency: "USD", rate_currency: "RUB" });
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([]);
+  const [fetchingRates, setFetchingRates] = useState(false);
 
   useEffect(() => {
-    if (user) loadProviders();
+    if (user) {
+      loadProviders();
+      loadExchangeRates();
+    }
   }, [user]);
 
   const loadProviders = async () => {
     setLoading(true);
     const { data } = await supabase.from("providers").select("*").order("created_at");
     
-    // Enrich with services count
     if (data) {
       const enriched = await Promise.all(data.map(async (p) => {
         const { count } = await supabase
@@ -57,6 +72,24 @@ const AdminProviders = () => {
       setProviders(enriched);
     }
     setLoading(false);
+  };
+
+  const loadExchangeRates = async () => {
+    const { data } = await supabase.from("exchange_rates").select("*");
+    if (data) setExchangeRates(data as ExchangeRate[]);
+  };
+
+  const refreshExchangeRates = async () => {
+    setFetchingRates(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-exchange-rates", { body: {} });
+      if (error) throw error;
+      toast.success("Курсы обновлены");
+      await loadExchangeRates();
+    } catch (e: any) {
+      toast.error("Ошибка обновления курсов: " + e.message);
+    }
+    setFetchingRates(false);
   };
 
   const healthCheck = async (provider: Provider) => {
@@ -128,7 +161,9 @@ const AdminProviders = () => {
       label: newProvider.label,
       api_url: newProvider.api_url,
       api_key_env: newProvider.api_key_env,
-    });
+      balance_currency: newProvider.balance_currency,
+      rate_currency: newProvider.rate_currency,
+    } as any);
     if (error) {
       toast.error("Ошибка: " + error.message);
       return;
@@ -136,7 +171,7 @@ const AdminProviders = () => {
     await logAuditAction("create_service", "provider", newProvider.key, { label: newProvider.label });
     toast.success("Провайдер добавлен");
     setAddOpen(false);
-    setNewProvider({ key: "", label: "", api_url: "", api_key_env: "" });
+    setNewProvider({ key: "", label: "", api_url: "", api_key_env: "", balance_currency: "USD", rate_currency: "RUB" });
     await loadProviders();
   };
 
@@ -149,6 +184,10 @@ const AdminProviders = () => {
     if (!status || status === "unknown") return <Badge variant="secondary" className="text-[9px]">Не проверен</Badge>;
     if (status === "healthy") return <Badge className="bg-green-500/20 text-green-600 text-[9px]">Healthy</Badge>;
     return <Badge variant="destructive" className="text-[9px]">Error</Badge>;
+  };
+
+  const getRate = (base: string, target: string) => {
+    return exchangeRates.find(r => r.base_currency === base && r.target_currency === target);
   };
 
   if (loading) {
@@ -192,6 +231,32 @@ const AdminProviders = () => {
                   <Input placeholder="MY_PANEL_API_KEY" value={newProvider.api_key_env} onChange={(e) => setNewProvider(p => ({ ...p, api_key_env: e.target.value.toUpperCase() }))} className="text-xs" />
                   <p className="text-[10px] text-muted-foreground mt-1">Имя секрета в Lovable Cloud. Добавьте ключ в настройках после создания.</p>
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Валюта баланса</Label>
+                    <Select value={newProvider.balance_currency} onValueChange={(v) => setNewProvider(p => ({ ...p, balance_currency: v }))}>
+                      <SelectTrigger className="text-xs h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CURRENCIES.map(c => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">В чём отображается баланс аккаунта</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Валюта услуг (rate)</Label>
+                    <Select value={newProvider.rate_currency} onValueChange={(v) => setNewProvider(p => ({ ...p, rate_currency: v }))}>
+                      <SelectTrigger className="text-xs h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CURRENCIES.map(c => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">В какой валюте цены на услуги</p>
+                  </div>
+                </div>
                 <Button onClick={addProvider} className="w-full text-xs">Создать провайдера</Button>
               </div>
             </DialogContent>
@@ -200,6 +265,30 @@ const AdminProviders = () => {
             <RefreshCw className="h-3 w-3" />
           </Button>
         </div>
+      </div>
+
+      {/* Exchange rates bar */}
+      <div className="flex items-center gap-3 px-3 py-1.5 border rounded-md bg-muted/30 shrink-0">
+        <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <span className="text-[11px] font-medium text-muted-foreground">Курсы:</span>
+        {exchangeRates.length === 0 ? (
+          <span className="text-[11px] text-muted-foreground">Нет данных</span>
+        ) : (
+          exchangeRates.map(r => (
+            <span key={`${r.base_currency}${r.target_currency}`} className="text-[11px] font-mono">
+              1 {r.base_currency} = <span className="font-bold text-foreground">{Number(r.rate).toFixed(2)}</span> {r.target_currency}
+            </span>
+          ))
+        )}
+        {exchangeRates.length > 0 && (
+          <span className="text-[10px] text-muted-foreground ml-auto">
+            Обновлено: {formatDate(exchangeRates[0]?.fetched_at)}
+          </span>
+        )}
+        <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2" onClick={refreshExchangeRates} disabled={fetchingRates}>
+          <RefreshCw className={`h-3 w-3 mr-1 ${fetchingRates ? "animate-spin" : ""}`} />
+          {fetchingRates ? "..." : "Обновить"}
+        </Button>
       </div>
 
       {/* Provider cards */}
@@ -234,6 +323,11 @@ const AdminProviders = () => {
                 )}
               </div>
 
+              <div className="flex items-center gap-2 text-[10px]">
+                <Badge variant="outline" className="text-[9px] px-1.5">Баланс: {p.balance_currency || "—"}</Badge>
+                <Badge variant="outline" className="text-[9px] px-1.5">Rate: {(p as any).rate_currency || "RUB"}</Badge>
+              </div>
+
               <div className="flex items-center justify-between text-[10px]">
                 <span className="text-muted-foreground">{p.services_count} услуг</span>
                 <span className="text-muted-foreground">Проверка: {formatDate(p.last_health_check)}</span>
@@ -266,6 +360,8 @@ const AdminProviders = () => {
                 <TableHead className="px-2">API URL</TableHead>
                 <TableHead className="px-2">Ключ ENV</TableHead>
                 <TableHead className="px-2">Баланс</TableHead>
+                <TableHead className="px-2">Вал. баланса</TableHead>
+                <TableHead className="px-2">Вал. услуг</TableHead>
                 <TableHead className="px-2">Latency</TableHead>
                 <TableHead className="px-2">Услуг</TableHead>
                 <TableHead className="px-2">Последняя проверка</TableHead>
@@ -280,6 +376,8 @@ const AdminProviders = () => {
                   <TableCell className="px-2 font-mono text-[10px] text-muted-foreground">{p.api_url}</TableCell>
                   <TableCell className="px-2"><code className="bg-muted px-1 rounded text-[10px]">{p.api_key_env}</code></TableCell>
                   <TableCell className="px-2 whitespace-nowrap">{p.balance != null ? `${Number(p.balance).toFixed(2)} ${p.balance_currency}` : "—"}</TableCell>
+                  <TableCell className="px-2"><Badge variant="outline" className="text-[9px]">{p.balance_currency || "—"}</Badge></TableCell>
+                  <TableCell className="px-2"><Badge variant="outline" className="text-[9px]">{(p as any).rate_currency || "RUB"}</Badge></TableCell>
                   <TableCell className="px-2">{p.health_latency_ms != null ? `${p.health_latency_ms}ms` : "—"}</TableCell>
                   <TableCell className="px-2">{p.services_count}</TableCell>
                   <TableCell className="px-2 whitespace-nowrap">{formatDate(p.last_health_check)}</TableCell>
