@@ -280,6 +280,8 @@ const AdminPromocodes = () => {
         )}
       </div>
 
+      <TablePagination {...pagination} />
+
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
