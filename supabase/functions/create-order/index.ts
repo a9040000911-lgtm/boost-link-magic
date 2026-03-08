@@ -298,10 +298,15 @@ serve(async (req) => {
 
         if (data.order) {
           attempts.push({ provider: ps.provider, provider_service_id: ps.provider_service_id, success: true, order_id: String(data.order), latency_ms: latency });
+          // Calculate real cost price based on provider rate
+          const providerRatePer1000 = Number(ps.rate);
+          const realCostPrice = Math.round((providerRatePer1000 / 1000) * quantity * 100) / 100;
+
           successResult = {
             provider: ps.provider,
             providerOrderId: String(data.order),
             providerServiceId: ps.id,
+            costPrice: realCostPrice,
           };
 
           // === FINANCIAL ALERT: Check if our margin is negative ===
