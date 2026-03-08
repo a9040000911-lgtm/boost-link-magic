@@ -440,134 +440,135 @@ const Catalog = () => {
                 </div>
               )}
 
-              {/* Order Form */}
-              {selectedService && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="rounded-2xl border border-border/60 bg-card p-5 space-y-4"
-                >
-                  {/* Link & Email */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                        Ссылка на ваш контент 👇
-                      </label>
-                      <div className="relative">
-                        <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
-                        <Input
-                          value={link}
-                          onChange={(e) => setLink(e.target.value)}
-                          placeholder="https://instagram.com/..."
-                          className={`pl-10 bg-muted/30 border-2 ${activeNetConfig?.border || 'border-border/40'} focus:ring-0`}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                        Электронная почта
-                      </label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
-                        <Input
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="you@email.com"
-                          className="pl-10 bg-muted/30 border-border/40"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Quantity & Submit */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">Количество</label>
-                        <span className="text-[10px] text-muted-foreground/60">
-                          {selectedService.min_quantity.toLocaleString()} – {selectedService.max_quantity.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex items-center border border-border/60 rounded-xl bg-muted/20 overflow-hidden">
-                        <button
-                          onClick={() => setQuantity(Math.max(selectedService.min_quantity, quantity - 10))}
-                          className="px-4 py-2.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
-                        <input
-                          type="number"
-                          value={quantity}
-                          onChange={(e) => {
-                            const v = parseInt(e.target.value) || selectedService.min_quantity;
-                            setQuantity(Math.min(Math.max(v, selectedService.min_quantity), selectedService.max_quantity));
-                          }}
-                          className="flex-1 text-center bg-transparent text-foreground font-semibold text-lg outline-none py-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                        <button
-                          onClick={() => setQuantity(Math.min(selectedService.max_quantity, quantity + 10))}
-                          className="px-4 py-2.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={handleOrder}
-                      disabled={!link.trim() || !consentOffer || !consentPD || ordering}
-                      className={`w-full sm:w-auto px-8 py-3 rounded-xl ${activeNetConfig?.bg || 'bg-gradient-to-r from-primary to-secondary'} text-white font-bold text-base shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/20'} hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3`}
-                    >
-                      {ordering ? (
-                        <span className="flex items-center gap-2">
-                          <span className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
-                          Оформляем...
-                        </span>
-                      ) : (
-                        <>
-                          <span className="text-lg font-bold">{totalPrice.toFixed(2)} ₽</span>
-                          <span className="border-l border-primary-foreground/30 pl-3">Оформить заказ</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Consents */}
-                  <div className="space-y-2 pt-1">
-                    <label className="flex items-start gap-2 cursor-pointer group" onClick={() => setConsentOffer(!consentOffer)}>
-                      <span className={`mt-0.5 w-4 h-4 rounded shrink-0 flex items-center justify-center border transition-colors ${
-                        consentOffer
-                          ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent`
-                          : 'border-border bg-background'
-                      }`}>
-                        {consentOffer && <Check className="w-3 h-3 text-white" />}
-                      </span>
-                      <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-                        Нажимая кнопку, вы принимаете условия{" "}
-                        <Link to="/page/offer" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Оферты</Link>
-                      </span>
-                    </label>
-                    <label className="flex items-start gap-2 cursor-pointer group" onClick={() => setConsentPD(!consentPD)}>
-                      <span className={`mt-0.5 w-4 h-4 rounded shrink-0 flex items-center justify-center border transition-colors ${
-                        consentPD
-                          ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent`
-                          : 'border-border bg-background'
-                      }`}>
-                        {consentPD && <Check className="w-3 h-3 text-white" />}
-                      </span>
-                      <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-                        Я даю согласие на обработку персональных данных в соответствии с{" "}
-                        <Link to="/page/privacy-policy" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Политикой конфиденциальности</Link>
-                        {" "}и соглашаюсь с{" "}
-                        <Link to="/page/terms" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Правилами сервиса</Link>
-                      </span>
-                    </label>
-                  </div>
-                </motion.div>
-              )}
             </div>
           </div>
+
+          {/* Order Form — full width, centered */}
+          {selectedService && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="max-w-3xl mx-auto rounded-2xl border border-border/60 bg-card p-5 space-y-4 mb-6"
+            >
+              {/* Link & Email */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                    Ссылка на ваш контент 👇
+                  </label>
+                  <div className="relative">
+                    <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+                    <Input
+                      value={link}
+                      onChange={(e) => setLink(e.target.value)}
+                      placeholder="https://instagram.com/..."
+                      className={`pl-10 bg-muted/30 border-2 ${activeNetConfig?.border || 'border-border/40'} focus:ring-0`}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                    Электронная почта
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@email.com"
+                      className="pl-10 bg-muted/30 border-border/40"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Quantity & Submit */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Количество</label>
+                    <span className="text-[10px] text-muted-foreground/60">
+                      {selectedService.min_quantity.toLocaleString()} – {selectedService.max_quantity.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center border border-border/60 rounded-xl bg-muted/20 overflow-hidden">
+                    <button
+                      onClick={() => setQuantity(Math.max(selectedService.min_quantity, quantity - 10))}
+                      className="px-4 py-2.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <input
+                      type="number"
+                      value={quantity}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value) || selectedService.min_quantity;
+                        setQuantity(Math.min(Math.max(v, selectedService.min_quantity), selectedService.max_quantity));
+                      }}
+                      className="flex-1 text-center bg-transparent text-foreground font-semibold text-lg outline-none py-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <button
+                      onClick={() => setQuantity(Math.min(selectedService.max_quantity, quantity + 10))}
+                      className="px-4 py-2.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleOrder}
+                  disabled={!link.trim() || !consentOffer || !consentPD || ordering}
+                  className={`w-full sm:w-auto px-8 py-3 rounded-xl ${activeNetConfig?.bg || 'bg-gradient-to-r from-primary to-secondary'} text-white font-bold text-base shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/20'} hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3`}
+                >
+                  {ordering ? (
+                    <span className="flex items-center gap-2">
+                      <span className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
+                      Оформляем...
+                    </span>
+                  ) : (
+                    <>
+                      <span className="text-lg font-bold">{totalPrice.toFixed(2)} ₽</span>
+                      <span className="border-l border-primary-foreground/30 pl-3">Оформить заказ</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Consents */}
+              <div className="space-y-2 pt-1">
+                <label className="flex items-start gap-2 cursor-pointer group" onClick={() => setConsentOffer(!consentOffer)}>
+                  <span className={`mt-0.5 w-4 h-4 rounded shrink-0 flex items-center justify-center border transition-colors ${
+                    consentOffer
+                      ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent`
+                      : 'border-border bg-background'
+                  }`}>
+                    {consentOffer && <Check className="w-3 h-3 text-white" />}
+                  </span>
+                  <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                    Нажимая кнопку, вы принимаете условия{" "}
+                    <Link to="/page/offer" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Оферты</Link>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 cursor-pointer group" onClick={() => setConsentPD(!consentPD)}>
+                  <span className={`mt-0.5 w-4 h-4 rounded shrink-0 flex items-center justify-center border transition-colors ${
+                    consentPD
+                      ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent`
+                      : 'border-border bg-background'
+                  }`}>
+                    {consentPD && <Check className="w-3 h-3 text-white" />}
+                  </span>
+                  <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                    Я даю согласие на обработку персональных данных в соответствии с{" "}
+                    <Link to="/page/privacy-policy" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Политикой конфиденциальности</Link>
+                    {" "}и соглашаюсь с{" "}
+                    <Link to="/page/terms" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Правилами сервиса</Link>
+                  </span>
+                </label>
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
 
