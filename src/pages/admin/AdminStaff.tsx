@@ -131,7 +131,7 @@ const AdminStaff = () => {
       if (roleErr) throw roleErr;
 
       // Grant permissions
-      if (addPermissions.length > 0 && addRole === "moderator") {
+      if (addPermissions.length > 0 && (addRole === "moderator" || addRole === "investor")) {
         const permsToInsert = addPermissions.map((p) => ({
           user_id: newUserId,
           permission: p,
