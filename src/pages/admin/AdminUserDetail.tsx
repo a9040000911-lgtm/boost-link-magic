@@ -47,6 +47,7 @@ const AdminUserDetail = () => {
   // Inline edit fields
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
+  const [editDiscount, setEditDiscount] = useState("0");
   const [editEmail, setEditEmail] = useState("");
   const [editPassword, setEditPassword] = useState("");
   const [balanceAmount, setBalanceAmount] = useState("");
@@ -75,6 +76,7 @@ const AdminUserDetail = () => {
     if (profileRes.data) {
       setEditName(profileRes.data.display_name || "");
       setEditBio(profileRes.data.bio || "");
+      setEditDiscount(String(profileRes.data.discount ?? 0));
     }
     setLoading(false);
   };
@@ -98,7 +100,7 @@ const AdminUserDetail = () => {
     setSaving(true);
     try {
       const { error } = await supabase.from("profiles").update({
-        display_name: editName, bio: editBio, updated_at: new Date().toISOString(),
+        display_name: editName, bio: editBio, discount: parseFloat(editDiscount) || 0, updated_at: new Date().toISOString(),
       }).eq("id", userId);
       if (error) throw error;
       await logAuditAction("update_user_profile", "user", userId, { display_name: editName });
@@ -307,6 +309,10 @@ const AdminUserDetail = () => {
                     <KeyRound className="h-3 w-3" />
                   </Button>
                 </div>
+              </div>
+              <div>
+                <Label className="text-[11px] text-muted-foreground">Скидка клиента (%)</Label>
+                <Input type="number" value={editDiscount} onChange={e => setEditDiscount(e.target.value)} placeholder="0" className="text-xs h-8 w-[100px]" min="0" max="100" />
               </div>
               <div>
                 <Label className="text-[11px] text-muted-foreground">Описание</Label>

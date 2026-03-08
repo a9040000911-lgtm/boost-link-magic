@@ -112,6 +112,32 @@ serve(async (req) => {
         return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
+      case "list_users_auth": {
+        const { user_ids } = params;
+        if (!user_ids || !Array.isArray(user_ids)) {
+          return new Response(JSON.stringify({ error: "user_ids array required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        const result: Record<string, any> = {};
+        // Fetch in parallel batches of 20
+        const batchSize = 20;
+        for (let i = 0; i < user_ids.length; i += batchSize) {
+          const batch = user_ids.slice(i, i + batchSize);
+          const promises = batch.map((uid: string) => adminClient.auth.admin.getUserById(uid));
+          const results = await Promise.all(promises);
+          for (const r of results) {
+            if (r.data?.user) {
+              const u = r.data.user;
+              result[u.id] = {
+                email: u.email,
+                last_sign_in: u.last_sign_in_at,
+                banned: u.banned_until != null,
+              };
+            }
+          }
+        }
+        return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Unknown action" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
