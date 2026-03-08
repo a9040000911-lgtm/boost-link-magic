@@ -73,6 +73,7 @@ const App = () => (
             <Route path="staff" element={<AdminStaff />} />
             <Route path="providers" element={<AdminProviders />} />
           </Route>
+          <Route path="/page/:slug" element={<DynamicPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <CookieConsent />
