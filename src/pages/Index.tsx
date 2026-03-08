@@ -95,7 +95,7 @@ const Index = () => {
             whileHover={{ scale: 1.05 }}
           >
             <Sparkles className="w-4 h-4" />
-            SMM Panel
+            CoolLike
           </motion.span>
         </motion.div>
 

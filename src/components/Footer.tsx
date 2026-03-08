@@ -25,7 +25,7 @@ const Footer = () => {
         {/* Top row */}
         <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-8">
           <div>
-            <p className="text-sm font-semibold text-background">SMM Panel</p>
+            <p className="text-sm font-semibold text-background">CoolLike</p>
             <p className="text-xs text-background/60 mt-1">Продвижение в социальных сетях</p>
             <div className="flex items-center gap-3 mt-3">
               {socials.map((s) => (
@@ -60,7 +60,7 @@ const Footer = () => {
         {/* Bottom */}
         <div className="border-t border-background/10 pt-4">
           <p className="text-xs text-background/40 text-center">
-            © {new Date().getFullYear()} SMM Panel. Все права защищены.
+            © {new Date().getFullYear()} CoolLike. Все права защищены.
           </p>
         </div>
       </div>

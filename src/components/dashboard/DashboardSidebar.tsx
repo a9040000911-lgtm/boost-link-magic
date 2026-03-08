@@ -52,7 +52,7 @@ export function DashboardSidebar() {
         <SidebarGroup>
           {!collapsed && (
             <SidebarGroupLabel className="gradient-text font-bold text-lg px-4 py-3">
-              SMM Panel
+              CoolLike
             </SidebarGroupLabel>
           )}
           <SidebarGroupContent>
