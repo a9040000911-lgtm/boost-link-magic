@@ -155,6 +155,14 @@ serve(async (req) => {
       return json({ error: 'Invalid price calculation' }, 400);
     }
 
+    // === CHECK PLAN ORDER AMOUNT LIMIT ===
+    if (limits.maxOrderAmount > 0 && totalPrice > limits.maxOrderAmount) {
+      return json({
+        error: `Максимальная сумма заказа для плана ${currentPlan}: ${limits.maxOrderAmount}₽. Ваш заказ: ${totalPrice}₽.`,
+        plan_limit: true,
+      }, 403);
+    }
+
     // === ATOMIC BALANCE DEDUCTION (prevents race condition / double-spend) ===
     const { data: newBalance, error: balErr } = await adminClient.rpc('deduct_balance', {
       p_user_id: userId,
