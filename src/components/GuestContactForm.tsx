@@ -103,6 +103,12 @@ export default function GuestContactForm({ workHours }: { workHours?: string }) 
             <Send className="h-4 w-4 mr-2" />
             {sending ? "Отправка…" : "Отправить"}
           </Button>
+          {workHours && (
+            <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5 mt-2">
+              <Clock className="h-3 w-3" />
+              Часы работы поддержки: {workHours}
+            </p>
+          )}
         </form>
       </CardContent>
     </Card>
