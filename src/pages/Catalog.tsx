@@ -23,15 +23,15 @@ interface CatalogService {
   network: string;
 }
 
-const networkConfig: { key: string; label: string; icon: string }[] = [
-  { key: "Instagram", label: "Instagram", icon: "instagram" },
-  { key: "YouTube", label: "YouTube", icon: "youtube" },
-  { key: "TikTok", label: "TikTok", icon: "tiktok" },
-  { key: "Telegram", label: "Telegram", icon: "telegram" },
-  { key: "VK", label: "ВКонтакте", icon: "vk" },
-  { key: "Twitter", label: "Twitter", icon: "twitter" },
-  { key: "Facebook", label: "Facebook", icon: "facebook" },
-  { key: "Spotify", label: "Spotify", icon: "spotify" },
+const networkConfig: { key: string; label: string; icon: string; color: string; bg: string; border: string; shadow: string }[] = [
+  { key: "Instagram", label: "Instagram", icon: "instagram", color: "text-pink-500", bg: "bg-gradient-to-r from-pink-500 to-purple-500", border: "border-pink-400", shadow: "shadow-pink-500/25" },
+  { key: "YouTube", label: "YouTube", icon: "youtube", color: "text-red-500", bg: "bg-red-500", border: "border-red-400", shadow: "shadow-red-500/25" },
+  { key: "TikTok", label: "TikTok", icon: "tiktok", color: "text-foreground", bg: "bg-foreground", border: "border-foreground/60", shadow: "shadow-foreground/20" },
+  { key: "Telegram", label: "Telegram", icon: "telegram", color: "text-sky-500", bg: "bg-sky-500", border: "border-sky-400", shadow: "shadow-sky-500/25" },
+  { key: "VK", label: "ВКонтакте", icon: "vk", color: "text-blue-500", bg: "bg-blue-500", border: "border-blue-400", shadow: "shadow-blue-500/25" },
+  { key: "Twitter", label: "Twitter", icon: "twitter", color: "text-sky-400", bg: "bg-sky-400", border: "border-sky-300", shadow: "shadow-sky-400/25" },
+  { key: "Facebook", label: "Facebook", icon: "facebook", color: "text-blue-600", bg: "bg-blue-600", border: "border-blue-500", shadow: "shadow-blue-600/25" },
+  { key: "Spotify", label: "Spotify", icon: "spotify", color: "text-green-500", bg: "bg-green-500", border: "border-green-400", shadow: "shadow-green-500/25" },
 ];
 
 const Catalog = () => {
