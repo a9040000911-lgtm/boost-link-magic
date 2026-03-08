@@ -65,10 +65,6 @@ const Index = () => {
           isActive ? 'pt-6 pb-6' : 'pt-24 pb-32 hero-gradient'
         }`}
       >
-        {/* Smooth fade from hero gradient to white */}
-        {!isActive && (
-          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent to-background pointer-events-none z-20" />
-        )}
         {!isActive && (
           <>
             <motion.div
