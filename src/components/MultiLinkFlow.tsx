@@ -181,11 +181,14 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
               exit={{ opacity: 0, x: -50 }}
               transition={{ duration: 0.35 }}
             >
-              <p className="text-sm text-muted-foreground mb-3 text-center">Выберите категорию</p>
+              <p className="text-sm text-muted-foreground mb-3 text-center">
+                {recommendedIds.length > 0 ? 'Рекомендуем для этого типа ссылки' : 'Выберите категорию'}
+              </p>
               <CategoryCards
                 categories={categories}
                 onSelect={handleCategorySelect}
                 selectedId={null}
+                recommendedIds={recommendedIds}
               />
             </motion.div>
           )}
