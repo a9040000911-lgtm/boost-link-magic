@@ -5,13 +5,14 @@ import MultiLinkFlow from '@/components/MultiLinkFlow';
 import type { LinkOrder } from '@/components/MultiLinkFlow';
 import MarketingSection from '@/components/MarketingSection';
 import { detectPlatform } from '@/lib/smm-data';
-import { Sparkles, Check, ExternalLink } from 'lucide-react';
+import { Sparkles, Check, ExternalLink, Mail } from 'lucide-react';
 
 const Index = () => {
   const [urls, setUrls] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [completedOrders, setCompletedOrders] = useState<LinkOrder[] | null>(null);
+  const [email, setEmail] = useState('');
 
   const handleSubmit = (inputUrls: string[]) => {
     setIsLoading(true);
