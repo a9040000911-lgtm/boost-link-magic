@@ -115,6 +115,12 @@ const AdminServices = () => {
   const [mappingProviderFilter, setMappingProviderFilter] = useState("all");
   const [mappingSearch, setMappingSearch] = useState("");
 
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkMarkup, setBulkMarkup] = useState("");
+  const [showBulkBar, setShowBulkBar] = useState(false);
+  const [markupLadder, setMarkupLadder] = useState<MarkupTier[]>(DEFAULT_MARKUP_LADDER);
+
   useEffect(() => {
     if (!user) return;
     loadAll();
