@@ -380,7 +380,7 @@ const Catalog = () => {
                           value={link}
                           onChange={(e) => setLink(e.target.value)}
                           placeholder="https://instagram.com/..."
-                          className="pl-10 bg-muted/30 border-border/40"
+                          className={`pl-10 bg-muted/30 border-2 ${activeNetConfig?.border || 'border-border/40'} focus:ring-0`}
                         />
                       </div>
                     </div>
@@ -438,7 +438,7 @@ const Catalog = () => {
                     <button
                       onClick={handleOrder}
                       disabled={!link.trim() || !consentOffer || !consentPD}
-                      className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-primary-foreground font-bold text-base shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                      className={`w-full sm:w-auto px-8 py-3 rounded-xl ${activeNetConfig?.bg || 'bg-gradient-to-r from-primary to-secondary'} text-white font-bold text-base shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/20'} hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3`}
                     >
                       <span className="text-lg font-bold">{totalPrice.toFixed(2)} ₽</span>
                       <span className="border-l border-primary-foreground/30 pl-3">Оформить заказ</span>
