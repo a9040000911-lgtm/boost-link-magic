@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import Privacy from "./pages/Privacy";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import AdminLayout from "./pages/AdminLayout";
 import DashboardOverview from "./pages/dashboard/DashboardOverview";
 import DashboardOrders from "./pages/dashboard/DashboardOrders";
 import DashboardProjects from "./pages/dashboard/DashboardProjects";
@@ -36,7 +37,10 @@ const App = () => (
             <Route path="projects" element={<DashboardProjects />} />
             <Route path="projects/:projectId" element={<DashboardProjectDetail />} />
             <Route path="settings" element={<DashboardSettings />} />
-            <Route path="admin/services" element={<AdminServices />} />
+          </Route>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminServices />} />
+            <Route path="services" element={<AdminServices />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
