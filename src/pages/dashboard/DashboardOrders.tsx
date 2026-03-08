@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, MessageSquare, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Filter, MessageSquare, ExternalLink, ChevronDown, ChevronUp, Copy, Check as CheckIcon } from "lucide-react";
+import { toast } from "sonner";
 
 interface Order {
   id: string;
@@ -174,8 +175,20 @@ const DashboardOrders = () => {
                     className="align-top border-b cursor-pointer hover:bg-muted/30 transition-colors"
                     onClick={() => setExpandedId(isExpanded ? null : order.id)}
                   >
-                    <TableCell className="px-3 py-3 font-mono text-xs text-muted-foreground">
-                      #{order.order_number || "—"}
+                    <TableCell className="px-3 py-3">
+                      <button
+                        className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 group"
+                        title="Копировать номер заказа"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const num = String(order.order_number || order.id.slice(0, 8));
+                          navigator.clipboard.writeText(num);
+                          toast.success(`Номер #${num} скопирован`);
+                        }}
+                      >
+                        #{order.order_number || "—"}
+                        <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </button>
                     </TableCell>
                     <TableCell className="px-3 py-3">
                       <div className="space-y-0.5 text-sm">
