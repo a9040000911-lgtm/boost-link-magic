@@ -60,13 +60,11 @@ interface Mapping {
 
 const AdminServices = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [providerServices, setProviderServices] = useState<ProviderService[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [mappings, setMappings] = useState<Mapping[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [search, setSearch] = useState("");
   const [networkFilter, setNetworkFilter] = useState("all");
   const [providerFilter, setProviderFilter] = useState("all");
