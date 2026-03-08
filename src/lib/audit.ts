@@ -90,6 +90,7 @@ export const TAB_PERMISSIONS: Record<string, string | null> = {
   "/admin/docs": null,
   "/admin/analytics": "view_finances",
   "/admin/licenses": null,
+  "/admin/api": null,
 };
 
 export type StaffRole = "admin" | "ceo" | "moderator" | "investor";
