@@ -28,7 +28,7 @@ const DashboardSettings = () => {
   const handleSaveProfile = async () => {
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase.from("profiles").update({ display_name: displayName, updated_at: new Date().toISOString() }).eq("id", user.id);
+    const { error } = await supabase.rpc("update_own_profile" as any, { p_display_name: displayName });
     if (error) toast.error("Ошибка сохранения");
     else toast.success("Профиль обновлён");
     setSaving(false);
