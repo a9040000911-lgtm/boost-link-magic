@@ -855,7 +855,7 @@ const Catalog = () => {
                   </div>
                 </div>
                 <span className={`text-sm font-bold ${activeNetConfig?.color || 'text-primary'}`}>
-                  {(selectedService.price / 1000).toFixed(2)} ₽/шт
+                  {fmtPrice(selectedService.price / 1000)} ₽/шт
                 </span>
               </div>
 
