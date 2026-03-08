@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Shield, UserPlus, Trash2, RefreshCw, Search, History, Settings2, X, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
-import { logAuditAction, PERMISSIONS, PERMISSION_LABELS } from "@/lib/audit";
+import { logAuditAction, PERMISSIONS, PERMISSION_LABELS, ROLE_LABELS, ROLE_DESCRIPTIONS, type StaffRole } from "@/lib/audit";
 
 interface StaffMember {
   user_id: string;
