@@ -420,7 +420,7 @@ const SiteWidgets = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 };
 
