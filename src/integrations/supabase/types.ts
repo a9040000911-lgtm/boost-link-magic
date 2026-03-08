@@ -127,6 +127,66 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_services: {
+        Row: {
+          can_cancel: boolean
+          can_refill: boolean
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_enabled: boolean
+          markup_percent: number | null
+          max_quantity: number
+          min_quantity: number
+          name: string
+          network: string
+          our_price: number | null
+          provider_service_id: number
+          rate: number
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          can_cancel?: boolean
+          can_refill?: boolean
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          markup_percent?: number | null
+          max_quantity?: number
+          min_quantity?: number
+          name: string
+          network: string
+          our_price?: number | null
+          provider_service_id: number
+          rate?: number
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          can_cancel?: boolean
+          can_refill?: boolean
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          markup_percent?: number | null
+          max_quantity?: number
+          min_quantity?: number
+          name?: string
+          network?: string
+          our_price?: number | null
+          provider_service_id?: number
+          rate?: number
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
@@ -171,15 +231,39 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -306,6 +390,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const

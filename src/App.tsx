@@ -14,6 +14,7 @@ import DashboardProjects from "./pages/dashboard/DashboardProjects";
 import DashboardSettings from "./pages/dashboard/DashboardSettings";
 import DashboardProjectDetail from "./pages/dashboard/DashboardProjectDetail";
 import DashboardTransactions from "./pages/dashboard/DashboardTransactions";
+import AdminServices from "./pages/admin/AdminServices";
 import CookieConsent from "./components/CookieConsent";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="projects" element={<DashboardProjects />} />
             <Route path="projects/:projectId" element={<DashboardProjectDetail />} />
             <Route path="settings" element={<DashboardSettings />} />
+            <Route path="admin/services" element={<AdminServices />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
