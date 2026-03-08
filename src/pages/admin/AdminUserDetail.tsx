@@ -76,6 +76,7 @@ const AdminUserDetail = () => {
     if (profileRes.data) {
       setEditName(profileRes.data.display_name || "");
       setEditBio(profileRes.data.bio || "");
+      setEditDiscount(String(profileRes.data.discount ?? 0));
     }
     setLoading(false);
   };
