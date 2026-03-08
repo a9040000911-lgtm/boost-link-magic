@@ -66,6 +66,8 @@ const App = () => (
             <Route path="promocodes" element={<AdminPromocodes />} />
             <Route path="settings" element={<AdminSettingsPage />} />
             <Route path="pages" element={<AdminPages />} />
+            <Route path="faq" element={<AdminFAQ />} />
+            <Route path="widgets" element={<AdminWidgets />} />
             <Route path="support" element={<AdminSupport />} />
             <Route path="staff" element={<AdminStaff />} />
             <Route path="providers" element={<AdminProviders />} />
@@ -73,6 +75,7 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
         <CookieConsent />
+        <SiteWidgets />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
