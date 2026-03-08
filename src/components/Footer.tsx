@@ -31,9 +31,14 @@ const Footer = () => {
           ))}
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          © {new Date().getFullYear()} SMM Panel. Все права защищены.
-        </p>
+        <div className="flex flex-col items-center md:items-end gap-1">
+          <Link to="/privacy" className="text-xs text-muted-foreground hover:text-foreground transition-colors underline">
+            Политика конфиденциальности
+          </Link>
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} SMM Panel. Все права защищены.
+          </p>
+        </div>
       </div>
     </footer>
   );
