@@ -759,6 +759,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "orders_provider_service_id_fkey"
+            columns: ["provider_service_id"]
+            isOneToOne: false
+            referencedRelation: "provider_services_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orders_service_id_fkey"
             columns: ["service_id"]
             isOneToOne: false
@@ -1278,6 +1285,13 @@ export type Database = {
             columns: ["provider_service_id"]
             isOneToOne: false
             referencedRelation: "provider_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_provider_mappings_provider_service_id_fkey"
+            columns: ["provider_service_id"]
+            isOneToOne: false
+            referencedRelation: "provider_services_public"
             referencedColumns: ["id"]
           },
           {
@@ -1810,7 +1824,60 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      provider_services_public: {
+        Row: {
+          can_cancel: boolean | null
+          can_refill: boolean | null
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          is_enabled: boolean | null
+          max_quantity: number | null
+          min_quantity: number | null
+          name: string | null
+          network: string | null
+          provider: string | null
+          provider_service_id: number | null
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          can_cancel?: boolean | null
+          can_refill?: boolean | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          is_enabled?: boolean | null
+          max_quantity?: number | null
+          min_quantity?: number | null
+          name?: string | null
+          network?: string | null
+          provider?: string | null
+          provider_service_id?: number | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          can_cancel?: boolean | null
+          can_refill?: boolean | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          is_enabled?: boolean | null
+          max_quantity?: number | null
+          min_quantity?: number | null
+          name?: string | null
+          network?: string | null
+          provider?: string | null
+          provider_service_id?: number | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       cleanup_expired_2fa_codes: { Args: never; Returns: undefined }
