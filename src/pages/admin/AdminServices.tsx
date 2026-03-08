@@ -735,7 +735,7 @@ const AdminServices = () => {
                       Сбросить
                     </Button>
                     <span className="text-[9px] text-muted-foreground ml-auto">
-                      Лестница: {markupLadder.map(t => `≤${t.maxRate === Infinity ? '∞' : t.maxRate}₽→${t.markup}%`).join(', ')}
+                      Мин. наценка: {minMarkup}% · Лестница: {markupLadder.map(t => `≤${t.maxRate === Infinity ? '∞' : t.maxRate}₽→${t.markup}%`).join(', ')}
                     </span>
                   </div>
                 )}
