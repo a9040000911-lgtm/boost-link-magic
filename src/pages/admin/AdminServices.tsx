@@ -81,6 +81,8 @@ interface Mapping {
   is_active: boolean;
 }
 
+const MIN_MARKUP_DEFAULT = 200;
+
 const AdminServices = () => {
   const { user } = useAuth();
   const [providerServices, setProviderServices] = useState<ProviderService[]>([]);
@@ -95,6 +97,7 @@ const AdminServices = () => {
   const [providerFilter, setProviderFilter] = useState("all");
   const [enabledFilter, setEnabledFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("catalog");
+  const [minMarkup, setMinMarkup] = useState(MIN_MARKUP_DEFAULT);
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
