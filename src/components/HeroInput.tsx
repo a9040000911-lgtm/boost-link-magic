@@ -33,6 +33,12 @@ const HeroInput = ({ onSubmit, isLoading }: HeroInputProps) => {
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              if (lineCount > 0 && !isLoading) handleSubmit(e);
+            }
+          }}
           placeholder={"Вставьте одну или несколько ссылок...\nКаждая ссылка с новой строки или через запятую"}
           rows={3}
           className="w-full bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-base mb-3 resize-none"
