@@ -170,8 +170,15 @@ const TariffExplainer = ({ onClose, netConfig }: { onClose: () => void; netConfi
     </div>
   </motion.div>
 );
+/* Smart price formatter — shows enough decimals so the value isn't "0.00" */
+const fmtPrice = (perUnit: number) => {
+  if (perUnit === 0) return "0.00";
+  if (perUnit >= 0.01) return perUnit.toFixed(2);
+  if (perUnit >= 0.001) return perUnit.toFixed(3);
+  return perUnit.toFixed(4);
+};
 
-const Catalog = () => {
+
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
