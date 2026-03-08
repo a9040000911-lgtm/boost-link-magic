@@ -206,11 +206,11 @@ const Index = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="text-xl font-bold text-foreground mb-1 relative z-10"
+                    className="text-lg font-bold text-foreground mb-0.5 relative z-10"
                   >
                     🎉 Заказ сформирован!
                   </motion.h2>
-                  <p className="text-sm text-muted-foreground mb-4 relative z-10">
+                  <p className="text-xs text-muted-foreground mb-2 relative z-10">
                     {completedOrders.length} {completedOrders.length === 1 ? 'ссылка' : 'ссылок'} настроено
                   </p>
 
