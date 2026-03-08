@@ -65,6 +65,7 @@ const menuGroups: MenuGroup[] = [
     label: "Коммуникации",
     items: [
       { title: "Поддержка", url: "/admin/support", icon: MessageSquare },
+      { title: "Вопросы гостей", url: "/admin/inquiries", icon: HelpCircle },
       { title: "Telegram-боты", url: "/admin/bots", icon: Bot },
     ],
   },

@@ -89,6 +89,7 @@ const App = () => (
               <Route path="docs" element={<AdminDocs />} />
               <Route path="licenses" element={<AdminLicenses />} />
               <Route path="bots" element={<AdminBots />} />
+              <Route path="inquiries" element={<AdminInquiries />} />
             </Route>
             <Route path="/page/:slug" element={<DynamicPage />} />
             <Route path="*" element={<NotFound />} />
