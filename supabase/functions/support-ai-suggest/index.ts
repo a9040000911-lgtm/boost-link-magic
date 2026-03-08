@@ -1,4 +1,4 @@
-// support-ai-suggest v2 — multi-provider with key rotation
+// support-ai-suggest v3 — universal multi-provider with key rotation
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -9,30 +9,32 @@ const corsHeaders = {
 const json = (body: object, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-// ===== Multi-provider AI call =====
-interface AICallParams {
-  provider: string;
-  model: string;
-  systemPrompt: string;
-  userPrompt: string;
-  endpoint?: string;
-  apiKeyEnv?: string;
-  supabase?: any;
-}
+// ===== Provider endpoint mapping =====
+const PROVIDER_ENDPOINTS: Record<string, string> = {
+  gemini: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+  openai: "https://api.openai.com/v1/chat/completions",
+  deepseek: "https://api.deepseek.com/v1/chat/completions",
+  qwen: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+  glm: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+  kimi: "https://api.moonshot.cn/v1/chat/completions",
+  lovable: "https://ai.gateway.lovable.dev/v1/chat/completions",
+};
 
-/** Pick the least-used enabled Gemini key from ai_api_keys table */
-async function getRotatedKey(supabase: any): Promise<{ id: string; api_key: string } | null> {
-/** Pick the least-used enabled Gemini key from ai_api_keys table */
-async function getRotatedKey(supabase: any): Promise<{ id: string; api_key: string; model: string } | null> {
-  const { data } = await supabase
+/** Pick the least-used enabled key from ai_api_keys table, optionally filtered by provider */
+async function getRotatedKey(supabase: any, provider?: string): Promise<{ id: string; api_key: string; model: string; provider: string } | null> {
+  let query = supabase
     .from("ai_api_keys")
-    .select("id, api_key, model")
-    .eq("provider", "gemini")
+    .select("id, api_key, model, provider")
     .eq("is_enabled", true)
     .order("usage_count", { ascending: true })
     .order("last_used_at", { ascending: true, nullsFirst: true })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+
+  if (provider && provider !== "any") {
+    query = query.eq("provider", provider);
+  }
+
+  const { data } = await query.maybeSingle();
   return data;
 }
 
@@ -41,14 +43,11 @@ async function markKeyUsed(supabase: any, keyId: string, error?: string) {
   if (error) {
     await supabase
       .from("ai_api_keys")
-      .update({ error_count: supabase.rpc ? undefined : 0, last_error: error, last_used_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .update({ last_error: error, last_used_at: new Date().toISOString(), updated_at: new Date().toISOString() })
       .eq("id", keyId);
-    // increment error_count via raw update
     await supabase.rpc("increment_ai_key_error", { key_id: keyId }).catch(() => {});
   }
-  // Always increment usage_count
   await supabase.rpc("increment_ai_key_usage", { key_id: keyId }).catch(() => {
-    // Fallback if RPC doesn't exist yet
     supabase
       .from("ai_api_keys")
       .update({ last_used_at: new Date().toISOString(), updated_at: new Date().toISOString() })
@@ -56,93 +55,116 @@ async function markKeyUsed(supabase: any, keyId: string, error?: string) {
   });
 }
 
-async function callAI({ provider, model, systemPrompt, userPrompt, endpoint, apiKeyEnv, supabase: sb }: AICallParams): Promise<{ content: string; model: string }> {
-  let url: string;
-  let apiKey: string;
-  let actualModel = model;
-  let rotatedKeyId: string | null = null;
+/** Build request for Claude (Anthropic Messages API) */
+function buildClaudeRequest(model: string, systemPrompt: string, userPrompt: string) {
+  return {
+    url: "https://api.anthropic.com/v1/messages",
+    headers: (apiKey: string) => ({
+      "x-api-key": apiKey,
+      "Content-Type": "application/json",
+      "anthropic-version": "2023-06-01",
+    }),
+    body: {
+      model,
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userPrompt }],
+    },
+    parseResponse: (data: any) => data.content?.[0]?.text || "",
+  };
+}
 
-  switch (provider) {
-    case "lovable":
-    default:
-      url = "https://ai.gateway.lovable.dev/v1/chat/completions";
-      apiKey = Deno.env.get("LOVABLE_API_KEY") || "";
-      actualModel = model || "google/gemini-3-flash-preview";
-      break;
-
-    case "gemini": {
-      url = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
-      actualModel = model || "gemini-2.5-flash";
-      // Rotate keys + models from DB
-      if (sb) {
-        const rotated = await getRotatedKey(sb);
-        if (rotated) {
-          apiKey = rotated.api_key;
-          rotatedKeyId = rotated.id;
-          if (rotated.model) actualModel = rotated.model;
-        } else {
-          apiKey = Deno.env.get(apiKeyEnv || "GEMINI_API_KEY") || "";
-        }
-      } else {
-        apiKey = Deno.env.get(apiKeyEnv || "GEMINI_API_KEY") || "";
-      }
-      break;
-    }
-
-    case "openclaw":
-      url = endpoint || "https://api.openclaw.com/v1/chat/completions";
-      apiKey = Deno.env.get(apiKeyEnv || "OPENCLAW_API_KEY") || "";
-      actualModel = model || "default";
-      break;
-
-    case "custom":
-      url = endpoint || "";
-      apiKey = Deno.env.get(apiKeyEnv || "CUSTOM_AI_API_KEY") || "";
-      actualModel = model || "default";
-      break;
-  }
-
-  if (!url) throw new Error(`AI endpoint not configured for provider: ${provider}`);
-  if (!apiKey) throw new Error(`API key not configured for provider: ${provider}. ${provider === "gemini" ? "Добавьте ключи в разделе API & Интеграции" : `Set secret: ${apiKeyEnv || "LOVABLE_API_KEY"}`}`);
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
+/** Build request for OpenAI-compatible APIs */
+function buildOpenAIRequest(url: string, model: string, systemPrompt: string, userPrompt: string) {
+  return {
+    url,
+    headers: (apiKey: string) => ({
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: actualModel,
+    }),
+    body: {
+      model,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-    }),
+    },
+    parseResponse: (data: any) => data.choices?.[0]?.message?.content || "",
+  };
+}
+
+interface AICallParams {
+  systemPrompt: string;
+  userPrompt: string;
+  supabase: any;
+  preferredProvider?: string;
+}
+
+async function callAI({ systemPrompt, userPrompt, supabase: sb, preferredProvider }: AICallParams): Promise<{ content: string; model: string; provider: string }> {
+  // Try to get a rotated key from DB
+  const rotated = await getRotatedKey(sb, preferredProvider);
+
+  let provider: string;
+  let model: string;
+  let apiKey: string;
+  let rotatedKeyId: string | null = null;
+
+  if (rotated) {
+    provider = rotated.provider;
+    model = rotated.model;
+    apiKey = rotated.api_key;
+    rotatedKeyId = rotated.id;
+  } else {
+    // Fallback to Lovable AI
+    provider = "lovable";
+    model = "google/gemini-3-flash-preview";
+    apiKey = Deno.env.get("LOVABLE_API_KEY") || "";
+    if (!apiKey) throw new Error("Нет доступных AI ключей. Добавьте ключи в разделе API & Интеграции.");
+  }
+
+  // Build request based on provider
+  let req: ReturnType<typeof buildOpenAIRequest>;
+
+  if (provider === "claude") {
+    req = buildClaudeRequest(model, systemPrompt, userPrompt);
+  } else {
+    // Load custom endpoint from settings if needed
+    let endpoint = PROVIDER_ENDPOINTS[provider];
+    if (!endpoint) {
+      // Check app_settings for custom endpoint
+      const { data: customEp } = await sb
+        .from("app_settings")
+        .select("value")
+        .eq("key", `ai_endpoint_${provider}`)
+        .maybeSingle();
+      endpoint = customEp?.value || PROVIDER_ENDPOINTS.openai; // default to openai-compatible
+    }
+    req = buildOpenAIRequest(endpoint, model, systemPrompt, userPrompt);
+  }
+
+  const response = await fetch(req.url, {
+    method: "POST",
+    headers: req.headers(apiKey),
+    body: JSON.stringify(req.body),
   });
 
   if (!response.ok) {
-    // Mark key error if rotated
-    if (rotatedKeyId && sb) {
-      await markKeyUsed(sb, rotatedKeyId, `HTTP ${response.status}`);
-    }
+    if (rotatedKeyId) await markKeyUsed(sb, rotatedKeyId, `HTTP ${response.status}`);
     if (response.status === 429) throw new Error("RATE_LIMIT");
     if (response.status === 402) throw new Error("PAYMENT_REQUIRED");
     const errText = await response.text();
-    console.error(`AI provider ${provider} error:`, response.status, errText);
+    console.error(`AI ${provider}/${model} error:`, response.status, errText);
     throw new Error(`AI provider error (${response.status})`);
   }
 
-  // Mark key success
-  if (rotatedKeyId && sb) {
-    await markKeyUsed(sb, rotatedKeyId);
-  }
+  if (rotatedKeyId) await markKeyUsed(sb, rotatedKeyId);
 
   const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "";
-  return { content, model: actualModel };
+  const content = req.parseResponse(data);
+  return { content, model, provider };
 }
 
-// ===== Load enrichment context (FAQ + templates) =====
+// ===== Load enrichment context =====
 async function loadContext(supabase: any, useFaq: boolean, useTemplates: boolean): Promise<string> {
   const parts: string[] = [];
 
@@ -186,30 +208,124 @@ Deno.serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const body = await req.json();
-    const { messages, ticket_subject, channel, mode: requestMode } = body;
+    const { messages, ticket_subject, channel, mode: requestMode, action } = body;
 
-    // For "internal" calls from telegram bot — skip auth, require internal_secret
     const isInternalCall = body._internal === true;
-
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    if (!isInternalCall) {
-      // Authenticate caller — must be admin or moderator
-      const authHeader = req.headers.get('Authorization');
-      if (!authHeader?.startsWith('Bearer ')) {
-        return json({ error: 'Unauthorized' }, 401);
+    // === Transcribe voice action ===
+    if (action === "transcribe") {
+      const { audio_url } = body;
+      if (!audio_url) return json({ error: "audio_url required" }, 400);
+
+      if (!isInternalCall) {
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader?.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401);
+        const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { headers: { Authorization: authHeader } } });
+        const { data: { user } } = await callerClient.auth.getUser();
+        if (!user) return json({ error: 'Unauthorized' }, 401);
+        const { data: hasAdmin } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
+        const { data: hasMod } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'moderator' });
+        if (!hasAdmin && !hasMod) return json({ error: 'Forbidden' }, 403);
       }
-      const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        global: { headers: { Authorization: authHeader } },
-      });
+
+      // Download audio
+      const audioResp = await fetch(audio_url);
+      if (!audioResp.ok) return json({ error: "Failed to fetch audio" }, 400);
+      const audioBlob = await audioResp.blob();
+
+      // Try to use a key from DB for transcription
+      const transcribeKey = await getRotatedKey(supabase);
+      
+      let transcript = "";
+
+      if (transcribeKey && transcribeKey.provider === "openai") {
+        // Use OpenAI Whisper
+        const formData = new FormData();
+        formData.append("file", audioBlob, "audio.ogg");
+        formData.append("model", "whisper-1");
+        
+        const whisperResp = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${transcribeKey.api_key}` },
+          body: formData,
+        });
+
+        if (whisperResp.ok) {
+          const result = await whisperResp.json();
+          transcript = result.text || "";
+          await markKeyUsed(supabase, transcribeKey.id);
+        } else {
+          await markKeyUsed(supabase, transcribeKey.id, `Whisper HTTP ${whisperResp.status}`);
+        }
+      }
+      
+      if (!transcript) {
+        // Fallback: use Gemini with audio via base64
+        const geminiKey = await getRotatedKey(supabase, "gemini");
+        if (geminiKey) {
+          const arrayBuf = await audioBlob.arrayBuffer();
+          const uint8 = new Uint8Array(arrayBuf);
+          let binary = "";
+          for (let i = 0; i < uint8.length; i++) {
+            binary += String.fromCharCode(uint8[i]);
+          }
+          const base64Audio = btoa(binary);
+          const mimeType = audioBlob.type || "audio/ogg";
+
+          const geminiResp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${geminiKey.model}:generateContent?key=${geminiKey.api_key}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [
+                    { inlineData: { mimeType, data: base64Audio } },
+                    { text: "Расшифруй это голосовое сообщение. Верни ТОЛЬКО текст расшифровки, без комментариев." }
+                  ]
+                }]
+              }),
+            }
+          );
+
+          if (geminiResp.ok) {
+            const result = await geminiResp.json();
+            transcript = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            await markKeyUsed(supabase, geminiKey.id);
+          } else {
+            await markKeyUsed(supabase, geminiKey.id, `Gemini transcribe HTTP ${geminiResp.status}`);
+          }
+        }
+      }
+
+      if (!transcript) {
+        // Last fallback: Lovable AI
+        const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+        if (lovableKey) {
+          const result = await callAI({
+            systemPrompt: "Пользователь отправил голосовое сообщение. К сожалению, аудио недоступно напрямую. Сообщи что расшифровка невозможна без прямого аудио-ввода.",
+            userPrompt: "Расшифруй голосовое сообщение",
+            supabase,
+          });
+          return json({ transcript: "⚠️ Для расшифровки голосовых добавьте ключ OpenAI (Whisper) или Gemini в разделе API ключей.", provider: "none" });
+        }
+        return json({ error: "Нет доступных ключей для расшифровки. Добавьте ключ OpenAI или Gemini." }, 400);
+      }
+
+      return json({ transcript, provider: transcribeKey?.provider || "gemini" });
+    }
+
+    // === Standard suggest flow ===
+    if (!isInternalCall) {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader?.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401);
+      const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { headers: { Authorization: authHeader } } });
       const { data: { user } } = await callerClient.auth.getUser();
       if (!user) return json({ error: 'Unauthorized' }, 401);
-
       const { data: hasAdmin } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
       const { data: hasMod } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'moderator' });
-      if (!hasAdmin && !hasMod) {
-        return json({ error: 'Forbidden' }, 403);
-      }
+      if (!hasAdmin && !hasMod) return json({ error: 'Forbidden' }, 403);
     }
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -222,8 +338,7 @@ Deno.serve(async (req) => {
       .select("key, value")
       .in("key", [
         "support_ai_enabled", "support_ai_provider", "support_ai_mode",
-        "support_ai_model", "support_ai_system_prompt", "support_ai_auto_confidence",
-        "support_ai_custom_endpoint", "support_ai_custom_key_env",
+        "support_ai_system_prompt", "support_ai_auto_confidence",
         "support_ai_use_faq", "support_ai_use_templates",
       ]);
 
@@ -234,25 +349,21 @@ Deno.serve(async (req) => {
       return json({ error: "AI suggestions are disabled" }, 403);
     }
 
-    const provider = s.support_ai_provider || "lovable";
+    const preferredProvider = s.support_ai_provider || undefined;
     const aiMode = requestMode || s.support_ai_mode || "suggest";
-    const model = s.support_ai_model || "";
     const confidenceThreshold = parseFloat(s.support_ai_auto_confidence || "0.8");
     const useFaq = s.support_ai_use_faq === "true";
     const useTemplates = s.support_ai_use_templates === "true";
 
-    // Load enrichment context
     const contextKB = await loadContext(supabase, useFaq, useTemplates);
 
-    // Build system prompt
     const baseSystemPrompt = s.support_ai_system_prompt ||
       "Ты — помощник оператора поддержки. Предложи 2-3 варианта ответа клиенту.";
 
     const systemPrompt = contextKB
-      ? `${baseSystemPrompt}\n\nИспользуй следующую базу знаний для формулировки ответов:\n\n${contextKB}`
+      ? `${baseSystemPrompt}\n\nИспользуй следующую базу знаний:\n\n${contextKB}`
       : baseSystemPrompt;
 
-    // Build user prompt
     const contextInfo = [
       ticket_subject ? `Тема тикета: ${ticket_subject}` : "",
       channel ? `Канал: ${channel}` : "",
@@ -263,30 +374,22 @@ Deno.serve(async (req) => {
     ).join("\n");
 
     let userPrompt: string;
-
     if (aiMode === "auto") {
-      userPrompt = `${contextInfo ? contextInfo + "\n\n" : ""}История переписки:\n${conversationHistory}\n\nПроанализируй последнее сообщение клиента. Если ты уверен в ответе на ${Math.round(confidenceThreshold * 100)}% и выше — предложи ОДИН лучший ответ и укажи уровень уверенности (0.0-1.0).\n\nФормат ответа:\nУВЕРЕННОСТЬ: [число от 0 до 1]\nОТВЕТ: [текст ответа]`;
+      userPrompt = `${contextInfo ? contextInfo + "\n\n" : ""}История переписки:\n${conversationHistory}\n\nПроанализируй последнее сообщение клиента. Если ты уверен в ответе на ${Math.round(confidenceThreshold * 100)}% и выше — предложи ОДИН лучший ответ и укажи уровень уверенности.\n\nФормат:\nУВЕРЕННОСТЬ: [0.0-1.0]\nОТВЕТ: [текст]`;
     } else {
-      userPrompt = `${contextInfo ? contextInfo + "\n\n" : ""}История переписки:\n${conversationHistory}\n\nПредложи 2-3 варианта ответа оператора. Каждый вариант начинай с новой строки и нумеруй (1. 2. 3.). Варианты должны быть разными по тону: один формальный, один дружелюбный, один лаконичный.`;
+      userPrompt = `${contextInfo ? contextInfo + "\n\n" : ""}История переписки:\n${conversationHistory}\n\nПредложи 2-3 варианта ответа. Нумеруй (1. 2. 3.). Разные по тону: формальный, дружелюбный, лаконичный.`;
     }
 
-    // Call AI provider
     const result = await callAI({
-      provider,
-      model,
       systemPrompt,
       userPrompt,
-      endpoint: s.support_ai_custom_endpoint,
-      apiKeyEnv: s.support_ai_custom_key_env,
       supabase,
+      preferredProvider: preferredProvider === "lovable" ? undefined : preferredProvider,
     });
 
-    // Parse response based on mode
     if (aiMode === "auto") {
-      // Parse confidence and answer
       const confidenceMatch = result.content.match(/УВЕРЕННОСТЬ:\s*([\d.]+)/i);
       const answerMatch = result.content.match(/ОТВЕТ:\s*([\s\S]+)/i);
-
       const confidence = confidenceMatch ? parseFloat(confidenceMatch[1]) : 0;
       const answer = answerMatch ? answerMatch[1].trim() : result.content;
 
@@ -298,11 +401,10 @@ Deno.serve(async (req) => {
         answer,
         raw: result.content,
         model: result.model,
-        provider,
+        provider: result.provider,
       });
     }
 
-    // Suggest mode — parse numbered list
     const suggestions = result.content
       .split(/\n/)
       .map((line: string) => line.replace(/^\d+[\.\)]\s*/, "").trim())
@@ -313,15 +415,13 @@ Deno.serve(async (req) => {
       suggestions,
       raw: result.content,
       model: result.model,
-      provider,
+      provider: result.provider,
     });
   } catch (error) {
     console.error("AI suggest error:", error);
     const msg = error instanceof Error ? error.message : String(error);
-
-    if (msg === "RATE_LIMIT") return json({ error: "Слишком много запросов. Подождите немного." }, 429);
+    if (msg === "RATE_LIMIT") return json({ error: "Слишком много запросов. Подождите." }, 429);
     if (msg === "PAYMENT_REQUIRED") return json({ error: "Недостаточно средств для AI-запросов." }, 402);
-
     return json({ error: msg }, 500);
   }
 });

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { MessageSquare, Send, Search, User, Clock, ChevronLeft, Paperclip, Mail, MessageCircle, AlertTriangle, Ban, ShieldOff, ShieldCheck, Timer, TimerOff, Reply, X, Sparkles, FileText, BookOpen, Loader2 } from "lucide-react";
+import { MessageSquare, Send, Search, User, Clock, ChevronLeft, Paperclip, Mail, MessageCircle, AlertTriangle, Ban, ShieldOff, ShieldCheck, Timer, TimerOff, Reply, X, Sparkles, FileText, BookOpen, Loader2, Mic } from "lucide-react";
 import { ImageViewer } from "@/components/support/ImageViewer";
 import { AudioPlayer } from "@/components/support/AudioPlayer";
 import { VideoPlayer } from "@/components/support/VideoPlayer";
@@ -106,14 +106,27 @@ function getAttachmentCategory(type: string | null | undefined): "image" | "audi
   return "file";
 }
 
-function MessageAttachment({ msg, onImageClick }: { msg: Message; onImageClick: (url: string) => void }) {
+function MessageAttachment({ msg, onImageClick, onTranscribe }: { msg: Message; onImageClick: (url: string) => void; onTranscribe?: (url: string, msgId: string) => void }) {
   if (!msg.attachment_url) return null;
   const category = getAttachmentCategory(msg.attachment_type);
   switch (category) {
     case "image":
       return <div className="mt-1"><img src={msg.attachment_url} alt={msg.attachment_name || "Image"} className="max-w-[220px] max-h-[160px] rounded cursor-pointer hover:opacity-80 transition-opacity object-cover" onClick={() => onImageClick(msg.attachment_url!)} /></div>;
     case "audio":
-      return <div className="mt-1"><AudioPlayer src={msg.attachment_url} name={msg.attachment_name || "Голосовое сообщение"} /></div>;
+      return (
+        <div className="mt-1 space-y-1">
+          <AudioPlayer src={msg.attachment_url} name={msg.attachment_name || "Голосовое сообщение"} />
+          {onTranscribe && (
+            <button
+              onClick={() => onTranscribe(msg.attachment_url!, msg.id)}
+              className="flex items-center gap-1 text-[10px] text-primary hover:underline"
+            >
+              <Mic className="h-2.5 w-2.5" />
+              Расшифровать
+            </button>
+          )}
+        </div>
+      );
     case "video":
       return <div className="mt-1"><VideoPlayer src={msg.attachment_url} name={msg.attachment_name || "Видео"} /></div>;
     default:
@@ -198,6 +211,8 @@ const AdminSupport = () => {
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
+  const [transcriptions, setTranscriptions] = useState<Record<string, string>>({});
+  const [transcribing, setTranscribing] = useState<Set<string>>(new Set());
 
   // Quick-switch tabs
   const MAX_TABS = 7;
@@ -366,6 +381,25 @@ const AdminSupport = () => {
   const applySuggestion = (suggestion: string) => {
     setNewMessage(suggestion);
     setAiSuggestions([]);
+  };
+
+  const transcribeAudio = async (audioUrl: string, msgId: string) => {
+    setTranscribing(prev => new Set(prev).add(msgId));
+    try {
+      const { data, error } = await supabase.functions.invoke("support-ai-suggest", {
+        body: { action: "transcribe", audio_url: audioUrl },
+      });
+      if (error) throw error;
+      if (data?.error) { toast({ title: "Ошибка", description: data.error, variant: "destructive" }); return; }
+      if (data?.transcript) {
+        setTranscriptions(prev => ({ ...prev, [msgId]: data.transcript }));
+        toast({ title: "Расшифровка готова", description: `Провайдер: ${data.provider}` });
+      }
+    } catch (e: any) {
+      toast({ title: "Ошибка расшифровки", description: e.message || "Неизвестная ошибка", variant: "destructive" });
+    } finally {
+      setTranscribing(prev => { const n = new Set(prev); n.delete(msgId); return n; });
+    }
   };
 
   const clientGroups = useMemo((): ClientGroup[] => {
@@ -941,7 +975,18 @@ const AdminSupport = () => {
                           </div>
                         )}
                         {msg.message && <p className="text-xs whitespace-pre-wrap">{msg.message}</p>}
-                        <MessageAttachment msg={msg} onImageClick={setViewerImage} />
+                        <MessageAttachment msg={msg} onImageClick={setViewerImage} onTranscribe={transcribeAudio} />
+                        {transcribing.has(msg.id) && (
+                          <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
+                            <Loader2 className="h-2.5 w-2.5 animate-spin" /> Расшифровка...
+                          </div>
+                        )}
+                        {transcriptions[msg.id] && (
+                          <div className="mt-1 p-1.5 bg-primary/5 rounded text-[11px] border border-primary/10">
+                            <span className="text-[9px] text-muted-foreground font-medium flex items-center gap-1 mb-0.5"><Mic className="h-2.5 w-2.5" /> Расшифровка:</span>
+                            {transcriptions[msg.id]}
+                          </div>
+                        )}
                         <p className={`text-[9px] mt-0.5 ${msg.is_admin ? "text-primary-foreground/60" : "text-muted-foreground"}`}>{formatFullTime(msg.created_at)}</p>
                       </div>
                       {msg.is_admin && (

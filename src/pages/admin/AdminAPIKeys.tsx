@@ -7,19 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, RefreshCw, Eye, EyeOff, Key } from "lucide-react";
+import { Plus, Trash2, RefreshCw, Eye, EyeOff, Key, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-
-const GEMINI_MODELS = [
-  "gemini-2.5-flash",
-  "gemini-2.5-flash-lite",
-  "gemini-2.5-pro",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
-  "gemini-1.5-pro",
-];
 
 interface AIKey {
   id: string;
@@ -40,34 +31,38 @@ export default function AdminAPIKeys() {
   const [loading, setLoading] = useState(true);
   const [newLabel, setNewLabel] = useState("");
   const [newKey, setNewKey] = useState("");
-  const [newModel, setNewModel] = useState("gemini-2.5-flash");
+  const [newModel, setNewModel] = useState("");
+  const [newProvider, setNewProvider] = useState("gemini");
   const [adding, setAdding] = useState(false);
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
+  const [providerFilter, setProviderFilter] = useState("all");
 
   useEffect(() => { loadKeys(); }, []);
 
   async function loadKeys() {
     setLoading(true);
-    const { data } = await supabase
+    let query = supabase
       .from("ai_api_keys" as any)
       .select("*")
-      .eq("provider", "gemini")
+      .order("provider")
       .order("usage_count", { ascending: true });
+    const { data } = await query;
     setKeys((data as any as AIKey[]) || []);
     setLoading(false);
   }
 
   async function addKey() {
     if (!newKey.trim()) { toast.error("Введите API ключ"); return; }
+    if (!newModel.trim()) { toast.error("Введите название модели"); return; }
     setAdding(true);
     const { error } = await supabase.from("ai_api_keys" as any).insert({
-      provider: "gemini",
+      provider: newProvider.trim(),
       label: newLabel.trim() || `Ключ #${keys.length + 1}`,
       api_key: newKey.trim(),
-      model: newModel,
+      model: newModel.trim(),
     } as any);
     if (error) { toast.error(error.message); }
-    else { toast.success("Ключ добавлен"); setNewLabel(""); setNewKey(""); }
+    else { toast.success("Ключ добавлен"); setNewLabel(""); setNewKey(""); setNewModel(""); }
     setAdding(false);
     loadKeys();
   }
@@ -77,8 +72,8 @@ export default function AdminAPIKeys() {
     loadKeys();
   }
 
-  async function updateModel(id: string, model: string) {
-    await supabase.from("ai_api_keys" as any).update({ model } as any).eq("id", id);
+  async function updateField(id: string, field: string, value: string) {
+    await supabase.from("ai_api_keys" as any).update({ [field]: value } as any).eq("id", id);
     loadKeys();
   }
 
@@ -108,6 +103,8 @@ export default function AdminAPIKeys() {
     return key.slice(0, 4) + "•".repeat(Math.min(key.length - 8, 20)) + key.slice(-4);
   }
 
+  const providers = [...new Set(keys.map(k => k.provider))];
+  const filteredKeys = providerFilter === "all" ? keys : keys.filter(k => k.provider === providerFilter);
   const totalUsage = keys.reduce((s, k) => s + k.usage_count, 0);
   const activeCount = keys.filter(k => k.is_enabled).length;
   const uniqueModels = [...new Set(keys.map(k => k.model))];
@@ -118,35 +115,40 @@ export default function AdminAPIKeys() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
             <Key className="h-4 w-4 text-primary" />
-            Gemini API ключи — ротация
+            AI ключи — универсальная ротация
           </CardTitle>
           <CardDescription className="text-xs">
-            {activeCount} активных из {keys.length} · {uniqueModels.length} моделей · {totalUsage} запросов · стратегия: наименее используемый
+            {activeCount} активных из {keys.length} · {providers.length} провайдеров · {uniqueModels.length} моделей · {totalUsage} запросов
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {/* Add key form */}
           <div className="flex gap-2 items-end flex-wrap">
             <div className="space-y-1">
+              <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Провайдер</label>
+              <Input value={newProvider} onChange={e => setNewProvider(e.target.value)} placeholder="gemini / openai / claude" className="w-32 h-8 text-xs" list="providers-list" />
+              <datalist id="providers-list">
+                <option value="gemini" />
+                <option value="openai" />
+                <option value="claude" />
+                <option value="deepseek" />
+                <option value="qwen" />
+                <option value="glm" />
+                <option value="kimi" />
+                <option value="custom" />
+              </datalist>
+            </div>
+            <div className="space-y-1">
               <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Метка</label>
-              <Input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="Проект #1" className="w-32 h-8 text-xs" />
+              <Input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="Проект #1" className="w-28 h-8 text-xs" />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Модель</label>
-              <Select value={newModel} onValueChange={setNewModel}>
-                <SelectTrigger className="w-44 h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {GEMINI_MODELS.map(m => (
-                    <SelectItem key={m} value={m} className="text-xs">{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input value={newModel} onChange={e => setNewModel(e.target.value)} placeholder="gemini-2.5-flash / gpt-4o / ..." className="w-48 h-8 text-xs" />
             </div>
             <div className="space-y-1 flex-1 min-w-[180px]">
               <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">API ключ</label>
-              <Input value={newKey} onChange={e => setNewKey(e.target.value)} placeholder="AIza..." className="font-mono h-8 text-xs" type="password" />
+              <Input value={newKey} onChange={e => setNewKey(e.target.value)} placeholder="sk-... / AIza..." className="font-mono h-8 text-xs" type="password" />
             </div>
             <Button size="sm" onClick={addKey} disabled={adding} className="h-8">
               <Plus className="h-3.5 w-3.5 mr-1" />
@@ -154,15 +156,33 @@ export default function AdminAPIKeys() {
             </Button>
           </div>
 
+          {/* Provider filter */}
+          {providers.length > 1 && (
+            <div className="flex gap-1 flex-wrap">
+              <Button variant={providerFilter === "all" ? "default" : "outline"} size="sm" className="h-6 text-[10px] px-2" onClick={() => setProviderFilter("all")}>
+                Все ({keys.length})
+              </Button>
+              {providers.map(p => {
+                const count = keys.filter(k => k.provider === p).length;
+                return (
+                  <Button key={p} variant={providerFilter === p ? "default" : "outline"} size="sm" className="h-6 text-[10px] px-2" onClick={() => setProviderFilter(p)}>
+                    {p} ({count})
+                  </Button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Keys table */}
           {loading ? (
             <div className="flex justify-center py-6"><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" /></div>
-          ) : keys.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-4">Нет ключей. Добавьте хотя бы один Gemini API ключ с моделью.</p>
+          ) : filteredKeys.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">Нет ключей. Добавьте API ключ любого провайдера с указанием модели.</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="text-xs">Провайдер</TableHead>
                   <TableHead className="text-xs">Метка</TableHead>
                   <TableHead className="text-xs">Модель</TableHead>
                   <TableHead className="text-xs">Ключ</TableHead>
@@ -174,20 +194,20 @@ export default function AdminAPIKeys() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {keys.map(k => (
+                {filteredKeys.map(k => (
                   <TableRow key={k.id}>
+                    <TableCell>
+                      <Badge variant="outline" className="text-[10px]">{k.provider}</Badge>
+                    </TableCell>
                     <TableCell className="text-xs font-medium">{k.label}</TableCell>
                     <TableCell>
-                      <Select value={k.model} onValueChange={(v) => updateModel(k.id, v)}>
-                        <SelectTrigger className="h-7 w-40 text-[11px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {GEMINI_MODELS.map(m => (
-                            <SelectItem key={m} value={m} className="text-xs">{m}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Input
+                        defaultValue={k.model}
+                        className="h-7 w-40 text-[11px]"
+                        onBlur={(e) => {
+                          if (e.target.value !== k.model) updateField(k.id, "model", e.target.value);
+                        }}
+                      />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
@@ -228,6 +248,15 @@ export default function AdminAPIKeys() {
               </TableBody>
             </Table>
           )}
+
+          {/* Endpoint info */}
+          <div className="text-[10px] text-muted-foreground bg-muted/50 rounded p-2 space-y-1">
+            <p className="font-medium flex items-center gap-1"><Settings2 className="h-3 w-3" /> Поддерживаемые эндпоинты (автоопределение по провайдеру):</p>
+            <p><code className="text-[9px]">gemini</code> → generativelanguage.googleapis.com</p>
+            <p><code className="text-[9px]">openai</code> → api.openai.com</p>
+            <p><code className="text-[9px]">claude</code> → api.anthropic.com (Messages API)</p>
+            <p><code className="text-[9px]">deepseek / qwen / glm / kimi / custom</code> → OpenAI-compatible endpoint (настраивается в системных настройках)</p>
+          </div>
         </CardContent>
       </Card>
     </div>
