@@ -199,7 +199,7 @@ const Index = () => {
                     transition={{ type: 'spring', bounce: 0.5 }}
                     className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 via-rose-500 to-orange-400 flex items-center justify-center mx-auto mb-2 shadow-lg shadow-pink-500/30 relative z-10"
                   >
-                    <PartyPopper className="w-7 h-7 text-white" />
+                    <PartyPopper className="w-5 h-5 text-white" />
                   </motion.div>
 
                   <motion.h2
