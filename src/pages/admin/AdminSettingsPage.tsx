@@ -41,6 +41,27 @@ const SETTINGS_META: SettingMeta[] = [
   { key: "maintenance_mode", label: "Режим обслуживания", hint: "Когда включено — обычные пользователи видят заглушку «сайт временно недоступен», админы работают как обычно", type: "boolean", group: "system" },
   { key: "telegram_notifications", label: "Telegram уведомления", hint: "Отправлять ли уведомления о новых заказах и тикетах в Telegram-бот", type: "boolean", group: "system" },
   { key: "auto_confirm_email", label: "Авто-подтверждение email", hint: "Если включено — пользователи не должны подтверждать email при регистрации. Отключите для дополнительной безопасности", type: "boolean", group: "system" },
+
+  // Plan: Standard
+  { key: "plan_standard_max_orders_month", label: "Макс. заказов/мес", hint: "Лимит заказов в месяц для плана Standard (0 = без ограничений)", type: "number", group: "plan_standard" },
+  { key: "plan_standard_max_order_amount", label: "Макс. сумма заказа", hint: "Максимальная сумма одного заказа (0 = без ограничений)", type: "number", suffix: "₽", group: "plan_standard" },
+  { key: "plan_standard_max_projects", label: "Макс. проектов", hint: "Максимальное количество проектов (0 = без ограничений)", type: "number", group: "plan_standard" },
+  { key: "plan_standard_support_priority", label: "Приоритет поддержки", hint: "normal / high / urgent", type: "text", group: "plan_standard" },
+  { key: "plan_standard_bulk_orders", label: "Массовые заказы", hint: "Доступ к массовым заказам", type: "boolean", group: "plan_standard" },
+
+  // Plan: Pro
+  { key: "plan_pro_max_orders_month", label: "Макс. заказов/мес", hint: "Лимит заказов в месяц для плана Pro (0 = без ограничений)", type: "number", group: "plan_pro" },
+  { key: "plan_pro_max_order_amount", label: "Макс. сумма заказа", hint: "Максимальная сумма одного заказа (0 = без ограничений)", type: "number", suffix: "₽", group: "plan_pro" },
+  { key: "plan_pro_max_projects", label: "Макс. проектов", hint: "Максимальное количество проектов (0 = без ограничений)", type: "number", group: "plan_pro" },
+  { key: "plan_pro_support_priority", label: "Приоритет поддержки", hint: "normal / high / urgent", type: "text", group: "plan_pro" },
+  { key: "plan_pro_bulk_orders", label: "Массовые заказы", hint: "Доступ к массовым заказам", type: "boolean", group: "plan_pro" },
+
+  // Plan: Enterprise
+  { key: "plan_enterprise_max_orders_month", label: "Макс. заказов/мес", hint: "Лимит заказов в месяц для плана Enterprise (0 = без ограничений)", type: "number", group: "plan_enterprise" },
+  { key: "plan_enterprise_max_order_amount", label: "Макс. сумма заказа", hint: "Максимальная сумма одного заказа (0 = без ограничений)", type: "number", suffix: "₽", group: "plan_enterprise" },
+  { key: "plan_enterprise_max_projects", label: "Макс. проектов", hint: "Максимальное количество проектов (0 = без ограничений)", type: "number", group: "plan_enterprise" },
+  { key: "plan_enterprise_support_priority", label: "Приоритет поддержки", hint: "normal / high / urgent", type: "text", group: "plan_enterprise" },
+  { key: "plan_enterprise_bulk_orders", label: "Массовые заказы", hint: "Доступ к массовым заказам", type: "boolean", group: "plan_enterprise" },
 ];
 
 const GROUPS = [
@@ -48,6 +69,9 @@ const GROUPS = [
   { id: "orders", label: "Заказы", icon: ShoppingCart, description: "Лимиты и наценки на заказы" },
   { id: "finance", label: "Финансы", icon: Wallet, description: "Пополнения, выводы и бонусы" },
   { id: "system", label: "Система", icon: Shield, description: "Технический режим и уведомления" },
+  { id: "plan_standard", label: "План Standard", icon: Clock, description: "Лимиты базового плана лицензии" },
+  { id: "plan_pro", label: "План Pro", icon: Clock, description: "Лимиты расширенного плана лицензии" },
+  { id: "plan_enterprise", label: "План Enterprise", icon: Clock, description: "Лимиты корпоративного плана лицензии" },
 ];
 
 const AdminSettingsPage = () => {

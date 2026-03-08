@@ -56,11 +56,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // === LICENSE PLAN LIMITS ===
-    const PLAN_LIMITS: Record<string, { maxOrdersPerMonth: number; maxOrderAmount: number }> = {
+    // === LICENSE PLAN LIMITS (from app_settings DB) ===
+    const PLAN_DEFAULTS: Record<string, { maxOrdersPerMonth: number; maxOrderAmount: number }> = {
       standard: { maxOrdersPerMonth: 100, maxOrderAmount: 5000 },
       pro: { maxOrdersPerMonth: 1000, maxOrderAmount: 50000 },
-      enterprise: { maxOrdersPerMonth: 0, maxOrderAmount: 0 }, // 0 = unlimited
+      enterprise: { maxOrdersPerMonth: 0, maxOrderAmount: 0 },
     };
 
     // Get active license
@@ -73,7 +73,22 @@ serve(async (req) => {
       .maybeSingle();
 
     const currentPlan = activeLicense?.plan || 'standard';
-    const limits = PLAN_LIMITS[currentPlan] || PLAN_LIMITS.standard;
+    const defaults = PLAN_DEFAULTS[currentPlan] || PLAN_DEFAULTS.standard;
+
+    // Read limits from app_settings
+    const prefix = `plan_${currentPlan}_`;
+    const { data: settingsData } = await adminClient
+      .from('app_settings')
+      .select('key, value')
+      .in('key', [`${prefix}max_orders_month`, `${prefix}max_order_amount`]);
+
+    const settingsMap: Record<string, string> = {};
+    (settingsData || []).forEach((r: any) => { settingsMap[r.key] = r.value; });
+
+    const limits = {
+      maxOrdersPerMonth: Number(settingsMap[`${prefix}max_orders_month`] ?? defaults.maxOrdersPerMonth),
+      maxOrderAmount: Number(settingsMap[`${prefix}max_order_amount`] ?? defaults.maxOrderAmount),
+    };
 
     // Check monthly order count
     if (limits.maxOrdersPerMonth > 0) {

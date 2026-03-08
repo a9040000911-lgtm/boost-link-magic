@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useLicense } from "@/components/LicenseGate";
+import { fetchPlanLimits, type PlanLimits, getPlanLimits } from "@/lib/plan-limits";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -9,8 +10,13 @@ import { ShoppingCart, FolderKanban, TrendingUp, Clock, Shield } from "lucide-re
 
 const DashboardOverview = () => {
   const { user } = useAuth();
-  const { plan, limits, isLicensed } = useLicense();
+  const { plan, isLicensed } = useLicense();
+  const [limits, setLimits] = useState<PlanLimits>(getPlanLimits(plan));
   const [stats, setStats] = useState({ orders: 0, projects: 0, totalSpent: 0, pending: 0, monthlyOrders: 0 });
+
+  useEffect(() => {
+    fetchPlanLimits(plan).then(setLimits);
+  }, [plan]);
 
   useEffect(() => {
     if (!user) return;
