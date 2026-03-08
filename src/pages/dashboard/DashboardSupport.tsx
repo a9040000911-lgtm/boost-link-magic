@@ -25,6 +25,7 @@ interface SupportTopic {
 
 interface UserOrder {
   id: string;
+  order_number: number;
   service_name: string;
   created_at: string;
   status: string;
