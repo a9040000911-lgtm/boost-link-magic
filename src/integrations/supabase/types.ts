@@ -70,6 +70,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          balance: number
           created_at: string
           display_name: string | null
           id: string
@@ -77,6 +78,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          balance?: number
           created_at?: string
           display_name?: string | null
           id: string
@@ -84,6 +86,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          balance?: number
           created_at?: string
           display_name?: string | null
           id?: string
@@ -123,6 +126,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string | null
+          id: string
+          order_id: string | null
+          status: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_id?: string | null
+          status?: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_id?: string | null
+          status?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
