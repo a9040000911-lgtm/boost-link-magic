@@ -14,6 +14,8 @@ interface FileUploadProps {
   preview: string | null;
   onFileChange: (file: File | null, preview: string | null) => void;
   accent?: string;
+  onBeforeScreenshot?: () => void;
+  onAfterScreenshot?: () => void;
 }
 
 const FileUpload = ({ file, preview, onFileChange, accent = "primary" }: FileUploadProps) => {
