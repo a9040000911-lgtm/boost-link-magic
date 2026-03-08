@@ -243,12 +243,12 @@ const Catalog = () => {
                       onClick={() => handleCategoryChange(cat)}
                       className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
                         activeCategory === cat
-                          ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
+                          ? `bg-card ${activeNetConfig?.color || 'text-primary'} border-2 ${activeNetConfig?.border || 'border-primary/20'} shadow-sm`
                           : "text-foreground/80 hover:bg-muted/60 border border-transparent"
                       }`}
                     >
                       <span className="truncate">{cat}</span>
-                      <span className={`text-[11px] shrink-0 ${activeCategory === cat ? "text-primary/70" : "text-muted-foreground/50"}`}>
+                      <span className={`text-[11px] shrink-0 ${activeCategory === cat ? "opacity-70" : "text-muted-foreground/50"}`}>
                         {count}
                       </span>
                     </button>
