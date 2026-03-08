@@ -259,6 +259,61 @@ const AdminSupport = () => {
     setBansMap(map);
   };
 
+  const loadTemplatesAndSettings = async () => {
+    // Load settings
+    const { data: settingsData } = await supabase.from("app_settings").select("key, value").in("key", [
+      "ticket_auto_close_hours", "ticket_reopen_window_hours", "support_staff_rules", "support_ai_enabled"
+    ]);
+    if (settingsData) {
+      for (const r of settingsData as any[]) {
+        if (r.key === "ticket_auto_close_hours") AUTO_CLOSE_HOURS = parseInt(r.value) || 24;
+        if (r.key === "ticket_reopen_window_hours") REOPEN_HOURS = parseInt(r.value) || 48;
+        if (r.key === "support_staff_rules") setStaffRules(r.value || "");
+        if (r.key === "support_ai_enabled") setAiEnabled(r.value === "true");
+      }
+    }
+    // Load templates
+    const { data: tplData } = await supabase.from("support_response_templates").select("*").eq("is_enabled", true).order("sort_order");
+    setResponseTemplates((tplData as any[]) || []);
+  };
+
+  const fetchAiSuggestions = async () => {
+    if (!activeTicket || messages.length === 0) return;
+    setAiLoading(true);
+    setAiError("");
+    setAiSuggestions([]);
+    try {
+      const ticketMessages = messages
+        .filter(m => m.ticket_id === activeTicket.id)
+        .slice(-10)
+        .map(m => ({ message: m.message, is_admin: m.is_admin }));
+
+      const { data, error } = await supabase.functions.invoke("support-ai-suggest", {
+        body: {
+          messages: ticketMessages,
+          ticket_subject: activeTicket.subject,
+          channel: activeTicket.channel || "web",
+        },
+      });
+      if (error) throw error;
+      if (data?.error) { setAiError(data.error); return; }
+      setAiSuggestions(data?.suggestions || []);
+    } catch (e: any) {
+      setAiError(e.message || "Ошибка ИИ");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const applyTemplate = (content: string) => {
+    setNewMessage(content);
+  };
+
+  const applySuggestion = (suggestion: string) => {
+    setNewMessage(suggestion);
+    setAiSuggestions([]);
+  };
+
   const clientGroups = useMemo((): ClientGroup[] => {
     const groupMap: Record<string, Ticket[]> = {};
     tickets.forEach(t => {
