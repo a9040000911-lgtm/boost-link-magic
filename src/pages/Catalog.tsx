@@ -447,30 +447,32 @@ const Catalog = () => {
 
                   {/* Consents */}
                   <div className="space-y-2 pt-1">
-                    <label className="flex items-start gap-2 cursor-pointer group">
-                      <input
-                        type="checkbox"
-                        checked={consentOffer}
-                        onChange={(e) => setConsentOffer(e.target.checked)}
-                        className="mt-0.5 w-4 h-4 rounded border-border text-primary accent-primary shrink-0"
-                      />
+                    <label className="flex items-start gap-2 cursor-pointer group" onClick={() => setConsentOffer(!consentOffer)}>
+                      <span className={`mt-0.5 w-4 h-4 rounded shrink-0 flex items-center justify-center border transition-colors ${
+                        consentOffer
+                          ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent`
+                          : 'border-border bg-background'
+                      }`}>
+                        {consentOffer && <Check className="w-3 h-3 text-white" />}
+                      </span>
                       <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
                         Нажимая кнопку, вы принимаете условия{" "}
-                        <Link to="/page/offer" className="text-primary hover:underline">Оферты</Link>
+                        <Link to="/page/offer" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Оферты</Link>
                       </span>
                     </label>
-                    <label className="flex items-start gap-2 cursor-pointer group">
-                      <input
-                        type="checkbox"
-                        checked={consentPD}
-                        onChange={(e) => setConsentPD(e.target.checked)}
-                        className="mt-0.5 w-4 h-4 rounded border-border text-primary accent-primary shrink-0"
-                      />
+                    <label className="flex items-start gap-2 cursor-pointer group" onClick={() => setConsentPD(!consentPD)}>
+                      <span className={`mt-0.5 w-4 h-4 rounded shrink-0 flex items-center justify-center border transition-colors ${
+                        consentPD
+                          ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent`
+                          : 'border-border bg-background'
+                      }`}>
+                        {consentPD && <Check className="w-3 h-3 text-white" />}
+                      </span>
                       <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
                         Я даю согласие на обработку персональных данных в соответствии с{" "}
-                        <Link to="/page/privacy-policy" className="text-primary hover:underline">Политикой конфиденциальности</Link>
+                        <Link to="/page/privacy-policy" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Политикой конфиденциальности</Link>
                         {" "}и соглашаюсь с{" "}
-                        <Link to="/page/terms" className="text-primary hover:underline">Правилами сервиса</Link>
+                        <Link to="/page/terms" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Правилами сервиса</Link>
                       </span>
                     </label>
                   </div>
