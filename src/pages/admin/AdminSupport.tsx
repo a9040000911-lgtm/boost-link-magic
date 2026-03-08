@@ -875,17 +875,18 @@ const AdminSupport = () => {
 
               {/* Ticket tabs */}
               {selectedUserTickets.length > 1 && (
-                <div className="flex gap-1 mt-1.5 overflow-x-auto">
+                <div className="flex gap-1 mt-1.5 overflow-x-auto scrollbar-none">
                   {selectedUserTickets.map(t => (
                     <button
                       key={t.id}
-                      className={`text-[10px] px-2 py-0.5 rounded-full border whitespace-nowrap transition-colors ${
+                      className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border whitespace-nowrap transition-colors ${
                         activeTicketId === t.id ? "bg-primary text-primary-foreground border-primary" : "bg-muted/50 border-border hover:bg-muted"
                       }`}
                       onClick={() => setActiveTicketId(t.id)}
                     >
-                      {channelIcons[t.channel || "web"]} {t.subject.slice(0, 25)}{t.subject.length > 25 ? "…" : ""}
-                      <span className={`ml-1 text-[8px] px-1 rounded ${statusColors[t.status]}`}>
+                      <span className="shrink-0">{channelIcons[t.channel || "web"]}</span>
+                      <span className="truncate max-w-[120px]">{t.subject}</span>
+                      <span className={`text-[8px] px-1 rounded shrink-0 ${statusColors[t.status]}`}>
                         {t.status === "waiting_reply" ? "⏳" : t.status === "open" ? "○" : t.status === "in_progress" ? "●" : "✕"}
                       </span>
                     </button>
