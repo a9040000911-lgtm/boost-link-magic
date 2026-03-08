@@ -176,7 +176,7 @@ const Catalog = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <div className="border-b border-border/60 bg-card/50">
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="border-b border-border/60 bg-card/50">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link
@@ -196,10 +196,10 @@ const Catalog = () => {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Platform Tabs */}
-      <div className="border-b border-border/40 bg-card/30">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.15 }} className="border-b border-border/40 bg-card/30">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex items-center gap-1 overflow-x-auto py-3 scrollbar-none">
             {availableNetworks.map((net) => (
@@ -218,14 +218,14 @@ const Catalog = () => {
             ))}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Main Content */}
       <div className="flex-1">
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex gap-6 min-h-[500px]">
             {/* Left Sidebar — Categories */}
-            <div className="w-64 shrink-0 hidden md:block">
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="w-64 shrink-0 hidden md:block">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-2">
                 Категории
               </p>
@@ -255,7 +255,7 @@ const Catalog = () => {
                   );
                 })}
               </div>
-            </div>
+            </motion.div>
 
             {/* Right Content — Services & Order */}
             <div className="flex-1 min-w-0">

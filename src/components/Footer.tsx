@@ -1,5 +1,6 @@
 import { Mail, MessageCircle, Send } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 const socials = [
   { name: 'Telegram', href: 'https://t.me/smmpanel', icon: Send },
@@ -20,7 +21,13 @@ const legalLinks = [
 
 const Footer = () => {
   return (
-    <footer className="bg-foreground border-t border-border py-10 px-4">
+    <motion.footer
+      initial={{ opacity: 0, y: 40 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-50px' }}
+      transition={{ duration: 0.6 }}
+      className="bg-foreground border-t border-border py-10 px-4"
+    >
       <div className="max-w-5xl mx-auto">
         {/* Top row */}
         <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-8">
@@ -67,7 +74,7 @@ const Footer = () => {
           </p>
         </div>
       </div>
-    </footer>
+    </motion.footer>
   );
 };
 
