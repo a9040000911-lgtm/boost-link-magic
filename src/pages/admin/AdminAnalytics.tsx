@@ -87,9 +87,11 @@ const AdminAnalytics = () => {
     const monthlyRevenue = thisMonthOrders.filter((o) => o.status !== "canceled").reduce((s, o) => s + Number(o.price), 0);
     const prevMonthRevenue = prevMonthOrders.filter((o) => o.status !== "canceled").reduce((s, o) => s + Number(o.price), 0);
 
-    // Gross profit — approximate using provider cost if available
-    // For now, estimate cost as 70% of revenue (can be refined with provider_services data)
-    const totalCost = completedOrders.reduce((s, o) => s + Number(o.price) * 0.7, 0);
+    // Gross profit — use real cost_price when available, fall back to 70% estimate
+    const totalCost = completedOrders.reduce((s, o) => {
+      const cost = o.cost_price != null ? Number(o.cost_price) : Number(o.price) * 0.7;
+      return s + cost;
+    }, 0);
     const totalExpenses = expensesData.reduce((s, e) => s + Number(e.amount), 0);
     const grossProfit = totalRevenue - totalCost;
     const netProfit = grossProfit - totalExpenses;
@@ -144,7 +146,8 @@ const AdminAnalytics = () => {
         monthly[key].orders++;
         if (o.status !== "canceled" && o.status !== "refunded") {
           monthly[key].revenue += Number(o.price);
-          monthly[key].cost += Number(o.price) * 0.7;
+          const cost = o.cost_price != null ? Number(o.cost_price) : Number(o.price) * 0.7;
+          monthly[key].cost += cost;
         }
       }
     });
