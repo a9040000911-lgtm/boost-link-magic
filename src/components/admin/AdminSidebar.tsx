@@ -23,6 +23,7 @@ const adminMenuItems = [
   { title: "Услуги", url: "/admin/services", icon: Package },
   { title: "Категории", url: "/admin/categories", icon: FolderOpen },
   { title: "Провайдеры", url: "/admin/providers", icon: Server },
+  { title: "Промокоды", url: "/admin/promocodes", icon: Tag },
   { title: "Поддержка", url: "/admin/support", icon: MessageSquare },
   { title: "Сотрудники", url: "/admin/staff", icon: Shield },
   { title: "Настройки", url: "/admin/settings", icon: Settings },
