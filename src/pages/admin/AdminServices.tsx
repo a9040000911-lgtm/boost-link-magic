@@ -129,6 +129,8 @@ const AdminServices = () => {
   const [bulkMarkup, setBulkMarkup] = useState("");
   const [showBulkBar, setShowBulkBar] = useState(false);
   const [markupLadder, setMarkupLadder] = useState<MarkupTier[]>(DEFAULT_MARKUP_LADDER);
+  const [bulkCategory, setBulkCategory] = useState("");
+  const [bulkNetwork, setBulkNetwork] = useState("");
 
   // Price display toggles
   const [priceMode, setPriceMode] = useState<"per1k" | "per1">("per1k");
