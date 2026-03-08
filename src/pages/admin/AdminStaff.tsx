@@ -2,15 +2,16 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Users, Shield, UserPlus, Trash2, RefreshCw, Search, History, Eye } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Shield, UserPlus, Trash2, RefreshCw, Search, History, Settings2, X } from "lucide-react";
 import { toast } from "sonner";
 import { logAuditAction, PERMISSIONS, PERMISSION_LABELS } from "@/lib/audit";
 
@@ -36,8 +37,16 @@ const AdminStaff = () => {
 
   // Add staff dialog
   const [addOpen, setAddOpen] = useState(false);
-  const [addEmail, setAddEmail] = useState("");
+  const [addUserId, setAddUserId] = useState("");
   const [addRole, setAddRole] = useState<"moderator" | "admin">("moderator");
+  const [addPermissions, setAddPermissions] = useState<string[]>([]);
+
+  // Edit dialog
+  const [editOpen, setEditOpen] = useState(false);
+  const [editMember, setEditMember] = useState<StaffMember | null>(null);
+  const [editRole, setEditRole] = useState<string>("");
+  const [editPermissions, setEditPermissions] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -47,7 +56,6 @@ const AdminStaff = () => {
   const loadData = async () => {
     setLoading(true);
 
-    // Get all staff (users with roles)
     const { data: roles } = await supabase.from("user_roles").select("*");
     const { data: permissions } = await supabase.from("staff_permissions").select("*");
 
@@ -73,9 +81,10 @@ const AdminStaff = () => {
         };
       });
       setStaff(staffList);
+    } else {
+      setStaff([]);
     }
 
-    // Load audit logs
     const { data: logs } = await supabase
       .from("admin_audit_logs")
       .select("*")
@@ -83,7 +92,6 @@ const AdminStaff = () => {
       .limit(200);
     setAuditLogs(logs || []);
 
-    // Get all actor profiles for audit
     if (logs && logs.length > 0) {
       const actorIds = [...new Set(logs.map((l) => l.actor_id))];
       const { data: actorProfiles } = await supabase.from("profiles").select("id, display_name").in("id", actorIds);
@@ -95,21 +103,86 @@ const AdminStaff = () => {
     setLoading(false);
   };
 
-  const togglePermission = async (userId: string, permission: string, hasIt: boolean) => {
-    if (hasIt) {
-      await supabase.from("staff_permissions").delete().eq("user_id", userId).eq("permission", permission);
-      await logAuditAction("revoke_permission", "staff", userId, { permission });
-      toast.success("Право отозвано");
-    } else {
-      await supabase.from("staff_permissions").insert({ user_id: userId, permission, granted_by: user!.id });
-      await logAuditAction("grant_permission", "staff", userId, { permission });
-      toast.success("Право выдано");
+  // ── Add staff ──
+  const addStaff = async () => {
+    if (!addUserId || addUserId.length < 10) {
+      toast.error("Введите UUID пользователя");
+      return;
     }
+
+    const { error } = await supabase.from("user_roles").insert({ user_id: addUserId, role: addRole });
+    if (error) {
+      toast.error("Ошибка: " + error.message);
+      return;
+    }
+
+    // Grant selected permissions
+    if (addPermissions.length > 0 && addRole === "moderator") {
+      const permsToInsert = addPermissions.map((p) => ({
+        user_id: addUserId,
+        permission: p,
+        granted_by: user!.id,
+      }));
+      await supabase.from("staff_permissions").insert(permsToInsert);
+    }
+
+    await logAuditAction("assign_role", "staff", addUserId, { role: addRole, permissions: addPermissions });
+    toast.success(`Роль ${addRole} назначена`);
+    setAddOpen(false);
+    setAddUserId("");
+    setAddPermissions([]);
     await loadData();
   };
 
+  // ── Edit dialog open ──
+  const openEditDialog = (member: StaffMember) => {
+    setEditMember(member);
+    setEditRole(member.role.split(", ")[0]);
+    setEditPermissions([...member.permissions]);
+    setEditOpen(true);
+  };
+
+  // ── Save edits ──
+  const saveEdits = async () => {
+    if (!editMember || !user) return;
+    setSaving(true);
+
+    const currentRole = editMember.role.split(", ")[0];
+
+    // Update role if changed
+    if (editRole !== currentRole) {
+      await supabase.from("user_roles").delete().eq("user_id", editMember.user_id);
+      await supabase.from("user_roles").insert({ user_id: editMember.user_id, role: editRole as any });
+      await logAuditAction("assign_role", "staff", editMember.user_id, { old_role: currentRole, new_role: editRole });
+    }
+
+    // Sync permissions
+    const currentPerms = editMember.permissions;
+    const toAdd = editPermissions.filter((p) => !currentPerms.includes(p));
+    const toRemove = currentPerms.filter((p) => !editPermissions.includes(p));
+
+    if (toRemove.length > 0) {
+      for (const perm of toRemove) {
+        await supabase.from("staff_permissions").delete().eq("user_id", editMember.user_id).eq("permission", perm);
+      }
+      await logAuditAction("revoke_permission", "staff", editMember.user_id, { permissions: toRemove });
+    }
+
+    if (toAdd.length > 0) {
+      const inserts = toAdd.map((p) => ({ user_id: editMember.user_id, permission: p, granted_by: user.id }));
+      await supabase.from("staff_permissions").insert(inserts);
+      await logAuditAction("grant_permission", "staff", editMember.user_id, { permissions: toAdd });
+    }
+
+    toast.success("Изменения сохранены");
+    setSaving(false);
+    setEditOpen(false);
+    await loadData();
+  };
+
+  // ── Remove staff ──
   const removeStaff = async (userId: string, role: string) => {
-    if (!confirm("Удалить роль у сотрудника?")) return;
+    if (!confirm("Удалить роль у сотрудника? Все права также будут отозваны.")) return;
     await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as any);
     await supabase.from("staff_permissions").delete().eq("user_id", userId);
     await logAuditAction("remove_role", "staff", userId, { role });
@@ -117,23 +190,12 @@ const AdminStaff = () => {
     await loadData();
   };
 
-  const addStaff = async () => {
-    // Find user by email - we need to search profiles
-    // Since we can't query auth.users, we look up by display_name or ask for user ID
-    toast.error("Введите UUID пользователя (найдите в разделе Пользователи)");
-    // For now, treat addEmail as user ID
-    if (!addEmail || addEmail.length < 10) return;
-    
-    const { error } = await supabase.from("user_roles").insert({ user_id: addEmail, role: addRole });
-    if (error) {
-      toast.error("Ошибка: " + error.message);
-      return;
-    }
-    await logAuditAction("assign_role", "staff", addEmail, { role: addRole });
-    toast.success(`Роль ${addRole} назначена`);
-    setAddOpen(false);
-    setAddEmail("");
-    await loadData();
+  const toggleAddPerm = (perm: string) => {
+    setAddPermissions((prev) => prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev, perm]);
+  };
+
+  const toggleEditPerm = (perm: string) => {
+    setEditPermissions((prev) => prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev, perm]);
   };
 
   const filteredLogs = auditLogs.filter((log) => {
@@ -157,6 +219,8 @@ const AdminStaff = () => {
     return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>;
   }
 
+  const allPerms = Object.values(PERMISSIONS);
+
   return (
     <div className="flex flex-col h-full gap-2">
       {/* Header */}
@@ -174,26 +238,54 @@ const AdminStaff = () => {
               <DialogTrigger asChild>
                 <Button size="sm" className="h-7 text-xs"><UserPlus className="h-3 w-3 mr-1" />Добавить</Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-md">
                 <DialogHeader><DialogTitle>Добавить сотрудника</DialogTitle></DialogHeader>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">UUID пользователя (скопируйте из раздела Пользователи)</p>
-                    <Input placeholder="UUID пользователя" value={addEmail} onChange={(e) => setAddEmail(e.target.value)} />
+                    <Label className="text-xs">UUID пользователя</Label>
+                    <p className="text-[10px] text-muted-foreground mb-1">Скопируйте из раздела «Пользователи»</p>
+                    <Input placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" value={addUserId} onChange={(e) => setAddUserId(e.target.value)} className="font-mono text-xs" />
                   </div>
-                  <Select value={addRole} onValueChange={(v) => setAddRole(v as any)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="moderator">Модератор</SelectItem>
-                      <SelectItem value="admin">Администратор</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-[10px] text-muted-foreground">
-                    <strong>Модератор</strong> — ограниченный доступ, настраивается правами.<br/>
-                    <strong>Администратор</strong> — полный доступ ко всем разделам.
-                  </p>
-                  <Button onClick={addStaff} className="w-full" disabled={!addEmail}>Назначить роль</Button>
+
+                  <div>
+                    <Label className="text-xs">Роль</Label>
+                    <Select value={addRole} onValueChange={(v) => setAddRole(v as any)}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="moderator">Модератор</SelectItem>
+                        <SelectItem value="admin">Администратор</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {addRole === "admin" ? "Полный доступ ко всем разделам" : "Ограниченный доступ, настраивается правами ниже"}
+                    </p>
+                  </div>
+
+                  {addRole === "moderator" && (
+                    <>
+                      <Separator />
+                      <div>
+                        <Label className="text-xs mb-2 block">Права доступа</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {allPerms.map((perm) => (
+                            <div key={perm} className="flex items-center gap-2">
+                              <Switch
+                                checked={addPermissions.includes(perm)}
+                                onCheckedChange={() => toggleAddPerm(perm)}
+                                className="scale-75"
+                              />
+                              <span className="text-xs">{PERMISSION_LABELS[perm]}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setAddOpen(false)}>Отмена</Button>
+                  <Button onClick={addStaff} disabled={!addUserId}>Назначить роль</Button>
+                </DialogFooter>
               </DialogContent>
             </Dialog>
           )}
@@ -215,51 +307,58 @@ const AdminStaff = () => {
                   <TableHead className="px-2">Сотрудник</TableHead>
                   <TableHead className="px-2">Роль</TableHead>
                   <TableHead className="px-2">Права</TableHead>
-                  <TableHead className="px-2 w-10"></TableHead>
+                  <TableHead className="px-2 w-20 text-right">Действия</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {staff.map((s) => (
-                  <TableRow key={s.user_id} className="text-[11px]">
-                    <TableCell className="px-2">
-                      <button className="text-primary hover:underline font-medium" onClick={() => navigate(`/admin/users/${s.user_id}`)}>
-                        {s.display_name || s.user_id.slice(0, 12)}
-                      </button>
-                      <p className="text-[9px] text-muted-foreground font-mono">{s.user_id.slice(0, 16)}</p>
-                    </TableCell>
-                    <TableCell className="px-2">
-                      <Badge variant={s.role.includes("admin") ? "destructive" : "secondary"} className="text-[9px]">{s.role}</Badge>
-                    </TableCell>
-                    <TableCell className="px-2">
-                      <div className="flex flex-wrap gap-1">
-                        {Object.entries(PERMISSIONS).map(([key, perm]) => {
-                          const hasIt = s.permissions.includes(perm);
-                          const isAdmin = s.role.includes("admin");
-                          return (
-                            <div key={perm} className="flex items-center gap-0.5">
-                              <Switch
-                                className="scale-50"
-                                checked={isAdmin || hasIt}
-                                disabled={isAdmin}
-                                onCheckedChange={() => togglePermission(s.user_id, perm, hasIt)}
-                              />
-                              <span className={`text-[9px] ${isAdmin || hasIt ? "text-foreground" : "text-muted-foreground"}`}>
-                                {PERMISSION_LABELS[perm]}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-2">
-                      {!s.role.includes("admin") && (
-                        <button className="text-destructive" onClick={() => removeStaff(s.user_id, s.role.split(", ")[0])}>
-                          <Trash2 className="h-3 w-3" />
+                {staff.map((s) => {
+                  const isAdmin = s.role.includes("admin");
+                  return (
+                    <TableRow key={s.user_id} className="text-[11px]">
+                      <TableCell className="px-2">
+                        <button className="text-primary hover:underline font-medium" onClick={() => navigate(`/admin/users/${s.user_id}`)}>
+                          {s.display_name || s.user_id.slice(0, 12)}
                         </button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        <p className="text-[9px] text-muted-foreground font-mono">{s.user_id.slice(0, 16)}</p>
+                      </TableCell>
+                      <TableCell className="px-2">
+                        <Badge variant={isAdmin ? "destructive" : "secondary"} className="text-[9px]">{s.role}</Badge>
+                      </TableCell>
+                      <TableCell className="px-2">
+                        <div className="flex flex-wrap gap-1">
+                          {isAdmin ? (
+                            <span className="text-[9px] text-muted-foreground italic">Полный доступ</span>
+                          ) : (
+                            allPerms.map((perm) => {
+                              const hasIt = s.permissions.includes(perm);
+                              return (
+                                <Badge
+                                  key={perm}
+                                  variant={hasIt ? "default" : "outline"}
+                                  className={`text-[8px] px-1 py-0 ${hasIt ? "" : "opacity-40"}`}
+                                >
+                                  {PERMISSION_LABELS[perm]}
+                                </Badge>
+                              );
+                            })
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-2 text-right">
+                        <div className="flex items-center gap-1 justify-end">
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => openEditDialog(s)}>
+                            <Settings2 className="h-3 w-3" />
+                          </Button>
+                          {!isAdmin && (
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive hover:text-destructive" onClick={() => removeStaff(s.user_id, s.role.split(", ")[0])}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
@@ -281,7 +380,6 @@ const AdminStaff = () => {
             </Select>
             <span className="text-[10px] text-muted-foreground">{filteredLogs.length} записей</span>
           </div>
-
           <div className="flex-1 min-h-0 overflow-auto border rounded-md">
             <Table>
               <TableHeader>
@@ -303,9 +401,7 @@ const AdminStaff = () => {
                         {profilesMap[log.actor_id] || log.actor_id?.slice(0, 8)}
                       </button>
                     </TableCell>
-                    <TableCell className="px-1">
-                      <Badge variant="outline" className="text-[9px]">{log.action}</Badge>
-                    </TableCell>
+                    <TableCell className="px-1"><Badge variant="outline" className="text-[9px]">{log.action}</Badge></TableCell>
                     <TableCell className="px-1 text-muted-foreground">{log.target_type}</TableCell>
                     <TableCell className="px-1 font-mono text-[9px] text-muted-foreground">{log.target_id?.slice(0, 12) || "—"}</TableCell>
                     <TableCell className="px-1 max-w-[250px]">
@@ -320,6 +416,106 @@ const AdminStaff = () => {
           </div>
         </>
       )}
+
+      {/* ── Edit Dialog ── */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="h-4 w-4" />
+              Редактирование прав и роли
+            </DialogTitle>
+          </DialogHeader>
+
+          {editMember && (
+            <div className="space-y-4">
+              {/* User info */}
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground font-bold text-sm">
+                  {(editMember.display_name || "?").slice(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-medium text-sm">{editMember.display_name || "Без имени"}</p>
+                  <p className="text-[10px] text-muted-foreground font-mono">{editMember.user_id}</p>
+                </div>
+              </div>
+
+              {/* Role selector */}
+              <div>
+                <Label className="text-xs font-medium">Роль</Label>
+                <Select value={editRole} onValueChange={setEditRole}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">Пользователь (без роли)</SelectItem>
+                    <SelectItem value="moderator">Модератор</SelectItem>
+                    <SelectItem value="admin">Администратор</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {editRole === "admin" && "Полный доступ ко всем разделам и функциям"}
+                  {editRole === "moderator" && "Доступ только к разрешённым разделам (настройте ниже)"}
+                  {editRole === "user" && "Обычный пользователь без доступа к админке"}
+                </p>
+              </div>
+
+              {/* Permissions */}
+              {editRole === "moderator" && (
+                <>
+                  <Separator />
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="text-xs font-medium">Права доступа</Label>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 text-[9px] px-1.5"
+                          onClick={() => setEditPermissions([...allPerms])}
+                        >
+                          Все
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 text-[9px] px-1.5"
+                          onClick={() => setEditPermissions([])}
+                        >
+                          Снять
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {allPerms.map((perm) => (
+                        <div key={perm} className="flex items-center gap-2.5 p-2 rounded-md border border-border/60 hover:bg-muted/30 transition-colors">
+                          <Switch
+                            checked={editPermissions.includes(perm)}
+                            onCheckedChange={() => toggleEditPerm(perm)}
+                          />
+                          <span className="text-xs">{PERMISSION_LABELS[perm]}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {editRole === "admin" && (
+                <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                  <p className="text-xs text-destructive font-medium">⚠️ Администратор имеет полный доступ</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Все права включены автоматически. Для ограниченного доступа используйте роль «Модератор».</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Отмена</Button>
+            <Button onClick={saveEdits} disabled={saving}>
+              {saving ? "Сохранение..." : "Сохранить изменения"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
