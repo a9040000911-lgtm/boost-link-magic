@@ -58,6 +58,7 @@ const App = () => (
             <Route path="projects" element={<DashboardProjects />} />
             <Route path="projects/:projectId" element={<DashboardProjectDetail />} />
             <Route path="settings" element={<DashboardSettings />} />
+            <Route path="support" element={<DashboardSupport />} />
           </Route>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
