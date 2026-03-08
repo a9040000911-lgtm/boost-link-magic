@@ -139,7 +139,7 @@ const Catalog = () => {
     const fetchServices = async () => {
       const { data } = await supabase
         .from("services")
-        .select("id, name, description, price, min_quantity, max_quantity, category, network, speed, guarantee")
+        .select("id, name, description, price, min_quantity, max_quantity, category, network, speed, guarantee, warning_text")
         .eq("is_enabled", true)
         .order("network")
         .order("category")
