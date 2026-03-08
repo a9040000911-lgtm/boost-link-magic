@@ -383,6 +383,45 @@ export type Database = {
         }
         Relationships: []
       }
+      platforms: {
+        Row: {
+          color: string | null
+          created_at: string
+          domains: string[]
+          icon: string | null
+          id: string
+          is_enabled: boolean
+          key: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          domains?: string[]
+          icon?: string | null
+          id?: string
+          is_enabled?: boolean
+          key: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          domains?: string[]
+          icon?: string | null
+          id?: string
+          is_enabled?: boolean
+          key?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
