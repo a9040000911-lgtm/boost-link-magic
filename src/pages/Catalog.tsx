@@ -348,7 +348,7 @@ const Catalog = () => {
 
               {/* Service Cards Grid */}
               {categoryServices.length > 0 ? (
-                <div className="relative mb-8">
+                <div className="relative mb-4">
                   <h2 className="text-lg font-bold text-foreground mb-3">
                     {activeCategory}
                   </h2>
