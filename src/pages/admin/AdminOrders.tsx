@@ -138,6 +138,25 @@ const AdminOrders = () => {
     return date.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "2-digit" }) + " " + date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
   };
 
+  const handleRefund = async () => {
+    if (!selectedOrder) return;
+    setRefunding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("process-refund", {
+        body: { order_id: selectedOrder.id, reason: refundReason },
+      });
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+      toast.success(`Возврат ${data.refund_amount}₽ выполнен`);
+      setSelectedOrder(null);
+      setRefundReason("");
+      await loadData();
+    } catch (e: any) {
+      toast.error("Ошибка возврата: " + e.message);
+    }
+    setRefunding(false);
+  };
+
   return (
     <div className="flex flex-col h-full gap-2">
       <div className="flex items-center justify-between shrink-0">
