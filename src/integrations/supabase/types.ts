@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          badge_color: string | null
+          condition_type: string
+          condition_value: number
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_enabled: boolean
+          name: string
+          reward_type: string
+          reward_value: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          badge_color?: string | null
+          condition_type?: string
+          condition_value?: number
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_enabled?: boolean
+          name: string
+          reward_type?: string
+          reward_value?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          badge_color?: string | null
+          condition_type?: string
+          condition_value?: number
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_enabled?: boolean
+          name?: string
+          reward_type?: string
+          reward_value?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_audit_logs: {
         Row: {
           action: string
@@ -398,6 +446,42 @@ export type Database = {
         }
         Relationships: []
       }
+      fortune_wheel_prizes: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          is_enabled: boolean
+          label: string
+          prize_type: string
+          prize_value: number
+          probability: number
+          sort_order: number
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          label?: string
+          prize_type?: string
+          prize_value?: number
+          probability?: number
+          sort_order?: number
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          label?: string
+          prize_type?: string
+          prize_value?: number
+          probability?: number
+          sort_order?: number
+        }
+        Relationships: []
+      }
       guest_inquiries: {
         Row: {
           admin_reply: string | null
@@ -531,6 +615,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      loyalty_tiers: {
+        Row: {
+          color: string | null
+          created_at: string
+          discount_percent: number
+          icon: string | null
+          id: string
+          is_enabled: boolean
+          min_spend: number
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          discount_percent?: number
+          icon?: string | null
+          id?: string
+          is_enabled?: boolean
+          min_spend?: number
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          discount_percent?: number
+          icon?: string | null
+          id?: string
+          is_enabled?: boolean
+          min_spend?: number
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       order_idempotency: {
         Row: {
@@ -1034,6 +1157,60 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          total_earned: number
+          user_id: string
+          uses_count: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          total_earned?: number
+          user_id: string
+          uses_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          total_earned?: number
+          user_id?: string
+          uses_count?: number
+        }
+        Relationships: []
+      }
+      referral_completions: {
+        Row: {
+          completed_at: string
+          id: string
+          referred_bonus: number
+          referred_id: string
+          referrer_bonus: number
+          referrer_id: string
+        }
+        Insert: {
+          completed_at?: string
+          id?: string
+          referred_bonus?: number
+          referred_id: string
+          referrer_bonus?: number
+          referrer_id: string
+        }
+        Update: {
+          completed_at?: string
+          id?: string
+          referred_bonus?: number
+          referred_id?: string
+          referrer_bonus?: number
+          referrer_id?: string
+        }
+        Relationships: []
+      }
       reviews: {
         Row: {
           attachment_name: string | null
@@ -1160,6 +1337,30 @@ export type Database = {
           speed?: string
           updated_at?: string
           warning_text?: string | null
+        }
+        Relationships: []
+      }
+      spartan_members: {
+        Row: {
+          discount_percent: number
+          id: string
+          joined_at: string
+          slot_number: number
+          user_id: string
+        }
+        Insert: {
+          discount_percent?: number
+          id?: string
+          joined_at?: string
+          slot_number: number
+          user_id: string
+        }
+        Update: {
+          discount_percent?: number
+          id?: string
+          joined_at?: string
+          slot_number?: number
+          user_id?: string
         }
         Relationships: []
       }
@@ -1522,6 +1723,38 @@ export type Database = {
         }
         Relationships: []
       }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          earned_at: string
+          id: string
+          reward_claimed: boolean
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          earned_at?: string
+          id?: string
+          reward_claimed?: boolean
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          earned_at?: string
+          id?: string
+          reward_claimed?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -1539,6 +1772,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_spins: {
+        Row: {
+          id: string
+          prize_id: string | null
+          prize_label: string
+          prize_value: number
+          spun_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          prize_id?: string | null
+          prize_label?: string
+          prize_value?: number
+          spun_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          prize_id?: string | null
+          prize_label?: string
+          prize_value?: number
+          spun_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_spins_prize_id_fkey"
+            columns: ["prize_id"]
+            isOneToOne: false
+            referencedRelation: "fortune_wheel_prizes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
