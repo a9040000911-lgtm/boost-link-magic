@@ -458,24 +458,24 @@ const Catalog = () => {
           <div className="flex gap-4 h-full">
 
             {/* Left Sidebar — Categories (desktop only) */}
-            <div className="w-44 shrink-0 hidden md:flex flex-col overflow-y-auto">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">Категории</p>
+            <div className="w-48 shrink-0 hidden md:flex flex-col overflow-y-auto scrollbar-none">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-2">Категории</p>
               <div className="space-y-0.5">
-                {categories.length === 0 && <p className="text-xs text-muted-foreground/60 px-2">Нет категорий</p>}
+                {categories.length === 0 && <p className="text-sm text-muted-foreground/60 px-2">Нет категорий</p>}
                 {categories.map((cat) => {
                   const count = services.filter((s) => s.network === activeNetwork && s.category === cat).length;
                   return (
                     <button
                       key={cat}
                       onClick={() => handleCategoryChange(cat)}
-                      className={`w-full flex items-center justify-between gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-left ${
+                      className={`w-full flex items-center justify-between gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all text-left ${
                         activeCategory === cat
                           ? `bg-card ${activeNetConfig?.color || 'text-primary'} border ${activeNetConfig?.border || 'border-primary/20'} shadow-sm`
                           : "text-foreground/80 hover:bg-muted/60 border border-transparent"
                       }`}
                     >
                       <span className="truncate">{cat}</span>
-                      <span className={`text-[10px] shrink-0 ${activeCategory === cat ? "opacity-70" : "text-muted-foreground/50"}`}>{count}</span>
+                      <span className={`text-xs shrink-0 ${activeCategory === cat ? "opacity-70" : "text-muted-foreground/50"}`}>{count}</span>
                     </button>
                   );
                 })}
