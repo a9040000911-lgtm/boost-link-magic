@@ -62,9 +62,9 @@ async function tryAIAutoReply(
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "x-internal-secret": Deno.env.get("INTERNAL_FUNCTION_SECRET") || "",
       },
       body: JSON.stringify({
-        _internal: true,
         messages,
         ticket_subject: ticketSubject,
         channel: "telegram",

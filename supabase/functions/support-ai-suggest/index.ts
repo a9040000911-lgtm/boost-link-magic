@@ -210,7 +210,8 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { messages, ticket_subject, channel, mode: requestMode, action } = body;
 
-    const isInternalCall = body._internal === true;
+    const INTERNAL_SECRET = Deno.env.get("INTERNAL_FUNCTION_SECRET");
+    const isInternalCall = !!INTERNAL_SECRET && req.headers.get("x-internal-secret") === INTERNAL_SECRET;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // === Transcribe voice action ===
