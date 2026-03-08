@@ -82,6 +82,7 @@ const AdminStaff = () => {
           balance: profile?.balance || 0,
           created_at: profile?.created_at || "",
           permissions: userPerms,
+          telegram_chat_id: (profile as any)?.telegram_chat_id || null,
         };
       });
       setStaff(staffList);
