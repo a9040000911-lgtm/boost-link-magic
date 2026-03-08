@@ -531,7 +531,8 @@ const AdminSupport = () => {
 
     toast({ title: `Предупреждение ${newWarnings}/3`, description: newWarnings === 2 ? "Следующее предупреждение = бан на 24ч" : "Отправлено пользователю" });
     await loadBans();
-    await loadMessages(activeTicket.id);
+    const userTickets = tickets.filter(t => t.user_id === selectedUserId);
+    await loadAllUserMessages(userTickets);
   };
 
   const applyBan = async (type: "24h" | "permanent") => {
