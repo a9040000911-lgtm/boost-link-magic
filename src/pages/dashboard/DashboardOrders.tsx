@@ -13,6 +13,7 @@ import { Search, Filter, MessageSquare, ExternalLink, ChevronDown, ChevronUp } f
 
 interface Order {
   id: string;
+  order_number: number | null;
   service_name: string;
   platform: string | null;
   link: string;
