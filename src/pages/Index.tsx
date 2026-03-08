@@ -327,7 +327,7 @@ const Index = () => {
                       whileHover={{ scale: 1.08, boxShadow: '0 8px 30px -5px hsl(335 85% 56% / 0.5)' }}
                       whileTap={{ scale: 0.96 }}
                       disabled={!email.includes('@')}
-                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary via-pink-500 to-rose-500 text-primary-foreground text-sm font-bold shadow-lg shadow-primary/25 transition-shadow disabled:opacity-40 disabled:shadow-none"
+                      className="px-5 py-2 rounded-xl bg-gradient-to-r from-primary via-pink-500 to-rose-500 text-primary-foreground text-sm font-bold shadow-lg shadow-primary/25 transition-shadow disabled:opacity-40 disabled:shadow-none"
                     >
                       🚀 Оплатить
                     </motion.button>
