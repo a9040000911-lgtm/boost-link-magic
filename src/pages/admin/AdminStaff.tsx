@@ -254,11 +254,30 @@ const AdminStaff = () => {
               </DialogTrigger>
               <DialogContent className="max-w-md">
                 <DialogHeader><DialogTitle>Добавить сотрудника</DialogTitle></DialogHeader>
+                {createdCreds ? (
+                  <div className="space-y-4">
+                    <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md p-4 space-y-2">
+                      <p className="text-sm font-medium text-green-800 dark:text-green-200">✅ Сотрудник создан!</p>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Email</Label>
+                        <p className="text-sm font-mono">{createdCreds.email}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Пароль</Label>
+                        <p className="text-sm font-mono select-all">{createdCreds.password}</p>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Скопируйте пароль и отправьте сотруднику. Он не будет показан повторно.</p>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={() => { setCreatedCreds(null); setAddEmail(""); setAddPermissions([]); setAddOpen(false); }}>Закрыть</Button>
+                    </DialogFooter>
+                  </div>
+                ) : (
                 <div className="space-y-4">
                   <div>
-                    <Label className="text-xs">UUID пользователя</Label>
-                    <p className="text-[10px] text-muted-foreground mb-1">Скопируйте из раздела «Пользователи»</p>
-                    <Input placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" value={addUserId} onChange={(e) => setAddUserId(e.target.value)} className="font-mono text-xs" />
+                    <Label className="text-xs">Email сотрудника</Label>
+                    <p className="text-[10px] text-muted-foreground mb-1">Аккаунт будет создан автоматически, пароль сгенерируется</p>
+                    <Input type="email" placeholder="employee@example.com" value={addEmail} onChange={(e) => setAddEmail(e.target.value)} className="text-xs" />
                   </div>
 
                   <div>
@@ -295,11 +314,14 @@ const AdminStaff = () => {
                       </div>
                     </>
                   )}
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setAddOpen(false)}>Отмена</Button>
+                    <Button onClick={addStaff} disabled={!addEmail || addLoading}>
+                      {addLoading ? "Создание..." : "Создать сотрудника"}
+                    </Button>
+                  </DialogFooter>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setAddOpen(false)}>Отмена</Button>
-                  <Button onClick={addStaff} disabled={!addUserId}>Назначить роль</Button>
-                </DialogFooter>
+                )}
               </DialogContent>
             </Dialog>
           )}
