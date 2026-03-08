@@ -1,0 +1,1 @@
+ALTER TABLE public.ai_api_keys ADD COLUMN model text NOT NULL DEFAULT 'gemini-2.5-flash';
