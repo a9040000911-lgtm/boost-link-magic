@@ -47,6 +47,9 @@ interface Service {
   max_quantity: number;
   price: number;
   is_enabled: boolean;
+  speed: string;
+  guarantee: string;
+  warning_text: string | null;
 }
 
 interface Mapping {
@@ -76,12 +79,13 @@ const AdminServices = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [newService, setNewService] = useState({
     name: "", description: "", category: "", network: "",
-    min_quantity: "100", max_quantity: "10000", price: "0"
+    min_quantity: "100", max_quantity: "10000", price: "0",
+    speed: "medium", guarantee: "none", warning_text: ""
   });
 
   // Edit dialog
   const [editService, setEditService] = useState<Service | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", description: "", category: "", network: "", min_quantity: "", max_quantity: "", price: "" });
+  const [editForm, setEditForm] = useState({ name: "", description: "", category: "", network: "", min_quantity: "", max_quantity: "", price: "", speed: "medium", guarantee: "none", warning_text: "" });
 
   // Mapping add state inside edit dialog
   const [addMappingOpen, setAddMappingOpen] = useState(false);
@@ -139,12 +143,15 @@ const AdminServices = () => {
       min_quantity: parseInt(newService.min_quantity) || 100,
       max_quantity: parseInt(newService.max_quantity) || 10000,
       price: parseFloat(newService.price) || 0,
+      speed: newService.speed || "medium",
+      guarantee: newService.guarantee || "none",
+      warning_text: newService.warning_text || null,
     });
     if (error) { toast.error(error.message); return; }
     await logAuditAction("create_service", "service", undefined, { name: newService.name });
     toast.success("Услуга создана");
     setCreateOpen(false);
-    setNewService({ name: "", description: "", category: "", network: "", min_quantity: "100", max_quantity: "10000", price: "0" });
+    setNewService({ name: "", description: "", category: "", network: "", min_quantity: "100", max_quantity: "10000", price: "0", speed: "medium", guarantee: "none", warning_text: "" });
     await loadAll();
   };
 
@@ -182,6 +189,9 @@ const AdminServices = () => {
     if (minQ !== editService.min_quantity) updates.min_quantity = minQ;
     if (maxQ !== editService.max_quantity) updates.max_quantity = maxQ;
     if (price !== editService.price) updates.price = price;
+    if (editForm.speed !== editService.speed) updates.speed = editForm.speed;
+    if (editForm.guarantee !== editService.guarantee) updates.guarantee = editForm.guarantee;
+    if ((editForm.warning_text || null) !== editService.warning_text) updates.warning_text = editForm.warning_text || null;
 
     if (Object.keys(updates).length === 0) { toast.info("Нет изменений"); return; }
     updates.updated_at = new Date().toISOString();
@@ -247,6 +257,8 @@ const AdminServices = () => {
       name: svc.name, description: svc.description || "", category: svc.category,
       network: svc.network, min_quantity: String(svc.min_quantity),
       max_quantity: String(svc.max_quantity), price: String(svc.price),
+      speed: svc.speed || "medium", guarantee: svc.guarantee || "none",
+      warning_text: svc.warning_text || "",
     });
     setAddMappingOpen(false);
   };
@@ -417,6 +429,38 @@ const AdminServices = () => {
                       <div><Label className="text-xs">Макс</Label><Input type="number" value={newService.max_quantity} onChange={(e) => setNewService({ ...newService, max_quantity: e.target.value })} /></div>
                       <div><Label className="text-xs">Цена/1к</Label><Input type="number" value={newService.price} onChange={(e) => setNewService({ ...newService, price: e.target.value })} /></div>
                     </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Скорость</Label>
+                        <Select value={newService.speed} onValueChange={(v) => setNewService({ ...newService, speed: v })}>
+                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="instant">⚡ Мгновенно</SelectItem>
+                            <SelectItem value="fast">🚀 Быстро</SelectItem>
+                            <SelectItem value="medium">⏱ Средне</SelectItem>
+                            <SelectItem value="slow">🐢 Медленно</SelectItem>
+                            <SelectItem value="gradual">📈 Постепенно</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Гарантия</Label>
+                        <Select value={newService.guarantee} onValueChange={(v) => setNewService({ ...newService, guarantee: v })}>
+                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Без гарантии</SelectItem>
+                            <SelectItem value="7d">7 дней</SelectItem>
+                            <SelectItem value="30d">30 дней</SelectItem>
+                            <SelectItem value="60d">60 дней</SelectItem>
+                            <SelectItem value="lifetime">♾ Навсегда</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Предупреждение (warning)</Label>
+                      <Textarea value={newService.warning_text} onChange={(e) => setNewService({ ...newService, warning_text: e.target.value })} placeholder="Текст предупреждения перед заказом..." className="h-16" />
+                    </div>
                     <Button onClick={createService} disabled={!newService.name} className="w-full">Создать</Button>
                   </div>
                 </DialogContent>
@@ -580,6 +624,38 @@ const AdminServices = () => {
                     <div><Label className="text-xs">Мин. кол-во</Label><Input type="number" value={editForm.min_quantity} onChange={(e) => setEditForm({ ...editForm, min_quantity: e.target.value })} /></div>
                     <div><Label className="text-xs">Макс. кол-во</Label><Input type="number" value={editForm.max_quantity} onChange={(e) => setEditForm({ ...editForm, max_quantity: e.target.value })} /></div>
                     <div><Label className="text-xs">Цена за 1000</Label><Input type="number" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: e.target.value })} /></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs flex items-center gap-1"><Zap className="h-3 w-3" />Скорость</Label>
+                      <Select value={editForm.speed} onValueChange={(v) => setEditForm({ ...editForm, speed: v })}>
+                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="instant">⚡ Мгновенно</SelectItem>
+                          <SelectItem value="fast">🚀 Быстро</SelectItem>
+                          <SelectItem value="medium">⏱ Средне</SelectItem>
+                          <SelectItem value="slow">🐢 Медленно</SelectItem>
+                          <SelectItem value="gradual">📈 Постепенно</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs flex items-center gap-1"><ShieldCheck className="h-3 w-3" />Гарантия</Label>
+                      <Select value={editForm.guarantee} onValueChange={(v) => setEditForm({ ...editForm, guarantee: v })}>
+                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Без гарантии</SelectItem>
+                          <SelectItem value="7d">7 дней</SelectItem>
+                          <SelectItem value="30d">30 дней</SelectItem>
+                          <SelectItem value="60d">60 дней</SelectItem>
+                          <SelectItem value="lifetime">♾ Навсегда</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1"><AlertTriangle className="h-3 w-3" />Предупреждение</Label>
+                    <Textarea value={editForm.warning_text} onChange={(e) => setEditForm({ ...editForm, warning_text: e.target.value })} placeholder="Текст предупреждения перед заказом..." className="h-16" />
                   </div>
                   <Button onClick={saveEditService} className="w-full" size="sm">Сохранить изменения</Button>
                 </div>
