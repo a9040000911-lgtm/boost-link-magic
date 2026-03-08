@@ -701,7 +701,7 @@ const AdminSupport = () => {
               const ban = bansMap[g.user_id];
               const isBanned = ban?.is_banned && (!ban.ban_expires_at || new Date(ban.ban_expires_at) > new Date());
               return (
-                <div key={g.user_id} className={`p-2 border-b cursor-pointer hover:bg-muted/50 transition-colors ${selectedUserId === g.user_id ? "bg-primary/5 border-l-2 border-l-primary" : ""}`} onClick={() => setSelectedUserId(g.user_id)}>
+                <div key={g.user_id} className={`p-2 border-b cursor-pointer hover:bg-muted/50 transition-colors ${selectedUserId === g.user_id ? "bg-primary/5 border-l-2 border-l-primary" : ""}`} onClick={() => selectUser(g.user_id)}>
                   <div className="flex items-start justify-between gap-1">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1">
