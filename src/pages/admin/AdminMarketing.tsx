@@ -121,13 +121,13 @@ export default function AdminMarketing() {
       supabase.from("achievements").select("*").order("sort_order"),
       supabase.from("fortune_wheel_prizes").select("*").order("sort_order"),
       supabase.from("app_settings").select("*").in("key", MARKETING_KEYS),
-      supabase.from("spartan_members").select("id", { count: "exact", head: true }),
+      supabase.rpc("get_spartan_count"),
     ]);
 
     if (tiersRes.data) setTiers(tiersRes.data as LoyaltyTier[]);
     if (achievementsRes.data) setAchievements(achievementsRes.data as Achievement[]);
     if (prizesRes.data) setPrizes(prizesRes.data as WheelPrize[]);
-    if (spartanRes.count !== null) setSpartanCount(spartanRes.count);
+    if (spartanRes.data !== null) setSpartanCount(spartanRes.data);
 
     const s = { ...MARKETING_DEFAULTS };
     settingsRes.data?.forEach((r: any) => { s[r.key] = r.value; });

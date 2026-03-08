@@ -59,7 +59,7 @@ export default function DashboardBonuses() {
       supabase.from("app_settings").select("*").in("key", keys),
       supabase.from("user_achievements").select("achievement_id").eq("user_id", user!.id),
       supabase.from("spartan_members").select("slot_number").eq("user_id", user!.id).maybeSingle(),
-      supabase.from("spartan_members").select("id", { count: "exact", head: true }),
+      supabase.rpc("get_spartan_count"),
       supabase.from("referral_codes").select("*").eq("user_id", user!.id).maybeSingle(),
       supabase.from("referral_completions").select("id", { count: "exact", head: true }).eq("referrer_id", user!.id),
     ]);
@@ -69,7 +69,7 @@ export default function DashboardBonuses() {
     if (prizesRes.data) setPrizes(prizesRes.data as WheelPrize[]);
     if (earnedRes.data) setEarnedIds(new Set(earnedRes.data.map((e: any) => e.achievement_id)));
     if (spartanMeRes.data) setSpartanSlot(spartanMeRes.data.slot_number);
-    if (spartanCountRes.count !== null) setSpartanCount(spartanCountRes.count);
+    if (spartanCountRes.data !== null) setSpartanCount(spartanCountRes.data);
     if (refCodeRes.data) setReferralCode(refCodeRes.data.code);
     if (refCountRes.count !== null) setReferralCount(refCountRes.count);
 

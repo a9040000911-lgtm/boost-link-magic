@@ -1823,6 +1823,7 @@ export type Database = {
         Args: { p_amount: number; p_user_id: string }
         Returns: number
       }
+      get_spartan_count: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
