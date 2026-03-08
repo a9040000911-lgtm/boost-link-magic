@@ -91,7 +91,7 @@ const Index = () => {
           className={`relative z-10 ${isActive ? 'mb-2' : 'mb-6'}`}
         >
           <motion.div
-            className="inline-flex items-center gap-1 text-5xl md:text-6xl font-extrabold tracking-tight select-none"
+            className="inline-flex items-center gap-1 text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tight select-none"
             whileHover={{ scale: 1.05 }}
           >
             {"COOLLIKE".split("").map((letter, i) => (
@@ -127,7 +127,7 @@ const Index = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-3xl md:text-5xl font-bold tracking-tight mb-10 text-foreground text-center relative z-10"
+            className="text-2xl md:text-3xl font-medium tracking-tight mb-10 text-white text-center relative z-10"
           >
             Продвигайте свои соцсети
           </motion.h1>
