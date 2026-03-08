@@ -199,6 +199,59 @@ const AdminSupport = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
 
+  // Quick-switch tabs
+  const MAX_TABS = 7;
+  const [openTabs, setOpenTabs] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("support_open_tabs");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("support_open_tabs", JSON.stringify(openTabs));
+  }, [openTabs]);
+
+  const selectUser = (userId: string) => {
+    setSelectedUserId(userId);
+    setOpenTabs(prev => {
+      if (prev.includes(userId)) return prev;
+      const next = [...prev, userId];
+      return next.length > MAX_TABS ? next.slice(next.length - MAX_TABS) : next;
+    });
+  };
+
+  const closeTab = (userId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setOpenTabs(prev => prev.filter(id => id !== userId));
+    if (selectedUserId === userId) {
+      const remaining = openTabs.filter(id => id !== userId);
+      setSelectedUserId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
+    }
+  };
+
+  // Keyboard shortcuts: Alt+1..7 switch tabs, Alt+W close current
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!e.altKey) return;
+      if (e.key >= "1" && e.key <= "7") {
+        const idx = parseInt(e.key) - 1;
+        if (idx < openTabs.length) {
+          e.preventDefault();
+          setSelectedUserId(openTabs[idx]);
+        }
+      }
+      if (e.key === "w" || e.key === "W" || e.key === "ц" || e.key === "Ц") {
+        if (selectedUserId) {
+          e.preventDefault();
+          closeTab(selectedUserId);
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [openTabs, selectedUserId]);
+
   useEffect(() => {
     if (!user) return;
     loadTickets();
