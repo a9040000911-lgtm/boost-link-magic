@@ -625,6 +625,33 @@ const AdminServices = () => {
 
               {/* === PROVIDER SERVICES TABLE === */}
               <TabsContent value="providers" className="mt-0">
+                {/* Bulk action bar */}
+                {selectedIds.size > 0 && (
+                  <div className="flex items-center gap-2 p-2 bg-primary/5 border-b border-primary/20 sticky top-0 z-10">
+                    <Badge variant="default" className="text-[10px]">{selectedIds.size} выбрано</Badge>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        placeholder="% наценки"
+                        value={bulkMarkup}
+                        onChange={(e) => setBulkMarkup(e.target.value)}
+                        className="h-7 w-[90px] text-xs"
+                      />
+                      <Button size="sm" className="h-7 text-xs" onClick={applyBulkMarkup} disabled={!bulkMarkup}>
+                        <Percent className="h-3 w-3 mr-1" />Применить
+                      </Button>
+                    </div>
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={applyLadderToSelected}>
+                      <Layers className="h-3 w-3 mr-1" />Лестница
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+                      Сбросить
+                    </Button>
+                    <span className="text-[9px] text-muted-foreground ml-auto">
+                      Лестница: {markupLadder.map(t => `≤${t.maxRate === Infinity ? '∞' : t.maxRate}₽→${t.markup}%`).join(', ')}
+                    </span>
+                  </div>
+                )}
                 {filteredProviderServices.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground text-sm">
                     <Package className="h-8 w-8 mx-auto mb-2 opacity-40" /><p>Синхронизируйте провайдеров</p>
@@ -633,11 +660,20 @@ const AdminServices = () => {
                   <Table>
                     <TableHeader>
                       <TableRow className="text-[11px]">
+                        <TableHead className="px-2 w-8">
+                          <Checkbox
+                            checked={selectedIds.size === filteredProviderServices.length && filteredProviderServices.length > 0}
+                            onCheckedChange={toggleSelectAll}
+                            className="scale-[0.75]"
+                          />
+                        </TableHead>
                         <TableHead className="px-2">Пров.</TableHead>
                         <TableHead className="px-2">SID</TableHead>
                         <TableHead className="px-2">Услуга</TableHead>
                         <TableHead className="px-2 w-[90px]">Сеть</TableHead>
-                        <TableHead className="px-2 w-[80px] text-right">Цена</TableHead>
+                        <TableHead className="px-2 w-[80px] text-right">Закупка</TableHead>
+                        <TableHead className="px-2 w-[60px] text-right">Нац.%</TableHead>
+                        <TableHead className="px-2 w-[80px] text-right">Наша цена</TableHead>
                         <TableHead className="px-2 w-[80px]">Привязки</TableHead>
                         <TableHead className="px-2 w-[80px]"></TableHead>
                       </TableRow>
@@ -645,15 +681,31 @@ const AdminServices = () => {
                     <TableBody>
                       {filteredProviderServices.map((svc) => {
                         const svcMappings = mappings.filter((m) => m.provider_service_id === svc.id);
+                        const effectiveMarkup = svc.markup_percent ?? 30;
+                        const ourPrice = svc.our_price ?? svc.rate * (1 + effectiveMarkup / 100);
+                        const ladderMarkup = getMarkupForRate(svc.rate, markupLadder);
                         return (
-                          <TableRow key={svc.id} className="text-xs">
+                          <TableRow key={svc.id} className={`text-xs ${selectedIds.has(svc.id) ? "bg-primary/5" : ""}`}>
+                            <TableCell className="px-2">
+                              <Checkbox
+                                checked={selectedIds.has(svc.id)}
+                                onCheckedChange={() => toggleSelect(svc.id)}
+                                className="scale-[0.75]"
+                              />
+                            </TableCell>
                             <TableCell className="px-2"><Badge variant="secondary" className="text-[10px]">{svc.provider}</Badge></TableCell>
                             <TableCell className="px-2 text-muted-foreground font-mono">{svc.provider_service_id}</TableCell>
                             <TableCell className="px-2">
-                              <div className="truncate max-w-[280px] font-medium">{svc.name}</div>
+                              <div className="truncate max-w-[240px] font-medium">{svc.name}</div>
                             </TableCell>
                             <TableCell className="px-2"><Badge variant="outline" className="text-[10px]">{svc.network}</Badge></TableCell>
                             <TableCell className="px-2 text-right font-mono">{Number(svc.rate).toFixed(2)}₽</TableCell>
+                            <TableCell className="px-2 text-right">
+                              <Badge variant={effectiveMarkup >= ladderMarkup ? "default" : "secondary"} className="text-[9px] px-1">
+                                {effectiveMarkup}%
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="px-2 text-right font-mono font-medium">{ourPrice.toFixed(2)}₽</TableCell>
                             <TableCell className="px-2">
                               {svcMappings.length > 0 ? (
                                 <Badge variant="outline" className="text-[9px]">{svcMappings.length}</Badge>
