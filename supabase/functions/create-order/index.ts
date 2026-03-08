@@ -170,6 +170,16 @@ serve(async (req) => {
       return json({ error: 'Invalid price calculation' }, 400);
     }
 
+    // === MINIMUM MARKUP PROTECTION ===
+    // Read min_markup_percent from app_settings (default 200%)
+    const { data: minMarkupSetting } = await adminClient
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'min_markup_percent')
+      .single();
+    const minMarkupPercent = Number(minMarkupSetting?.value ?? 200);
+
+
     // === CHECK PLAN ORDER AMOUNT LIMIT ===
     if (limits.maxOrderAmount > 0 && totalPrice > limits.maxOrderAmount) {
       return json({
@@ -202,6 +212,39 @@ serve(async (req) => {
       // Refund atomically
       await adminClient.rpc('credit_balance', { p_user_id: userId, p_amount: totalPrice });
       return json({ error: 'No providers configured for this service' }, 500);
+    }
+
+    // === MINIMUM MARKUP PROTECTION (server-side) ===
+    // Check that our sell price meets the minimum markup vs cheapest provider cost
+    if (minMarkupPercent > 0) {
+      const providerRates = mappings
+        .map((m: any) => Number(m.provider_services?.rate || 0))
+        .filter((r: number) => r > 0);
+      if (providerRates.length > 0) {
+        const cheapestRate = Math.min(...providerRates);
+        const minAllowedPrice = cheapestRate * (1 + minMarkupPercent / 100);
+        if (Number(service.price) < minAllowedPrice) {
+          // Refund and block
+          await adminClient.rpc('credit_balance', { p_user_id: userId, p_amount: totalPrice });
+          await adminClient.from('financial_alerts').insert({
+            alert_type: 'markup_violation',
+            severity: 'critical',
+            user_id: userId,
+            details: {
+              service_id,
+              service_name: service.name,
+              our_price: service.price,
+              cheapest_rate: cheapestRate,
+              min_allowed_price: minAllowedPrice,
+              min_markup_percent: minMarkupPercent,
+            },
+          });
+          return json({
+            error: `Услуга заблокирована: наценка ниже минимальной (${minMarkupPercent}%). Обратитесь к администратору.`,
+            markup_violation: true,
+          }, 403);
+        }
+      }
     }
 
     // === GET PROVIDERS ===

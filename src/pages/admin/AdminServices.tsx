@@ -81,6 +81,8 @@ interface Mapping {
   is_active: boolean;
 }
 
+const MIN_MARKUP_DEFAULT = 200;
+
 const AdminServices = () => {
   const { user } = useAuth();
   const [providerServices, setProviderServices] = useState<ProviderService[]>([]);
@@ -95,6 +97,7 @@ const AdminServices = () => {
   const [providerFilter, setProviderFilter] = useState("all");
   const [enabledFilter, setEnabledFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("catalog");
+  const [minMarkup, setMinMarkup] = useState(MIN_MARKUP_DEFAULT);
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
@@ -128,12 +131,13 @@ const AdminServices = () => {
 
   const loadAll = async () => {
     setLoading(true);
-    const [psRes, sRes, mRes, pRes, ladderRes] = await Promise.all([
+    const [psRes, sRes, mRes, pRes, ladderRes, minMarkupRes] = await Promise.all([
       supabase.from("provider_services").select("*").order("provider").order("network"),
       supabase.from("services").select("*").order("network").order("category").order("name"),
       supabase.from("service_provider_mappings").select("*").order("priority"),
       supabase.from("providers").select("*").eq("is_enabled", true),
       supabase.from("app_settings").select("value").eq("key", "markup_ladder").single(),
+      supabase.from("app_settings").select("value").eq("key", "min_markup_percent").single(),
     ]);
     setProviderServices((psRes.data as ProviderService[]) || []);
     setServices((sRes.data as Service[]) || []);
@@ -141,6 +145,9 @@ const AdminServices = () => {
     setProviders(pRes.data || []);
     if (ladderRes.data?.value) {
       try { setMarkupLadder(JSON.parse(ladderRes.data.value)); } catch {}
+    }
+    if (minMarkupRes.data?.value) {
+      setMinMarkup(Number(minMarkupRes.data.value) || MIN_MARKUP_DEFAULT);
     }
     setSelectedIds(new Set());
     setLoading(false);
@@ -189,16 +196,23 @@ const AdminServices = () => {
 
   const createFromProvider = async (ps: ProviderService) => {
     const ladderMarkup = getMarkupForRate(ps.rate, markupLadder);
-    const price = ps.our_price ?? ps.rate * (1 + (ps.markup_percent ?? ladderMarkup) / 100);
+    let effectiveMarkup = ps.markup_percent ?? ladderMarkup;
+    if (effectiveMarkup < minMarkup) {
+      effectiveMarkup = minMarkup;
+      toast.info(`Наценка повышена до минимальных ${minMarkup}%`);
+    }
+    const price = ps.our_price ?? ps.rate * (1 + effectiveMarkup / 100);
+    const minAllowedPrice = ps.rate * (1 + minMarkup / 100);
+    const finalPrice = Math.max(price, minAllowedPrice);
     const { data, error } = await supabase.from("services").insert({
       name: ps.name, description: ps.description, category: ps.category,
-      network: ps.network, min_quantity: ps.min_quantity, max_quantity: ps.max_quantity, price,
+      network: ps.network, min_quantity: ps.min_quantity, max_quantity: ps.max_quantity, price: finalPrice,
     }).select().single();
     if (error) { toast.error(error.message); return; }
     await supabase.from("service_provider_mappings").insert({
       service_id: data.id, provider_service_id: ps.id, priority: 1,
     });
-    await logAuditAction("create_service", "service", data.id, { from_provider: ps.provider });
+    await logAuditAction("create_service", "service", data.id, { from_provider: ps.provider, markup: effectiveMarkup });
     toast.success("Услуга создана и привязана");
     await loadAll();
   };
@@ -299,6 +313,10 @@ const AdminServices = () => {
   const applyBulkMarkup = async () => {
     const markup = parseFloat(bulkMarkup);
     if (isNaN(markup) || markup < 0) { toast.error("Введите корректный %"); return; }
+    if (markup < minMarkup) {
+      toast.error(`Минимальная наценка: ${minMarkup}%. Нельзя установить ниже.`);
+      return;
+    }
     const ids = [...selectedIds];
     for (const id of ids) {
       const ps = providerServices.find((p) => p.id === id);
@@ -316,16 +334,24 @@ const AdminServices = () => {
   const applyLadderToSelected = async () => {
     const ids = [...selectedIds];
     let updated = 0;
+    let skipped = 0;
     for (const id of ids) {
       const ps = providerServices.find((p) => p.id === id);
       if (!ps) continue;
-      const markup = getMarkupForRate(ps.rate, markupLadder);
+      let markup = getMarkupForRate(ps.rate, markupLadder);
+      if (markup < minMarkup) {
+        markup = minMarkup; // Enforce minimum
+        skipped++;
+      }
       const ourPrice = ps.rate * (1 + markup / 100);
       await supabase.from("provider_services").update({ markup_percent: markup, our_price: ourPrice }).eq("id", id);
       updated++;
     }
-    toast.success(`Лестница наценок применена к ${updated} услугам`);
-    await logAuditAction("ladder_markup", "provider_services", undefined, { count: updated });
+    const msg = skipped > 0
+      ? `Лестница применена к ${updated} услугам (${skipped} повышены до мин. ${minMarkup}%)`
+      : `Лестница наценок применена к ${updated} услугам`;
+    toast.success(msg);
+    await logAuditAction("ladder_markup", "provider_services", undefined, { count: updated, skipped_to_min: skipped });
     setSelectedIds(new Set());
     await loadAll();
   };
