@@ -367,56 +367,66 @@ const Catalog = () => {
                     )}
                   </div>
 
-                  <div
-                    ref={carouselRef}
-                    className="flex gap-3 overflow-x-auto pb-3 pt-1 px-1 scrollbar-none snap-x snap-mandatory"
-                  >
-                    {categoryServices.map((service) => {
-                      const isSelected = selectedService?.id === service.id;
-                      const pricePerUnit = service.price / 1000;
-                      return (
-                        <motion.button
-                          key={service.id}
-                          onClick={() => {
-                            setSelectedService(service);
-                            setQuantity(Math.max(service.min_quantity, 10));
-                          }}
-                          whileHover={{ y: -2 }}
-                          whileTap={{ scale: 0.98 }}
-                          className={`snap-start shrink-0 w-[220px] p-4 rounded-2xl text-left transition-all relative overflow-hidden ${
-                            isSelected
-                              ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/10'}`
-                              : "bg-card border border-border/60 hover:border-border hover:shadow-md"
-                          }`}
-                        >
-                          {isSelected && (
-                            <div className={`absolute top-2.5 right-2.5 w-5 h-5 rounded-full ${activeNetConfig?.bg || 'bg-primary'} flex items-center justify-center`}>
-                              <Check className="w-3 h-3 text-white" />
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={activeCategory}
+                      ref={carouselRef}
+                      initial={{ opacity: 0, x: 30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -30 }}
+                      transition={{ duration: 0.3, ease: 'easeOut' }}
+                      className="flex gap-3 overflow-x-auto pb-3 pt-1 px-1 scrollbar-none snap-x snap-mandatory"
+                    >
+                      {categoryServices.map((service, i) => {
+                        const isSelected = selectedService?.id === service.id;
+                        const pricePerUnit = service.price / 1000;
+                        return (
+                          <motion.button
+                            key={service.id}
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: i * 0.06 }}
+                            onClick={() => {
+                              setSelectedService(service);
+                              setQuantity(Math.max(service.min_quantity, 10));
+                            }}
+                            whileHover={{ y: -2 }}
+                            whileTap={{ scale: 0.98 }}
+                            className={`snap-start shrink-0 w-[220px] p-4 rounded-2xl text-left transition-all relative overflow-hidden ${
+                              isSelected
+                                ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/10'}`
+                                : "bg-card border border-border/60 hover:border-border hover:shadow-md"
+                            }`}
+                          >
+                            {isSelected && (
+                              <div className={`absolute top-2.5 right-2.5 w-5 h-5 rounded-full ${activeNetConfig?.bg || 'bg-primary'} flex items-center justify-center`}>
+                                <Check className="w-3 h-3 text-white" />
+                              </div>
+                            )}
+                            <h3 className="font-semibold text-sm text-foreground mb-2 pr-6 line-clamp-2 min-h-[2.5rem]">
+                              {service.name}
+                            </h3>
+                            {service.description && (
+                              <p className="text-xs text-muted-foreground line-clamp-3 mb-3 min-h-[3rem]">
+                                {service.description}
+                              </p>
+                            )}
+                            <div className="mt-auto">
+                              <span
+                                className={`inline-block px-3 py-1.5 rounded-full text-xs font-bold ${
+                                  isSelected
+                                    ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
+                                    : "bg-muted text-foreground"
+                                }`}
+                              >
+                                {pricePerUnit.toFixed(2)} ₽/1 шт
+                              </span>
                             </div>
-                          )}
-                          <h3 className="font-semibold text-sm text-foreground mb-2 pr-6 line-clamp-2 min-h-[2.5rem]">
-                            {service.name}
-                          </h3>
-                          {service.description && (
-                            <p className="text-xs text-muted-foreground line-clamp-3 mb-3 min-h-[3rem]">
-                              {service.description}
-                            </p>
-                          )}
-                          <div className="mt-auto">
-                            <span
-                              className={`inline-block px-3 py-1.5 rounded-full text-xs font-bold ${
-                                isSelected
-                                  ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
-                                  : "bg-muted text-foreground"
-                              }`}
-                            >
-                              {pricePerUnit.toFixed(2)} ₽/1 шт
-                            </span>
-                          </div>
-                        </motion.button>
-                      );
-                    })}
-                  </div>
+                          </motion.button>
+                        );
+                      })}
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
               ) : (
                 <div className="flex items-center justify-center py-20 text-muted-foreground">
