@@ -270,7 +270,7 @@ const Index = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border border-primary/20 mb-4 relative z-10"
+                    className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border border-primary/20 mb-3 relative z-10 shrink-0"
                   >
                     <span className="text-sm font-semibold text-foreground flex items-center gap-2">
                       <Zap className="w-4 h-4 text-primary" />
