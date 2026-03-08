@@ -24,21 +24,68 @@ serve(async (req) => {
       return json({ ok: true });
     }
 
-    const paymentId = paymentObj.id;
-    const amount = Number(paymentObj.amount?.value || 0);
-    const metadata = paymentObj.metadata || {};
-    const transactionId = metadata.transaction_id;
-    const userId = metadata.user_id;
-
-    if (!transactionId || !userId || amount <= 0) {
-      console.error('Missing metadata or invalid amount:', { transactionId, userId, amount });
-      return json({ error: 'Invalid metadata' }, 400);
+    const webhookPaymentId = paymentObj.id;
+    if (!webhookPaymentId) {
+      return json({ error: 'Missing payment ID' }, 400);
     }
 
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
+
+    // --- SECURITY: Verify payment with YooKassa API instead of trusting webhook body ---
+    // Get credentials from secrets (preferred) or app_settings fallback
+    let shopId = Deno.env.get('YOOKASSA_SHOP_ID') || '';
+    let secretKey = Deno.env.get('YOOKASSA_SECRET_KEY') || '';
+
+    if (!shopId || !secretKey) {
+      const { data: settings } = await adminClient
+        .from('app_settings')
+        .select('key, value')
+        .in('key', ['yookassa_shop_id', 'yookassa_secret_key']);
+      const map: Record<string, string> = {};
+      (settings || []).forEach((r: any) => { map[r.key] = r.value; });
+      shopId = shopId || map.yookassa_shop_id || '';
+      secretKey = secretKey || map.yookassa_secret_key || '';
+    }
+
+    if (!shopId || !secretKey) {
+      console.error('YooKassa credentials not configured');
+      return json({ error: 'Payment system not configured' }, 500);
+    }
+
+    // Fetch the real payment from YooKassa API
+    const verifyRes = await fetch(`https://api.yookassa.ru/v3/payments/${webhookPaymentId}`, {
+      headers: {
+        'Authorization': 'Basic ' + btoa(`${shopId}:${secretKey}`),
+      },
+    });
+
+    if (!verifyRes.ok) {
+      const errText = await verifyRes.text();
+      console.error('YooKassa verify failed:', verifyRes.status, errText);
+      return json({ error: 'Payment verification failed' }, 400);
+    }
+
+    const verifiedPayment = await verifyRes.json();
+
+    // Use ONLY verified data from YooKassa API, never from webhook body
+    if (verifiedPayment.status !== 'succeeded') {
+      console.log(`Payment ${webhookPaymentId} not succeeded (status: ${verifiedPayment.status}), ignoring`);
+      return json({ ok: true, status: verifiedPayment.status });
+    }
+
+    const paymentId = verifiedPayment.id;
+    const amount = Number(verifiedPayment.amount?.value || 0);
+    const metadata = verifiedPayment.metadata || {};
+    const transactionId = metadata.transaction_id;
+    const userId = metadata.user_id;
+
+    if (!transactionId || !userId || amount <= 0) {
+      console.error('Missing metadata or invalid amount in verified payment:', { transactionId, userId, amount });
+      return json({ error: 'Invalid metadata' }, 400);
+    }
 
     // Check if transaction already processed (idempotency)
     const { data: existingTx } = await adminClient
