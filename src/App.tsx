@@ -105,6 +105,7 @@ const App = () => (
               <Route path="payments" element={<AdminPayments />} />
               <Route path="api" element={<AdminAPI />} />
               <Route path="site-content" element={<AdminSiteContent />} />
+              <Route path="marketing" element={<AdminMarketing />} />
             </Route>
             <Route path="/page/:slug" element={<DynamicPage />} />
             <Route path="*" element={<NotFound />} />

@@ -44,6 +44,7 @@ const menuGroups: MenuGroup[] = [
       { title: "Аналитика", url: "/admin/analytics", icon: TrendingUp },
       { title: "Заказы", url: "/admin/orders", icon: ShoppingCart },
       { title: "Транзакции", url: "/admin/transactions", icon: Receipt },
+      { title: "Маркетинг", url: "/admin/marketing", icon: Megaphone },
       { title: "Пользователи", url: "/admin/users", icon: Users },
     ],
   },
