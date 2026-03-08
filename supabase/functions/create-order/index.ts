@@ -214,6 +214,39 @@ serve(async (req) => {
       return json({ error: 'No providers configured for this service' }, 500);
     }
 
+    // === MINIMUM MARKUP PROTECTION (server-side) ===
+    // Check that our sell price meets the minimum markup vs cheapest provider cost
+    if (minMarkupPercent > 0) {
+      const providerRates = mappings
+        .map((m: any) => Number(m.provider_services?.rate || 0))
+        .filter((r: number) => r > 0);
+      if (providerRates.length > 0) {
+        const cheapestRate = Math.min(...providerRates);
+        const minAllowedPrice = cheapestRate * (1 + minMarkupPercent / 100);
+        if (Number(service.price) < minAllowedPrice) {
+          // Refund and block
+          await adminClient.rpc('credit_balance', { p_user_id: userId, p_amount: totalPrice });
+          await adminClient.from('financial_alerts').insert({
+            alert_type: 'markup_violation',
+            severity: 'critical',
+            user_id: userId,
+            details: {
+              service_id,
+              service_name: service.name,
+              our_price: service.price,
+              cheapest_rate: cheapestRate,
+              min_allowed_price: minAllowedPrice,
+              min_markup_percent: minMarkupPercent,
+            },
+          });
+          return json({
+            error: `Услуга заблокирована: наценка ниже минимальной (${minMarkupPercent}%). Обратитесь к администратору.`,
+            markup_violation: true,
+          }, 403);
+        }
+      }
+    }
+
     // === GET PROVIDERS ===
     const providerKeys = [...new Set(mappings.map((m: any) => m.provider_services?.provider).filter(Boolean))];
     const { data: providersData } = await adminClient
