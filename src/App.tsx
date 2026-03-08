@@ -56,6 +56,7 @@ const App = () => (
             <Route path="users" element={<AdminUsers />} />
             <Route path="users/:userId" element={<AdminUserDetail />} />
             <Route path="categories" element={<AdminCategories />} />
+            <Route path="settings" element={<AdminSettingsPage />} />
             <Route path="support" element={<AdminSupport />} />
             <Route path="staff" element={<AdminStaff />} />
             <Route path="providers" element={<AdminProviders />} />

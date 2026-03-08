@@ -25,6 +25,7 @@ const adminMenuItems = [
   { title: "Провайдеры", url: "/admin/providers", icon: Server },
   { title: "Поддержка", url: "/admin/support", icon: MessageSquare },
   { title: "Сотрудники", url: "/admin/staff", icon: Shield },
+  { title: "Настройки", url: "/admin/settings", icon: Settings },
 ];
 
 export function AdminSidebar() {
