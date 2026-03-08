@@ -1,16 +1,19 @@
-import { Mail, MessageCircle, Send, Headset } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Mail, MessageCircle, Send, Headset, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 
-const socials = [
-  { name: 'Telegram', href: 'https://t.me/smmpanel', icon: Send },
-  { name: 'WhatsApp', href: 'https://wa.me/79001234567', icon: MessageCircle },
-  { name: 'Email', href: 'mailto:support@smmpanel.ru', icon: Mail },
-];
+const SETTINGS_KEYS = ['contact_email', 'contact_work_hours', 'contact_work_days'];
+const DEFAULTS: Record<string, string> = {
+  contact_email: 'support@smmpanel.ru',
+  contact_work_hours: '9:00 — 21:00 МСК',
+  contact_work_days: 'Пн — Вс',
+};
 
 const legalLinks = [
   { title: 'Каталог услуг', to: '/catalog' },
-  { title: 'Контакты', to: '/page/contacts' },
+  { title: 'Контакты', to: '/contact' },
   { title: 'Помощь', to: '/page/help' },
   { title: 'Возврат средств', to: '/page/refund' },
   { title: 'Правила сервиса', to: '/page/terms' },
@@ -20,6 +23,28 @@ const legalLinks = [
 ];
 
 const Footer = () => {
+  const [settings, setSettings] = useState(DEFAULTS);
+
+  useEffect(() => {
+    supabase
+      .from('app_settings')
+      .select('key, value')
+      .in('key', SETTINGS_KEYS)
+      .then(({ data }) => {
+        if (data) {
+          const map = { ...DEFAULTS };
+          data.forEach((r) => { if (r.value) map[r.key] = r.value; });
+          setSettings(map);
+        }
+      });
+  }, []);
+
+  const socials = [
+    { name: 'Telegram', href: 'https://t.me/smmpanel', icon: Send },
+    { name: 'WhatsApp', href: 'https://wa.me/79001234567', icon: MessageCircle },
+    { name: 'Email', href: `mailto:${settings.contact_email}`, icon: Mail },
+  ];
+
   return (
     <motion.footer
       initial={{ opacity: 0, y: 40 }}
@@ -34,6 +59,10 @@ const Footer = () => {
           <div>
             <p className="text-sm font-semibold text-white">CoolLike</p>
             <p className="text-xs text-white/60 mt-1">Продвижение в социальных сетях</p>
+            <div className="flex items-center gap-2 mt-2 text-xs text-white/50">
+              <Clock className="w-3 h-3" />
+              <span>{settings.contact_work_days}, {settings.contact_work_hours}</span>
+            </div>
             <div className="flex items-center gap-3 mt-3">
               {socials.map((s) => (
                 <a

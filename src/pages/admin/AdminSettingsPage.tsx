@@ -22,6 +22,11 @@ interface SettingMeta {
 }
 
 const SETTINGS_META: SettingMeta[] = [
+  // Contacts
+  { key: "contact_email", label: "Email для связи", hint: "Публичный email, отображается на странице контактов и в футере", type: "text", group: "contacts" },
+  { key: "contact_work_hours", label: "Часы работы", hint: "Например: 9:00 — 21:00 МСК", type: "text", group: "contacts" },
+  { key: "contact_work_days", label: "Рабочие дни", hint: "Например: Пн — Вс", type: "text", group: "contacts" },
+
   // Telegram Support Bot
   { key: "support_bot_token", label: "Токен бота поддержки", hint: "Токен отдельного Telegram-бота для приёма обращений (получите у @BotFather). Оставьте пустым чтобы использовать основной бот", type: "text", group: "telegram_support" },
   { key: "support_bot_welcome", label: "Приветствие бота", hint: "Сообщение которое бот отправит при команде /start", type: "textarea", group: "telegram_support" },
@@ -84,6 +89,7 @@ const SETTINGS_META: SettingMeta[] = [
 ];
 
 const GROUPS = [
+  { id: "contacts", label: "Контакты", icon: Mail, description: "Публичный email и часы работы поддержки" },
   { id: "telegram_support", label: "Telegram-бот поддержки", icon: MessageCircle, description: "Отдельный бот для приёма обращений через Telegram" },
   { id: "email_support", label: "Email поддержки", icon: Mail, description: "Настройки почты для приёма и отправки обращений" },
   { id: "ai_support", label: "ИИ-подсказки", icon: Sparkles, description: "Настройки ИИ-помощника для операторов поддержки (Lovable AI)" },

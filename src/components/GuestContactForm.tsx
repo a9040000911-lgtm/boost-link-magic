@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { MessageSquare, Send, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ const inquirySchema = z.object({
   message: z.string().trim().min(10, "Минимум 10 символов").max(2000),
 });
 
-export default function GuestContactForm() {
+export default function GuestContactForm({ workHours }: { workHours?: string }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -102,6 +103,12 @@ export default function GuestContactForm() {
             <Send className="h-4 w-4 mr-2" />
             {sending ? "Отправка…" : "Отправить"}
           </Button>
+          {workHours && (
+            <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5 mt-2">
+              <Clock className="h-3 w-3" />
+              Часы работы поддержки: {workHours}
+            </p>
+          )}
         </form>
       </CardContent>
     </Card>
