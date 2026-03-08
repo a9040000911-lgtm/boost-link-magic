@@ -418,7 +418,7 @@ const AdminSettingsPage = () => {
       {hasChanges && (
         <div className="sticky bottom-0 bg-background border-t p-2 flex items-center justify-between shrink-0">
           <span className="text-xs text-muted-foreground">
-            Изменено: {changedKeys.length} параметров
+            Изменено: {changedKeys.length + (ladderChanged ? 1 : 0)} параметров
           </span>
           <Button size="sm" className="h-8 text-xs px-4" onClick={saveAll} disabled={saving}>
             <Save className="h-3 w-3 mr-1" />{saving ? "Сохранение..." : "Сохранить все изменения"}
