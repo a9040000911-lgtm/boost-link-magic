@@ -236,6 +236,7 @@ export default function AdminLinks() {
     } else {
       await supabase.from('platforms').insert(data);
       toast.success('Платформа добавлена');
+      setTab('platforms');
     }
     setShowPlatformDialog(false); fetchAll();
   };
