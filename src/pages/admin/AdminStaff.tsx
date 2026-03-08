@@ -294,15 +294,17 @@ const AdminStaff = () => {
 
                   <div>
                     <Label className="text-xs">Роль</Label>
-                    <Select value={addRole} onValueChange={(v) => setAddRole(v as any)}>
+                    <Select value={addRole} onValueChange={(v) => setAddRole(v as StaffRole)}>
                       <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="moderator">Модератор</SelectItem>
-                        <SelectItem value="admin">Администратор</SelectItem>
+                        <SelectItem value="moderator">{ROLE_LABELS.moderator}</SelectItem>
+                        <SelectItem value="admin">{ROLE_LABELS.admin}</SelectItem>
+                        <SelectItem value="ceo">{ROLE_LABELS.ceo}</SelectItem>
+                        <SelectItem value="investor">{ROLE_LABELS.investor}</SelectItem>
                       </SelectContent>
                     </Select>
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      {addRole === "admin" ? "Полный доступ ко всем разделам" : "Ограниченный доступ, настраивается правами ниже"}
+                      {ROLE_DESCRIPTIONS[addRole]}
                     </p>
                   </div>
 
