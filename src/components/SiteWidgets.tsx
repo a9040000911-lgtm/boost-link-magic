@@ -342,6 +342,8 @@ const SiteWidgets = () => {
                     file={reviewFile}
                     preview={reviewPreview}
                     onFileChange={(f, p) => { setReviewFile(f); setReviewPreview(p); }}
+                    onBeforeScreenshot={() => setScreenshotHidden(true)}
+                    onAfterScreenshot={() => setScreenshotHidden(false)}
                   />
                 </div>
                 <Button onClick={submitReview} disabled={reviewSending || !reviewMessage.trim()} className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white">
