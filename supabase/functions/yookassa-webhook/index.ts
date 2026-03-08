@@ -12,7 +12,6 @@ const YOOKASSA_IP_RANGES = [
 
 function isYooKassaIP(ip: string): boolean {
   if (!ip) return false;
-  // In dev/test environments, allow all
   const cleanIP = ip.split(',')[0].trim();
   if (cleanIP === '127.0.0.1' || cleanIP === '::1') return true;
   return YOOKASSA_IP_RANGES.some(prefix => cleanIP.startsWith(prefix));
@@ -28,7 +27,6 @@ serve(async (req) => {
     const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || '';
     if (!isYooKassaIP(clientIP)) {
       console.warn(`Webhook from untrusted IP: ${clientIP}`);
-      // Log but don't block — edge function proxies may change IP; we verify with API below
     }
 
     const body = await req.json();
@@ -54,20 +52,26 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Determine test or production mode from settings
-    const { data: testModeSetting } = await adminClient
+    // Read credentials from app_settings (same source as admin UI)
+    const { data: credSettings } = await adminClient
       .from('app_settings')
-      .select('value')
-      .eq('key', 'yookassa_test_mode')
-      .single();
+      .select('key, value')
+      .in('key', [
+        'yookassa_test_mode',
+        'yookassa_test_shop_id', 'yookassa_test_secret_key',
+        'yookassa_shop_id', 'yookassa_secret_key',
+      ]);
 
-    const isTestMode = testModeSetting?.value === 'true';
+    const settingsMap: Record<string, string> = {};
+    (credSettings || []).forEach((r: any) => { settingsMap[r.key] = r.value; });
+
+    const isTestMode = settingsMap.yookassa_test_mode === 'true';
     const shopId = isTestMode
-      ? Deno.env.get('YOOKASSA_TEST_SHOP_ID') || ''
-      : Deno.env.get('YOOKASSA_SHOP_ID') || '';
+      ? (settingsMap.yookassa_test_shop_id || Deno.env.get('YOOKASSA_TEST_SHOP_ID') || '')
+      : (settingsMap.yookassa_shop_id || Deno.env.get('YOOKASSA_SHOP_ID') || '');
     const secretKey = isTestMode
-      ? Deno.env.get('YOOKASSA_TEST_SECRET_KEY') || ''
-      : Deno.env.get('YOOKASSA_SECRET_KEY') || '';
+      ? (settingsMap.yookassa_test_secret_key || Deno.env.get('YOOKASSA_TEST_SECRET_KEY') || '')
+      : (settingsMap.yookassa_secret_key || Deno.env.get('YOOKASSA_SECRET_KEY') || '');
 
     if (!shopId || !secretKey) {
       console.error(`YooKassa credentials not configured (test_mode=${isTestMode})`);

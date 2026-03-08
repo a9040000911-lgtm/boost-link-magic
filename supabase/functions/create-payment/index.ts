@@ -52,10 +52,16 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
+    // Read ALL relevant settings including credentials from app_settings
     const { data: settings } = await adminClient
       .from('app_settings')
       .select('key, value')
-      .in('key', ['min_deposit_amount', 'active_payment_system', 'yookassa_return_url', 'yookassa_test_mode']);
+      .in('key', [
+        'min_deposit_amount', 'active_payment_system', 'yookassa_return_url',
+        'yookassa_test_mode',
+        'yookassa_test_shop_id', 'yookassa_test_secret_key',
+        'yookassa_shop_id', 'yookassa_secret_key',
+      ]);
 
     const settingsMap: Record<string, string> = {};
     (settings || []).forEach((r: any) => { settingsMap[r.key] = r.value; });
@@ -65,18 +71,19 @@ serve(async (req) => {
       return json({ error: `Минимальная сумма пополнения: ${minDeposit} ₽` }, 400);
     }
 
-    // Determine test or production mode
+    // Determine test or production mode — read credentials from app_settings (admin UI)
+    // Fallback to env vars for backward compatibility
     const isTestMode = settingsMap.yookassa_test_mode === 'true';
     const shopId = isTestMode
-      ? Deno.env.get('YOOKASSA_TEST_SHOP_ID')
-      : Deno.env.get('YOOKASSA_SHOP_ID');
+      ? (settingsMap.yookassa_test_shop_id || Deno.env.get('YOOKASSA_TEST_SHOP_ID') || '')
+      : (settingsMap.yookassa_shop_id || Deno.env.get('YOOKASSA_SHOP_ID') || '');
     const secretKey = isTestMode
-      ? Deno.env.get('YOOKASSA_TEST_SECRET_KEY')
-      : Deno.env.get('YOOKASSA_SECRET_KEY');
+      ? (settingsMap.yookassa_test_secret_key || Deno.env.get('YOOKASSA_TEST_SECRET_KEY') || '')
+      : (settingsMap.yookassa_secret_key || Deno.env.get('YOOKASSA_SECRET_KEY') || '');
 
     if (!shopId || !secretKey) {
       console.error(`YooKassa credentials not configured (test_mode=${isTestMode})`);
-      return json({ error: 'Платёжная система не настроена' }, 500);
+      return json({ error: 'Платёжная система не настроена. Заполните ключи в админке.' }, 500);
     }
 
     const returnUrl = settingsMap.yookassa_return_url || `${req.headers.get('origin') || 'https://boost-link-magic.lovable.app'}/dashboard/transactions`;
@@ -118,7 +125,7 @@ serve(async (req) => {
           type: 'redirect',
           return_url: returnUrl,
         },
-        description: `Пополнение баланса CoolLike — ${safeAmount} ₽${isTestMode ? ' (тест)' : ''}`,
+        description: `Пополнение баланса — ${safeAmount} ₽${isTestMode ? ' (тест)' : ''}`,
         metadata: {
           transaction_id: tx.id,
           user_id: userId,
@@ -126,7 +133,7 @@ serve(async (req) => {
         receipt: userEmail ? {
           customer: { email: userEmail },
           items: [{
-            description: `Пополнение баланса CoolLike`,
+            description: `Пополнение баланса`,
             quantity: '1',
             amount: { value: safeAmount.toFixed(2), currency: 'RUB' },
             vat_code: 1,
@@ -152,6 +159,7 @@ serve(async (req) => {
       confirmation_url: yooData.confirmation?.confirmation_url,
       transaction_id: tx.id,
       amount: safeAmount,
+      test_mode: isTestMode,
     });
   } catch (error: unknown) {
     console.error('Create payment error:', error);
