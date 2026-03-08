@@ -157,7 +157,7 @@ const Index = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 className="h-full flex items-center justify-center py-2"
               >
-                <div className="relative w-full max-w-2xl max-h-full rounded-2xl border border-border/60 shadow-xl bg-card/95 backdrop-blur-xl p-4 text-center overflow-hidden flex flex-col">
+                <div className="relative w-full max-w-2xl max-h-full rounded-2xl border border-border/60 shadow-xl bg-card/95 backdrop-blur-xl p-4 text-center overflow-y-auto flex flex-col">
                   {/* Decorative gradient blobs */}
                   <motion.div
                     className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-gradient-to-br from-pink-400/30 via-rose-400/20 to-orange-300/20 blur-2xl pointer-events-none"
