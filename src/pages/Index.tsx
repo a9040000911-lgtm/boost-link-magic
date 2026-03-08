@@ -263,7 +263,12 @@ const Index = () => {
       </div>
 
       {/* Marketing */}
-      {!showFlow && !showSummary && <MarketingSection />}
+      {!showFlow && !showSummary && (
+        <>
+          <MarketingSection />
+          <TestimonialsSection />
+        </>
+      )}
     </div>
   );
 };
