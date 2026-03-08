@@ -103,6 +103,36 @@ const Auth = () => {
             <CardDescription>Войдите или создайте аккаунт</CardDescription>
           </CardHeader>
           <CardContent>
+            {forgotMode ? (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <p className="text-sm text-muted-foreground">Введите email, и мы отправим ссылку для сброса пароля.</p>
+                <div className="space-y-2">
+                  <Label htmlFor="forgot-email">Email</Label>
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    required
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-lg shadow-primary/30"
+                >
+                  {loading ? "Отправка..." : "Отправить ссылку"}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setForgotMode(false)}
+                  className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Вернуться к входу
+                </button>
+              </form>
+            ) : (
             <Tabs defaultValue="login">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="login">Вход</TabsTrigger>
@@ -123,7 +153,16 @@ const Auth = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">Пароль</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="login-password">Пароль</Label>
+                      <button
+                        type="button"
+                        onClick={() => setForgotMode(true)}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Забыли пароль?
+                      </button>
+                    </div>
                     <div className="relative">
                       <Input
                         id="login-password"
