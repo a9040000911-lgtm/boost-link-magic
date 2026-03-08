@@ -79,7 +79,8 @@ const AdminServices = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [newService, setNewService] = useState({
     name: "", description: "", category: "", network: "",
-    min_quantity: "100", max_quantity: "10000", price: "0"
+    min_quantity: "100", max_quantity: "10000", price: "0",
+    speed: "medium", guarantee: "none", warning_text: ""
   });
 
   // Edit dialog
