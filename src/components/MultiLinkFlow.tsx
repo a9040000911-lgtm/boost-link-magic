@@ -4,6 +4,7 @@ import CategoryCards from '@/components/CategoryCards';
 import PlatformIcon from '@/components/PlatformIcon';
 import ServiceCarousel from '@/components/ServiceCarousel';
 import {
+  analyzeLink,
   detectPlatform,
   categoriesByPlatform,
   getServicesForCategory,
@@ -11,6 +12,7 @@ import {
   type Platform,
   type Category,
   type Service,
+  type LinkAnalysis,
 } from '@/lib/smm-data';
 import { ArrowLeft, ArrowRight, Check, ExternalLink, Minus, Plus } from 'lucide-react';
 
