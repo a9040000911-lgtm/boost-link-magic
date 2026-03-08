@@ -665,9 +665,17 @@ const AdminServices = () => {
                     <div className="flex items-center gap-1">
                       <Input
                         type="number"
-                        placeholder="% наценки"
+                        placeholder={`≥${minMarkup}%`}
+                        min={minMarkup}
                         value={bulkMarkup}
-                        onChange={(e) => setBulkMarkup(e.target.value)}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v && parseFloat(v) < minMarkup) {
+                            setBulkMarkup(String(minMarkup));
+                          } else {
+                            setBulkMarkup(v);
+                          }
+                        }}
                         className="h-7 w-[90px] text-xs"
                       />
                       <Button size="sm" className="h-7 text-xs" onClick={applyBulkMarkup} disabled={!bulkMarkup}>
