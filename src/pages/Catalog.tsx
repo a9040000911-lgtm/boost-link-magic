@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, ArrowLeft, Package, Link2, Mail, Minus, Plus, Sparkles, Check,
   BarChart3, Zap, Clock, Timer, Snail, TrendingUp, Shield, ShieldCheck, ShieldAlert,
