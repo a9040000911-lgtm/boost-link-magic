@@ -51,6 +51,7 @@ import Contact from "./pages/Contact";
 import AdminSiteContent from "./pages/admin/AdminSiteContent";
 import AdminMarketing from "./pages/admin/AdminMarketing";
 import DashboardBonuses from "./pages/dashboard/DashboardBonuses";
+import DashboardRules from "./pages/dashboard/DashboardRules";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +79,7 @@ const App = () => (
               <Route path="projects/:projectId" element={<DashboardProjectDetail />} />
               <Route path="settings" element={<DashboardSettings />} />
               <Route path="bonuses" element={<DashboardBonuses />} />
+              <Route path="rules" element={<DashboardRules />} />
               <Route path="support" element={<DashboardSupport />} />
             </Route>
             <Route path="/admin" element={<AdminLayout />}>
