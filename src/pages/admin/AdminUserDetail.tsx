@@ -41,7 +41,7 @@ const AdminUserDetail = () => {
   const [editPassword, setEditPassword] = useState("");
   const [editDiscount, setEditDiscount] = useState("0");
   const [balanceAmount, setBalanceAmount] = useState("");
-
+  const [balanceReason, setBalanceReason] = useState("");
   // Auth info
   const [authInfo, setAuthInfo] = useState<any>(null);
 
@@ -119,20 +119,43 @@ const AdminUserDetail = () => {
   const adjustBalance = async (direction: "add" | "sub") => {
     const amount = parseFloat(balanceAmount);
     if (isNaN(amount) || amount <= 0) return;
+    if (amount > 100000) {
+      toast.error("Максимальная сумма операции: 100,000₽");
+      return;
+    }
+    if (!balanceReason.trim()) {
+      toast.error("Укажите причину изменения баланса");
+      return;
+    }
     setSaving(true);
     try {
-      const newBalance = direction === "add"
-        ? Number(profile.balance) + amount
-        : Math.max(0, Number(profile.balance) - amount);
-      await supabase.from("profiles").update({ balance: newBalance, updated_at: new Date().toISOString() }).eq("id", userId);
+      // Use atomic DB functions instead of read-then-write
+      const rpcFn = direction === "add" ? "credit_balance" : "deduct_balance";
+      const { data: newBalance, error: rpcErr } = await supabase.rpc(rpcFn as any, {
+        p_user_id: userId,
+        p_amount: amount,
+      });
+
+      if (rpcErr) throw rpcErr;
+      if (newBalance === -1) {
+        toast.error("Недостаточно средств для списания");
+        setSaving(false);
+        return;
+      }
+
       await supabase.from("transactions").insert({
         user_id: userId!, type: direction === "add" ? "admin_deposit" : "admin_withdraw",
-        amount, balance_after: newBalance, status: "completed",
-        description: direction === "add" ? "Пополнение администратором" : "Списание администратором",
+        amount: direction === "add" ? amount : -amount,
+        balance_after: newBalance as number,
+        status: "completed",
+        description: `${direction === "add" ? "Пополнение" : "Списание"} администратором: ${balanceReason.trim()}`,
       });
-      await logAuditAction("update_user_balance", "user", userId, { direction, amount, new_balance: newBalance });
-      toast.success(`${direction === "add" ? "+" : "−"}${amount.toFixed(2)}₽ → ${newBalance.toFixed(2)}₽`);
+      await logAuditAction("update_user_balance", "user", userId, {
+        direction, amount, new_balance: newBalance, reason: balanceReason.trim(),
+      });
+      toast.success(`${direction === "add" ? "+" : "−"}${amount.toFixed(2)}₽ → ${(newBalance as number).toFixed(2)}₽`);
       setBalanceAmount("");
+      setBalanceReason("");
       await loadAll();
     } catch (e: any) { toast.error(e.message); }
     setSaving(false);
@@ -202,12 +225,16 @@ const AdminUserDetail = () => {
         <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Баланс:</span>
         <Input
           type="number" value={balanceAmount} onChange={e => setBalanceAmount(e.target.value)}
-          placeholder="Сумма" className="h-7 w-[120px] text-xs"
+          placeholder="Сумма" className="h-7 w-[100px] text-xs"
         />
-        <Button size="sm" variant="outline" className="h-7 text-xs px-2 gap-1" onClick={() => adjustBalance("add")} disabled={saving || !balanceAmount}>
+        <Input
+          value={balanceReason} onChange={e => setBalanceReason(e.target.value)}
+          placeholder="Причина (обязательно)" className="h-7 w-[180px] text-xs"
+        />
+        <Button size="sm" variant="outline" className="h-7 text-xs px-2 gap-1" onClick={() => adjustBalance("add")} disabled={saving || !balanceAmount || !balanceReason.trim()}>
           <Plus className="h-3 w-3" />Пополнить
         </Button>
-        <Button size="sm" variant="outline" className="h-7 text-xs px-2 gap-1 text-destructive" onClick={() => adjustBalance("sub")} disabled={saving || !balanceAmount}>
+        <Button size="sm" variant="outline" className="h-7 text-xs px-2 gap-1 text-destructive" onClick={() => adjustBalance("sub")} disabled={saving || !balanceAmount || !balanceReason.trim()}>
           <Minus className="h-3 w-3" />Списать
         </Button>
         <Separator orientation="vertical" className="h-5 mx-1" />

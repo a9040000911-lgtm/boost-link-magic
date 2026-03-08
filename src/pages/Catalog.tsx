@@ -54,6 +54,7 @@ const Catalog = () => {
   const [quantity, setQuantity] = useState(10);
   const [consentOffer, setConsentOffer] = useState(false);
   const [consentPD, setConsentPD] = useState(false);
+  const [ordering, setOrdering] = useState(false);
 
   const carouselRef = useRef<HTMLDivElement>(null);
 
@@ -157,12 +158,49 @@ const Catalog = () => {
   const activeNetConfig = networkConfig.find(n => n.key === activeNetwork);
   const totalPrice = selectedService ? (selectedService.price / 1000) * quantity : 0;
 
-  const handleOrder = () => {
+  const handleOrder = async () => {
     if (!user) {
       navigate("/auth");
       return;
     }
-    toast({ title: "Заказ оформлен!", description: `${selectedService?.name} × ${quantity}` });
+    if (!selectedService || !link.trim() || ordering) return;
+
+    setOrdering(true);
+    try {
+      // Generate idempotency key to prevent double orders
+      const idempotencyKey = `${user.id}_${selectedService.id}_${Date.now()}`;
+
+      const { data, error } = await supabase.functions.invoke("create-order", {
+        body: {
+          service_id: selectedService.id,
+          link: link.trim(),
+          quantity,
+          idempotency_key: idempotencyKey,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.deduplicated) {
+        toast({ title: "Заказ уже создан", description: "Повторный запрос проигнорирован" });
+      } else {
+        toast({
+          title: "✅ Заказ оформлен!",
+          description: `${selectedService.name} × ${quantity} — ${Number(data.price).toFixed(2)}₽`,
+        });
+      }
+
+      // Reset form
+      setLink("");
+      setConsentOffer(false);
+      setConsentPD(false);
+    } catch (e: any) {
+      const msg = e.message || "Ошибка при создании заказа";
+      toast({ title: "Ошибка", description: msg, variant: "destructive" });
+    } finally {
+      setOrdering(false);
+    }
   };
 
   if (loading) {
@@ -457,11 +495,20 @@ const Catalog = () => {
 
                     <button
                       onClick={handleOrder}
-                      disabled={!link.trim() || !consentOffer || !consentPD}
+                      disabled={!link.trim() || !consentOffer || !consentPD || ordering}
                       className={`w-full sm:w-auto px-8 py-3 rounded-xl ${activeNetConfig?.bg || 'bg-gradient-to-r from-primary to-secondary'} text-white font-bold text-base shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/20'} hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3`}
                     >
-                      <span className="text-lg font-bold">{totalPrice.toFixed(2)} ₽</span>
-                      <span className="border-l border-primary-foreground/30 pl-3">Оформить заказ</span>
+                      {ordering ? (
+                        <span className="flex items-center gap-2">
+                          <span className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
+                          Оформляем...
+                        </span>
+                      ) : (
+                        <>
+                          <span className="text-lg font-bold">{totalPrice.toFixed(2)} ₽</span>
+                          <span className="border-l border-primary-foreground/30 pl-3">Оформить заказ</span>
+                        </>
+                      )}
                     </button>
                   </div>
 
