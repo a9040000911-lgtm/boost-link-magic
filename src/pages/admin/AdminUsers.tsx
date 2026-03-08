@@ -23,6 +23,7 @@ interface Profile {
 
 const AdminUsers = () => {
   const { user } = useAuth();
+  const { isAdmin } = useAdminRole();
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [orderCounts, setOrderCounts] = useState<Record<string, number>>({});
