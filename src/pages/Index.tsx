@@ -437,7 +437,24 @@ const Index = () => {
                     </button>
                     <button
                       disabled={!email.includes('@') || !consentPD || !consentOffer}
-                      className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-primary to-rose-500 text-primary-foreground text-xs font-bold shadow-md disabled:opacity-40"
+                      onClick={() => {
+                        if (!completedOrders) return;
+                        // Save order data to sessionStorage for post-auth pickup
+                        sessionStorage.setItem('pending_order', JSON.stringify({
+                          orders: completedOrders.map(o => ({
+                            url: o.url,
+                            platform: o.platform,
+                            categoryName: o.category?.name,
+                            serviceName: o.service?.name,
+                            serviceId: o.service?.id,
+                            quantity: o.quantity,
+                            price: o.service?.price,
+                          })),
+                          email,
+                        }));
+                        navigate(`/auth?email=${encodeURIComponent(email)}&redirect=/dashboard/orders&pending=1`);
+                      }}
+                      className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-primary to-rose-500 text-primary-foreground text-xs font-bold shadow-md disabled:opacity-40 hover:shadow-lg transition-shadow"
                     >
                       🚀 Оплатить
                     </button>
