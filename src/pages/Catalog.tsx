@@ -218,7 +218,7 @@ const Catalog = () => {
             ))}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Main Content */}
       <div className="flex-1">
