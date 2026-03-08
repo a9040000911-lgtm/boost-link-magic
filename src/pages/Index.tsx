@@ -155,197 +155,104 @@ const Index = () => {
                 key="summary"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="h-full flex items-center justify-center py-2"
+                className="h-full flex items-center justify-center"
               >
-                <div className="relative w-full max-w-2xl max-h-full rounded-2xl border border-border/60 shadow-xl bg-card/95 backdrop-blur-xl p-4 text-center overflow-y-auto flex flex-col">
-                  {/* Decorative gradient blobs */}
-                  <motion.div
-                    className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-gradient-to-br from-pink-400/30 via-rose-400/20 to-orange-300/20 blur-2xl pointer-events-none"
-                    animate={{ scale: [1, 1.3, 1], rotate: [0, 90, 0] }}
-                    transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-                  />
-                  <motion.div
-                    className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-gradient-to-tr from-violet-400/25 via-blue-400/20 to-sky-300/15 blur-2xl pointer-events-none"
-                    animate={{ scale: [1, 1.2, 1], rotate: [0, -60, 0] }}
-                    transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-                  />
+                <div className="relative w-full max-w-2xl rounded-2xl border border-border/60 shadow-xl bg-card/95 backdrop-blur-xl px-4 py-3 text-center">
+                  {/* Header — inline */}
+                  <div className="flex items-center justify-center gap-2 mb-2 relative z-10">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center shadow-md">
+                      <PartyPopper className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <h2 className="text-sm font-bold text-foreground leading-tight">🎉 Заказ сформирован!</h2>
+                      <p className="text-[10px] text-muted-foreground">{completedOrders.length} {completedOrders.length === 1 ? 'ссылка' : 'ссылок'}</p>
+                    </div>
+                  </div>
 
-                  {/* Floating sparkles */}
-                  <motion.div className="absolute top-3 right-4 text-amber-400 pointer-events-none"
-                    animate={{ y: [0, -5, 0], opacity: [0.5, 1, 0.5] }}
-                    transition={{ duration: 3, repeat: Infinity }}
-                  >
-                    <Sparkles className="w-3 h-3" />
-                  </motion.div>
-
-                  {/* Success icon */}
-                  <motion.div
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: 'spring', bounce: 0.5 }}
-                    className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 via-rose-500 to-orange-400 flex items-center justify-center mx-auto mb-2 shadow-lg shadow-pink-500/30 relative z-10"
-                  >
-                    <PartyPopper className="w-5 h-5 text-white" />
-                  </motion.div>
-
-                  <motion.h2
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="text-lg font-bold text-foreground mb-0.5 relative z-10"
-                  >
-                    🎉 Заказ сформирован!
-                  </motion.h2>
-                  <p className="text-xs text-muted-foreground mb-2 relative z-10">
-                    {completedOrders.length} {completedOrders.length === 1 ? 'ссылка' : 'ссылок'} настроено
-                  </p>
-
-                  <div className="space-y-1.5 text-left mb-3 flex-1 min-h-0 overflow-y-auto relative z-10">
+                  {/* Order rows — compact */}
+                  <div className="space-y-1 text-left mb-2 relative z-10">
                     {completedOrders.map((order, i) => {
                       const price = parseFloat(order.service?.price?.replace(/[^\d.]/g, '') || '0');
                       const lineTotal = price * order.quantity;
-                      const rowGradients = [
-                        'from-pink-500/10 to-rose-500/5',
-                        'from-violet-500/10 to-purple-500/5',
-                        'from-sky-500/10 to-blue-500/5',
-                        'from-amber-500/10 to-orange-500/5',
-                      ];
                       return (
-                        <motion.div
-                          key={i}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.1 }}
-                          whileHover={{ scale: 1.02, x: 4 }}
-                          className={`flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r ${rowGradients[i % rowGradients.length]} border border-border/40`}
-                        >
-                          <motion.span
-                            animate={{ rotate: [0, 10, -10, 0] }}
-                            transition={{ duration: 3, repeat: Infinity, delay: i * 0.3 }}
-                            className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-sm"
-                          >
+                        <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted/40">
+                          <span className="w-5 h-5 rounded bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
                             {i + 1}
-                          </motion.span>
-                          <div className="flex-1 min-w-0">
-                            <span className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                              <ExternalLink className="w-3 h-3 shrink-0" />
-                              {order.url}
-                            </span>
-                            <span className="text-sm font-semibold text-foreground block">
-                              {order.category?.name} → {order.service?.name}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {order.quantity.toLocaleString()} шт × {order.service?.price} ={' '}
-                              <motion.span
-                                key={lineTotal}
-                                initial={{ scale: 1.3 }}
-                                animate={{ scale: 1 }}
-                                className="font-bold text-primary"
-                              >
-                                {lineTotal.toFixed(1)}₽
-                              </motion.span>
-                            </span>
+                          </span>
+                          <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <span className="text-xs font-medium text-foreground block truncate">
+                                {order.category?.name} → {order.service?.name}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground truncate block">{order.url}</span>
+                            </div>
+                            <span className="text-xs font-bold text-primary shrink-0">{lineTotal.toFixed(1)}₽</span>
                           </div>
-                        </motion.div>
+                        </div>
                       );
                     })}
                   </div>
 
-                  {/* Grand total */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border border-primary/20 mb-3 relative z-10 shrink-0"
-                  >
-                    <span className="text-sm font-semibold text-foreground flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-primary" />
-                      Итого
+                  {/* Total — inline */}
+                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-primary/5 border border-primary/10 mb-2 relative z-10">
+                    <span className="text-xs font-semibold text-foreground flex items-center gap-1">
+                      <Zap className="w-3 h-3 text-primary" /> Итого
                     </span>
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: 'spring', bounce: 0.4, delay: 0.5 }}
-                      className="text-2xl font-bold gradient-text"
-                    >
+                    <span className="text-lg font-bold gradient-text">
                       {completedOrders.reduce((sum, o) => {
                         const p = parseFloat(o.service?.price?.replace(/[^\d.]/g, '') || '0');
                         return sum + p * o.quantity;
                       }, 0).toFixed(1)}₽
-                    </motion.span>
-                  </motion.div>
-
-                  {/* Email input */}
-                  <div className="mb-3 relative z-10 shrink-0">
-                    <label className="text-xs font-medium text-foreground block mb-1 text-left">
-                      Email для регистрации
-                    </label>
-                    <div className="flex items-center gap-2 p-2 rounded-xl bg-muted/50 border border-border focus-within:ring-2 focus-within:ring-primary/30 transition-shadow">
-                      <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="your@email.com"
-                        className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm"
-                      />
-                    </div>
+                    </span>
                   </div>
 
-                  {/* Consent checkboxes — 152-ФЗ */}
-                  <div className="space-y-2 mb-3 relative z-10 shrink-0 text-left">
-                    <label className="flex items-start gap-2 cursor-pointer group">
-                      <input
-                        type="checkbox"
-                        checked={consentPD}
-                        onChange={(e) => setConsentPD(e.target.checked)}
-                        className="mt-0.5 w-4 h-4 rounded border-border text-primary focus:ring-primary/30 shrink-0"
-                      />
-                      <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-                        Даю согласие на обработку моих{' '}
-                        <a href="/privacy" target="_blank" className="text-primary hover:underline">персональных данных</a>{' '}
-                        в соответствии с 152-ФЗ
+                  {/* Email — compact */}
+                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted/50 border border-border mb-2 relative z-10">
+                    <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Email для регистрации"
+                      className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-xs"
+                    />
+                  </div>
+
+                  {/* Consent — single line each */}
+                  <div className="space-y-1 mb-2 relative z-10 text-left">
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input type="checkbox" checked={consentPD} onChange={(e) => setConsentPD(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded border-border text-primary shrink-0" />
+                      <span className="text-[10px] text-muted-foreground">
+                        Согласен на обработку <a href="/privacy" target="_blank" className="text-primary hover:underline">персональных данных</a> (152-ФЗ)
                       </span>
                     </label>
-                    <label className="flex items-start gap-2 cursor-pointer group">
-                      <input
-                        type="checkbox"
-                        checked={consentOffer}
-                        onChange={(e) => setConsentOffer(e.target.checked)}
-                        className="mt-0.5 w-4 h-4 rounded border-border text-primary focus:ring-primary/30 shrink-0"
-                      />
-                      <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-                        Принимаю условия{' '}
-                        <a href="/privacy" target="_blank" className="text-primary hover:underline">публичной оферты</a>
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input type="checkbox" checked={consentOffer} onChange={(e) => setConsentOffer(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded border-border text-primary shrink-0" />
+                      <span className="text-[10px] text-muted-foreground">
+                        Принимаю <a href="/privacy" target="_blank" className="text-primary hover:underline">публичную оферту</a>
                       </span>
                     </label>
                   </div>
 
-                  <div className="flex gap-2 justify-center flex-wrap relative z-10 shrink-0">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.96 }}
+                  {/* Buttons */}
+                  <div className="flex gap-2 justify-center relative z-10">
+                    <button
                       onClick={() => { setCompletedOrders(null); setUrls(urls.length ? urls : completedOrders!.map(o => o.url)); }}
-                      className="px-4 py-2 rounded-xl bg-muted text-foreground text-sm font-medium"
+                      className="px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium"
                     >
                       ← Назад
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.96 }}
-                      onClick={handleReset}
-                      className="px-4 py-2 rounded-xl bg-muted text-foreground text-sm font-medium"
-                    >
+                    </button>
+                    <button onClick={handleReset} className="px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium">
                       Новый заказ
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.08, boxShadow: '0 8px 30px -5px hsl(335 85% 56% / 0.5)' }}
-                      whileTap={{ scale: 0.96 }}
+                    </button>
+                    <button
                       disabled={!email.includes('@') || !consentPD || !consentOffer}
-                      className="px-5 py-2 rounded-xl bg-gradient-to-r from-primary via-pink-500 to-rose-500 text-primary-foreground text-sm font-bold shadow-lg shadow-primary/25 transition-shadow disabled:opacity-40 disabled:shadow-none"
+                      className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-primary to-rose-500 text-primary-foreground text-xs font-bold shadow-md disabled:opacity-40"
                     >
                       🚀 Оплатить
-                    </motion.button>
+                    </button>
                   </div>
                 </div>
               </motion.div>
