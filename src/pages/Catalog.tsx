@@ -379,7 +379,7 @@ const Catalog = () => {
                             }}
                             whileHover={{ y: -2 }}
                             whileTap={{ scale: 0.98 }}
-                            className={`p-4 rounded-2xl text-left transition-all relative overflow-hidden ${
+                            className={`p-4 rounded-2xl text-left transition-all relative overflow-hidden flex flex-col min-h-[200px] ${
                               isSelected
                                 ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/10'}`
                                 : isPopular
@@ -397,14 +397,23 @@ const Catalog = () => {
                                 <Check className="w-3 h-3 text-white" />
                               </div>
                             )}
-                            <h3 className="font-semibold text-sm text-foreground mb-2 pr-6 line-clamp-2 min-h-[2.5rem]">
+                            <h3 className="font-semibold text-sm text-foreground mb-1.5 pr-6 line-clamp-2">
                               {service.name}
                             </h3>
                             {service.description && (
-                              <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+                              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
                                 {service.description}
                               </p>
                             )}
+                            {/* Requirements */}
+                            <div className="flex flex-wrap gap-1.5 mb-3">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium ${activeNetConfig?.color || 'text-primary'} bg-primary/10`}>
+                                от {service.min_quantity.toLocaleString()}
+                              </span>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium ${activeNetConfig?.color || 'text-primary'} bg-primary/10`}>
+                                до {service.max_quantity.toLocaleString()}
+                              </span>
+                            </div>
                             <div className="mt-auto">
                               <span
                                 className={`inline-block px-3 py-1.5 rounded-full text-xs font-bold ${
