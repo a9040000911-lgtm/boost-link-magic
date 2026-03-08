@@ -145,7 +145,7 @@ const Index = () => {
             className="inline-flex items-center gap-1 text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tight select-none"
             whileHover={{ scale: 1.05 }}
           >
-            {"COOLLIKE".split("").map((letter, i) => (
+            {"(siteContent?.heroTitle || 'COOLLIKE')".length && (siteContent?.heroTitle || "COOLLIKE").split("").map((letter, i) => (
               <motion.span
                 key={i}
                 className="inline-block text-white"
