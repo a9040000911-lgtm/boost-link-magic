@@ -196,7 +196,7 @@ const Catalog = () => {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Platform Tabs */}
       <div className="border-b border-border/40 bg-card/30">
