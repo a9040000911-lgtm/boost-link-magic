@@ -74,6 +74,38 @@ const AdminUserDetail = () => {
         setEditEmail(data.email || "");
       }
     } catch (_) {}
+
+    // === ANTI-SCRAPING: Log profile view & detect mass viewing ===
+    try {
+      await logAuditAction("update_user_profile", "profile_view", userId, { viewed_user: userId });
+
+      // Check how many profiles this admin viewed in last 5 minutes
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const currentUserId = (await supabase.auth.getUser()).data.user?.id;
+      if (currentUserId) {
+        const { data: recentViews } = await supabase
+          .from("admin_audit_logs")
+          .select("id")
+          .eq("actor_id", currentUserId)
+          .eq("action", "update_user_profile")
+          .eq("target_type", "profile_view")
+          .gte("created_at", fiveMinAgo);
+
+        if (recentViews && recentViews.length > 20) {
+          // Create financial alert for mass profile viewing
+          await supabase.from("financial_alerts").insert({
+            alert_type: "mass_profile_viewing",
+            severity: "high",
+            actor_id: currentUserId,
+            details: {
+              views_in_5min: recentViews.length,
+              latest_viewed_user: userId,
+            },
+          } as any);
+        }
+      }
+    } catch (_) { /* non-critical */ }
+
     setLoading(false);
   };
 

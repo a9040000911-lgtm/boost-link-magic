@@ -1,15 +1,17 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdminRole } from "@/hooks/useAdminRole";
 import { useNavigate } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Users, RefreshCw, Eye, Ban, CheckCircle, Download } from "lucide-react";
+import { Search, Users, RefreshCw, Eye, Ban, CheckCircle, Download, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useTableControls, exportToCsv } from "@/hooks/useTableControls";
 import { TablePagination } from "@/components/admin/TablePagination";
+import { logAuditAction } from "@/lib/audit";
 
 interface Profile {
   id: string;
@@ -21,6 +23,7 @@ interface Profile {
 
 const AdminUsers = () => {
   const { user } = useAuth();
+  const { isAdmin } = useAdminRole();
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [orderCounts, setOrderCounts] = useState<Record<string, number>>({});
@@ -95,6 +98,10 @@ const AdminUsers = () => {
   };
 
   const handleExport = () => {
+    if (!isAdmin) {
+      toast.error("Экспорт доступен только администраторам");
+      return;
+    }
     const headers = ["Имя", "Email", "Баланс", "Скидка", "Заказов", "Потрачено", "Посл. вход", "Статус", "Регистрация"];
     const rows = filtered.map((p) => {
       const auth = authMap[p.id];
@@ -111,6 +118,7 @@ const AdminUsers = () => {
       ];
     });
     exportToCsv("users", headers, rows);
+    logAuditAction("update_user_profile", "export", undefined, { type: "csv_users", count: rows.length });
     toast.success(`Экспортировано ${rows.length} пользователей`);
   };
 
@@ -129,9 +137,11 @@ const AdminUsers = () => {
           <h1 className="text-base font-bold">Пользователи ({filtered.length})</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleExport}>
-            <Download className="h-3 w-3 mr-1" />CSV
-          </Button>
+          {isAdmin && (
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleExport}>
+              <Download className="h-3 w-3 mr-1" />CSV
+            </Button>
+          )}
           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={loadData}>
             <RefreshCw className="h-3 w-3 mr-1" />Обновить
           </Button>
