@@ -150,6 +150,12 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
                 <PlatformIcon platform={current.platform} className="w-3.5 h-3.5" />
                 {platformNames[current.platform]}
               </span>
+              {current.analysis && (
+                <span className={`px-2 py-0.5 rounded-full bg-muted text-xs font-medium ${colors.text}`}>
+                  {current.analysis.label}
+                  {current.analysis.username && <span className="opacity-60 ml-1">@{current.analysis.username}</span>}
+                </span>
+              )}
               <span className={`text-sm text-foreground font-medium truncate flex-1 flex items-center gap-1.5`}>
                 <ExternalLink className={`w-3.5 h-3.5 shrink-0 ${colors.text}`} />
                 {current.url}
