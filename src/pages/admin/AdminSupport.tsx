@@ -39,6 +39,7 @@ interface Message {
   attachment_url?: string | null;
   attachment_type?: string | null;
   attachment_name?: string | null;
+  reply_to_id?: string | null;
 }
 
 interface ClientGroup {
