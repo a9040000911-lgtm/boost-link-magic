@@ -148,11 +148,12 @@ const Index = () => {
             {(siteContent?.heroTitle || "COOLLIKE").split("").map((letter, i) => (
               <motion.span
                 key={i}
-                className="inline-block text-white"
+                className="inline-block"
                 style={{
-                  WebkitTextStroke: "1px rgba(255,255,255,0.7)",
-                  textShadow: "0 0 20px rgba(168,85,247,0.5), 0 4px 12px rgba(0,0,0,0.3)",
-                  filter: "drop-shadow(0 2px 6px rgba(168,85,247,0.4))",
+                  background: "linear-gradient(180deg, #c084fc 0%, #a855f7 50%, #7c3aed 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  filter: "drop-shadow(0 2px 8px rgba(168,85,247,0.3))",
                   animationDelay: `${i * 0.15}s`,
                 }}
                 initial={{ opacity: 0, y: -20, rotate: -10 }}
@@ -436,7 +437,24 @@ const Index = () => {
                     </button>
                     <button
                       disabled={!email.includes('@') || !consentPD || !consentOffer}
-                      className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-primary to-rose-500 text-primary-foreground text-xs font-bold shadow-md disabled:opacity-40"
+                      onClick={() => {
+                        if (!completedOrders) return;
+                        // Save order data to sessionStorage for post-auth pickup
+                        sessionStorage.setItem('pending_order', JSON.stringify({
+                          orders: completedOrders.map(o => ({
+                            url: o.url,
+                            platform: o.platform,
+                            categoryName: o.category?.name,
+                            serviceName: o.service?.name,
+                            serviceId: o.service?.id,
+                            quantity: o.quantity,
+                            price: o.service?.price,
+                          })),
+                          email,
+                        }));
+                        navigate(`/auth?email=${encodeURIComponent(email)}&redirect=/dashboard/orders&pending=1`);
+                      }}
+                      className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-primary to-rose-500 text-primary-foreground text-xs font-bold shadow-md disabled:opacity-40 hover:shadow-lg transition-shadow"
                     >
                       🚀 Оплатить
                     </button>
