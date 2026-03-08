@@ -412,39 +412,73 @@ const DashboardSupport = () => {
         <div className="rounded-xl border border-border/60 bg-card p-5 space-y-4">
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Тема обращения *</label>
-            <Input
-              value={newSubject}
-              onChange={(e) => setNewSubject(e.target.value)}
-              placeholder="Кратко опишите проблему"
-              className="text-sm"
-            />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {topics.map((topic) => (
+                <button
+                  key={topic.id}
+                  onClick={() => { setSelectedTopicId(topic.id); setSelectedOrderId(""); }}
+                  className={`flex items-center gap-2 p-3 rounded-lg border text-left transition-colors text-sm ${
+                    selectedTopicId === topic.id
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border/60 bg-background hover:bg-muted/30 text-muted-foreground"
+                  }`}
+                >
+                  <span className="text-base">{topic.icon}</span>
+                  <span className="text-xs font-medium leading-tight">{topic.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
+
+          {selectedTopic?.requires_order_id && (
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Заказ *</label>
+              <Select value={selectedOrderId} onValueChange={setSelectedOrderId}>
+                <SelectTrigger className="text-sm">
+                  <SelectValue placeholder="Выберите заказ" />
+                </SelectTrigger>
+                <SelectContent>
+                  {userOrders.length === 0 ? (
+                    <div className="p-3 text-xs text-muted-foreground text-center">У вас нет заказов</div>
+                  ) : (
+                    userOrders.map((o) => (
+                      <SelectItem key={o.id} value={o.id}>
+                        <span className="truncate">#{o.id.slice(0, 8)} — {o.service_name}</span>
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Сообщение *</label>
             <Textarea
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Подробно опишите проблему, укажите номер заказа если есть..."
+              placeholder="Подробно опишите проблему..."
               rows={5}
               className="text-sm"
             />
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Приоритет</label>
-            <select
-              value={newPriority}
-              onChange={(e) => setNewPriority(e.target.value)}
-              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="low">Низкий — общий вопрос</option>
-              <option value="normal">Обычный</option>
-              <option value="high">Высокий — срочная проблема</option>
-              <option value="critical">Критический — не работает сервис</option>
-            </select>
+            <Select value={newPriority} onValueChange={setNewPriority}>
+              <SelectTrigger className="text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Низкий — общий вопрос</SelectItem>
+                <SelectItem value="normal">Обычный</SelectItem>
+                <SelectItem value="high">Высокий — срочная проблема</SelectItem>
+                <SelectItem value="critical">Критический — не работает сервис</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <Button
             onClick={handleCreate}
-            disabled={creating || !newSubject.trim() || !newMessage.trim()}
+            disabled={creating || !selectedTopicId || !newMessage.trim() || (selectedTopic?.requires_order_id && !selectedOrderId)}
             className="w-full bg-gradient-to-r from-primary to-secondary text-primary-foreground"
           >
             <Send className="w-4 h-4 mr-2" /> {creating ? "Создание..." : "Отправить обращение"}
