@@ -679,6 +679,7 @@ export type Database = {
           created_at: string
           id: string
           link: string
+          order_number: number
           platform: string | null
           price: number
           progress: number
@@ -702,6 +703,7 @@ export type Database = {
           created_at?: string
           id?: string
           link: string
+          order_number?: number
           platform?: string | null
           price?: number
           progress?: number
@@ -725,6 +727,7 @@ export type Database = {
           created_at?: string
           id?: string
           link?: string
+          order_number?: number
           platform?: string | null
           price?: number
           progress?: number
