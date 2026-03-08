@@ -319,7 +319,7 @@ const Index = () => {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.96 }}
                       onClick={handleReset}
-                      className="px-5 py-2.5 rounded-xl bg-muted text-foreground text-sm font-medium"
+                      className="px-4 py-2 rounded-xl bg-muted text-foreground text-sm font-medium"
                     >
                       Новый заказ
                     </motion.button>
