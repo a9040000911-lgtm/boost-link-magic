@@ -260,7 +260,7 @@ serve(async (req) => {
 
     // === TRY EACH PROVIDER ===
     const attempts: Array<{ provider: string; provider_service_id: number; success: boolean; error?: string; order_id?: string; latency_ms: number; provider_price?: number }> = [];
-    let successResult: { provider: string; providerOrderId: string; providerServiceId: string; providerPrice?: number } | null = null;
+    let successResult: { provider: string; providerOrderId: string; providerServiceId: string; costPrice?: number } | null = null;
 
     for (const mapping of mappings) {
       const ps = mapping.provider_services;
