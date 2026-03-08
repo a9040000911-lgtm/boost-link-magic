@@ -341,7 +341,7 @@ const Catalog = () => {
       if (data?.deduplicated) {
         toast({ title: "Заказ уже создан", description: "Повторный запрос проигнорирован" });
       } else {
-        toast({ title: "✅ Заказ оформлен!", description: `${selectedService.name} × ${quantity} — ${Number(data.price).toFixed(2)}₽` });
+        toast({ title: "✅ Заказ оформлен!", description: `${selectedService.name} × ${quantity} — ${fmtPrice(Number(data.price))}₽` });
       }
       setLink(""); setConsentOffer(false); setConsentPD(false);
     } catch (e: any) {
