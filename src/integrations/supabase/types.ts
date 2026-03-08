@@ -171,6 +171,7 @@ export type Database = {
           balance: number
           bio: string | null
           created_at: string
+          discount: number
           display_name: string | null
           id: string
           updated_at: string
@@ -180,6 +181,7 @@ export type Database = {
           balance?: number
           bio?: string | null
           created_at?: string
+          discount?: number
           display_name?: string | null
           id: string
           updated_at?: string
@@ -189,6 +191,7 @@ export type Database = {
           balance?: number
           bio?: string | null
           created_at?: string
+          discount?: number
           display_name?: string | null
           id?: string
           updated_at?: string
