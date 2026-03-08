@@ -6,7 +6,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const VEXBOOST_API_URL = 'https://vexboost.ru/api/v2';
+const PROVIDERS: Record<string, { url: string; keyEnv: string; label: string }> = {
+  vexboost: { url: 'https://vexboost.ru/api/v2', keyEnv: 'VEXBOOST_API_KEY', label: 'VexBoost' },
+  smmpanelus: { url: 'https://smmpanelus.com/api/v2', keyEnv: 'SMMPANELUS_API_KEY', label: 'SMMPanelUS' },
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -14,18 +17,25 @@ serve(async (req) => {
   }
 
   try {
-    const VEXBOOST_API_KEY = Deno.env.get('VEXBOOST_API_KEY');
-    if (!VEXBOOST_API_KEY) {
-      throw new Error('VEXBOOST_API_KEY is not configured');
+    const { action, provider: providerKey, ...params } = await req.json();
+    
+    const provider = PROVIDERS[providerKey];
+    if (!provider) {
+      return new Response(JSON.stringify({ error: `Unknown provider: ${providerKey}` }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    const { action, ...params } = await req.json();
+    const apiKey = Deno.env.get(provider.keyEnv);
+    if (!apiKey) {
+      throw new Error(`${provider.keyEnv} is not configured`);
+    }
 
-    // Auth check for admin actions
+    // Auth check
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
@@ -43,17 +53,15 @@ serve(async (req) => {
       });
     }
 
-    let body: Record<string, string> = { key: VEXBOOST_API_KEY, action };
+    let body: Record<string, string> = { key: apiKey, action };
 
-    // Add extra params based on action
     if (action === 'add') {
       body = { ...body, service: params.service, link: params.link, quantity: params.quantity };
     } else if (action === 'status') {
       body = { ...body, order: params.order };
     }
-    // action === 'services' or 'balance' — no extra params needed
 
-    const response = await fetch(VEXBOOST_API_URL, {
+    const response = await fetch(provider.url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -66,7 +74,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: unknown) {
-    console.error('VexBoost API error:', error);
+    console.error('Provider API error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
