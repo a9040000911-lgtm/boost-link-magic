@@ -120,6 +120,7 @@ const TABS = [
   { id: "general", label: "Общие", icon: Globe, groupIds: ["contacts", "system", "license"] },
   { id: "support", label: "Поддержка", icon: MessageSquare, groupIds: ["support", "telegram_support", "email_support", "ai_support"] },
   { id: "commerce", label: "Каталог и заказы", icon: ShoppingCart, groupIds: ["catalog", "orders"] },
+  { id: "markup", label: "Наценки", icon: Percent, groupIds: [] },
   { id: "finance", label: "Финансы", icon: Wallet, groupIds: ["finance"] },
   { id: "plans", label: "Тарифы", icon: Clock, groupIds: ["plan_standard", "plan_pro", "plan_enterprise"] },
 ];
