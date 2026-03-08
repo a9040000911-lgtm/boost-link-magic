@@ -107,33 +107,45 @@ const AdminStaff = () => {
 
   // ── Add staff ──
   const addStaff = async () => {
-    if (!addUserId || addUserId.length < 10) {
-      toast.error("Введите UUID пользователя");
+    if (!addEmail || !addEmail.includes("@")) {
+      toast.error("Введите корректный email");
       return;
     }
+    setAddLoading(true);
+    try {
+      // Create user via admin edge function
+      const { data: createData, error: createError } = await supabase.functions.invoke("admin-user-management", {
+        body: { action: "create_user", email: addEmail },
+      });
+      if (createError) throw createError;
+      if (createData?.error) throw new Error(createData.error);
 
-    const { error } = await supabase.from("user_roles").insert({ user_id: addUserId, role: addRole });
-    if (error) {
-      toast.error("Ошибка: " + error.message);
-      return;
+      const newUserId = createData.user_id;
+      const generatedPassword = createData.generated_password;
+
+      // Assign role
+      const { error: roleErr } = await supabase.from("user_roles").insert({ user_id: newUserId, role: addRole });
+      if (roleErr) throw roleErr;
+
+      // Grant permissions
+      if (addPermissions.length > 0 && addRole === "moderator") {
+        const permsToInsert = addPermissions.map((p) => ({
+          user_id: newUserId,
+          permission: p,
+          granted_by: user!.id,
+        }));
+        await supabase.from("staff_permissions").insert(permsToInsert);
+      }
+
+      await logAuditAction("assign_role", "staff", newUserId, { role: addRole, permissions: addPermissions, email: addEmail });
+      
+      setCreatedCreds({ email: addEmail, password: generatedPassword });
+      toast.success(`Сотрудник ${addEmail} создан`);
+      await loadData();
+    } catch (e: any) {
+      toast.error("Ошибка: " + (e.message || e));
     }
-
-    // Grant selected permissions
-    if (addPermissions.length > 0 && addRole === "moderator") {
-      const permsToInsert = addPermissions.map((p) => ({
-        user_id: addUserId,
-        permission: p,
-        granted_by: user!.id,
-      }));
-      await supabase.from("staff_permissions").insert(permsToInsert);
-    }
-
-    await logAuditAction("assign_role", "staff", addUserId, { role: addRole, permissions: addPermissions });
-    toast.success(`Роль ${addRole} назначена`);
-    setAddOpen(false);
-    setAddUserId("");
-    setAddPermissions([]);
-    await loadData();
+    setAddLoading(false);
   };
 
   // ── Edit dialog open ──
