@@ -58,6 +58,12 @@ const SETTINGS_META: SettingMeta[] = [
   { key: "support_welcome_message", label: "Приветственное сообщение", hint: "Текст, который клиент видит при создании нового обращения в поддержку", type: "textarea", group: "support" },
   { key: "support_staff_rules", label: "Правила для сотрудников", hint: "Правила и инструкции для операторов поддержки. Отображаются в чате поддержки", type: "textarea", group: "support" },
 
+  // Catalog Checkboxes
+  { key: "show_offer_checkbox", label: "Чекбокс Оферты", hint: "Показывать чекбокс принятия оферты при оформлении заказа", type: "boolean", group: "catalog" },
+  { key: "show_policy_checkbox", label: "Чекбокс Политики", hint: "Показывать чекбокс согласия с Политикой и Правилами при оформлении заказа", type: "boolean", group: "catalog" },
+  { key: "offer_default_checked", label: "Оферта включена по умолчанию", hint: "Если включено — чекбокс оферты будет отмечен при загрузке страницы", type: "boolean", group: "catalog" },
+  { key: "policy_default_checked", label: "Политика включена по умолчанию", hint: "Если включено — чекбокс политики будет отмечен при загрузке страницы", type: "boolean", group: "catalog" },
+
   // Orders
   { key: "max_orders_per_day", label: "Лимит заказов в день", hint: "Максимальное количество заказов, которое один пользователь может сделать за сутки (0 = без ограничений)", type: "number", group: "orders" },
   { key: "min_order_amount", label: "Минимальная сумма заказа", hint: "Заказы дешевле этой суммы не будут приняты", type: "number", suffix: "₽", group: "orders" },
@@ -104,6 +110,7 @@ const GROUPS = [
   { id: "email_support", label: "Email поддержки", icon: Mail, description: "Настройки почты для приёма и отправки обращений" },
   { id: "ai_support", label: "ИИ-ассистент поддержки", icon: Sparkles, description: "Провайдер, режим и контекст для ИИ-помощника (веб + Telegram)" },
   { id: "support", label: "Поддержка", icon: MessageSquare, description: "Настройки тикетов и общения с клиентами" },
+  { id: "catalog", label: "Каталог", icon: ShoppingCart, description: "Чекбоксы согласий и отображение при оформлении заказа" },
   { id: "orders", label: "Заказы", icon: ShoppingCart, description: "Лимиты и наценки на заказы" },
   { id: "finance", label: "Финансы", icon: Wallet, description: "Пополнения, выводы и бонусы" },
   { id: "license", label: "Лицензия", icon: Shield, description: "Глобальный лицензионный ключ для всего сайта — вводится один раз" },

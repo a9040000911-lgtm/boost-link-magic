@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import {
   Search, ArrowLeft, Package, Link2, Mail, Minus, Plus, Sparkles, Check,
   BarChart3, Zap, Clock, Timer, Snail, TrendingUp, Shield, ShieldCheck, ShieldAlert,
@@ -136,6 +136,41 @@ const Catalog = () => {
   const [consentOffer, setConsentOffer] = useState(false);
   const [consentPD, setConsentPD] = useState(false);
   const [ordering, setOrdering] = useState(false);
+
+  // Settings for checkboxes
+  const [checkboxSettings, setCheckboxSettings] = useState({
+    show_offer_checkbox: true,
+    show_policy_checkbox: true,
+    offer_default_checked: false,
+    policy_default_checked: false,
+  });
+
+  // Load checkbox settings
+  useEffect(() => {
+    const loadCheckboxSettings = async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("key, value")
+        .in("key", ["show_offer_checkbox", "show_policy_checkbox", "offer_default_checked", "policy_default_checked"]);
+      
+      if (data) {
+        const settings: Record<string, boolean> = {};
+        data.forEach((r: any) => {
+          settings[r.key] = r.value === "true";
+        });
+        setCheckboxSettings(prev => ({
+          show_offer_checkbox: settings.show_offer_checkbox ?? true,
+          show_policy_checkbox: settings.show_policy_checkbox ?? true,
+          offer_default_checked: settings.offer_default_checked ?? false,
+          policy_default_checked: settings.policy_default_checked ?? false,
+        }));
+        // Apply defaults
+        if (settings.offer_default_checked) setConsentOffer(true);
+        if (settings.policy_default_checked) setConsentPD(true);
+      }
+    };
+    loadCheckboxSettings();
+  }, []);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -322,29 +357,65 @@ const Catalog = () => {
         </div>
       </div>
 
-      {/* Platform Icons */}
+      {/* Platform Icons — ultra-smooth animation */}
       <div className="border-b border-border/40 bg-muted/20 shrink-0">
         <div className="max-w-7xl mx-auto px-4 py-2">
-          <div className="flex flex-wrap gap-1.5 justify-center items-center">
-            {availableNetworks.map((net) => {
-              const isActive = activeNetwork === net.key;
-              return (
-                <button
-                  key={net.key}
-                  onClick={() => handleNetworkChange(net.key)}
-                  className={`relative transition-all duration-200 ${
-                    isActive
-                      ? `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl ${net.bg} text-white shadow-lg ${net.shadow} scale-105`
-                      : "w-9 h-9 rounded-xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border hover:shadow-sm hover:scale-105"
-                  }`}
-                  title={net.label}
-                >
-                  <PlatformIcon platform={net.icon} className="w-4 h-4" />
-                  {isActive && <span className="text-xs font-semibold hidden sm:inline">{net.label}</span>}
-                </button>
-              );
-            })}
-          </div>
+          <LayoutGroup>
+            <div className="flex flex-wrap gap-1.5 justify-center items-center">
+              {availableNetworks.map((net) => {
+                const isActive = activeNetwork === net.key;
+                return (
+                  <motion.button
+                    key={net.key}
+                    layout
+                    layoutId={`network-${net.key}`}
+                    onClick={() => handleNetworkChange(net.key)}
+                    initial={false}
+                    animate={{
+                      scale: isActive ? 1.05 : 1,
+                    }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 500,
+                      damping: 35,
+                      mass: 1,
+                    }}
+                    className={`relative ${
+                      isActive
+                        ? `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl ${net.bg} text-white shadow-lg ${net.shadow}`
+                        : "w-9 h-9 rounded-xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border hover:shadow-sm"
+                    }`}
+                    title={net.label}
+                  >
+                    <motion.div
+                      layout
+                      className="flex items-center gap-1.5"
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 35,
+                      }}
+                    >
+                      <PlatformIcon platform={net.icon} className="w-4 h-4" />
+                      <AnimatePresence mode="popLayout">
+                        {isActive && (
+                          <motion.span
+                            initial={{ opacity: 0, width: 0 }}
+                            animate={{ opacity: 1, width: "auto" }}
+                            exit={{ opacity: 0, width: 0 }}
+                            transition={{ duration: 0.2, ease: "easeInOut" }}
+                            className="text-xs font-semibold hidden sm:inline overflow-hidden whitespace-nowrap"
+                          >
+                            {net.label}
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </LayoutGroup>
         </div>
       </div>
 
@@ -498,7 +569,7 @@ const Catalog = () => {
                           </table>
                         </div>
                       ) : (
-                        /* ─── Square Cards Grid ─── */
+                        /* ─── Adaptive Cards Grid ─── */
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                           {categoryServices.map((service, i) => {
                             const isSelected = selectedService?.id === service.id;
@@ -513,7 +584,7 @@ const Catalog = () => {
                                 onClick={() => selectService(service)}
                                 whileHover={{ y: -2 }}
                                 whileTap={{ scale: 0.98 }}
-                                className={`relative p-4 rounded-2xl text-left transition-all flex flex-col aspect-square ${
+                                className={`relative p-4 rounded-2xl text-left transition-all flex flex-col min-h-[180px] ${
                                   isSelected
                                     ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/10'}`
                                     : isPopular
@@ -534,11 +605,11 @@ const Catalog = () => {
                                 )}
 
                                 {/* Title */}
-                                <h3 className="font-bold text-sm text-foreground mb-2 pr-8 line-clamp-2">{service.name}</h3>
+                                <h3 className="font-bold text-sm text-foreground mb-2 pr-8">{service.name}</h3>
 
-                                {/* Description — prominent */}
+                                {/* Description — adaptive, no line clamp */}
                                 {service.description && (
-                                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3 mb-3">
+                                  <p className="text-xs text-muted-foreground leading-relaxed mb-3">
                                     {service.description}
                                   </p>
                                 )}
@@ -668,29 +739,35 @@ const Catalog = () => {
                     <div className="flex-1" />
 
                     {/* Consents */}
-                    <div className="space-y-1.5 shrink-0">
-                      <label className="flex items-start gap-1.5 cursor-pointer group" onClick={() => setConsentOffer(!consentOffer)}>
-                        <span className={`mt-0.5 w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${consentOffer ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent` : 'border-border bg-background'}`}>
-                          {consentOffer && <Check className="w-2.5 h-2.5 text-white" />}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors leading-tight">
-                          Принимаю условия <Link to="/page/offer" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Оферты</Link>
-                        </span>
-                      </label>
-                      <label className="flex items-start gap-1.5 cursor-pointer group" onClick={() => setConsentPD(!consentPD)}>
-                        <span className={`mt-0.5 w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${consentPD ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent` : 'border-border bg-background'}`}>
-                          {consentPD && <Check className="w-2.5 h-2.5 text-white" />}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors leading-tight">
-                          Согласен с <Link to="/page/privacy-policy" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Политикой</Link> и <Link to="/page/terms" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Правилами</Link>
-                        </span>
-                      </label>
-                    </div>
+                    {(checkboxSettings.show_offer_checkbox || checkboxSettings.show_policy_checkbox) && (
+                      <div className="space-y-1.5 shrink-0">
+                        {checkboxSettings.show_offer_checkbox && (
+                          <label className="flex items-start gap-1.5 cursor-pointer group" onClick={() => setConsentOffer(!consentOffer)}>
+                            <span className={`mt-0.5 w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${consentOffer ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent` : 'border-border bg-background'}`}>
+                              {consentOffer && <Check className="w-2.5 h-2.5 text-white" />}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors leading-tight">
+                              Принимаю условия <Link to="/page/offer" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Оферты</Link>
+                            </span>
+                          </label>
+                        )}
+                        {checkboxSettings.show_policy_checkbox && (
+                          <label className="flex items-start gap-1.5 cursor-pointer group" onClick={() => setConsentPD(!consentPD)}>
+                            <span className={`mt-0.5 w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${consentPD ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent` : 'border-border bg-background'}`}>
+                              {consentPD && <Check className="w-2.5 h-2.5 text-white" />}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors leading-tight">
+                              Согласен с <Link to="/page/privacy-policy" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Политикой</Link> и <Link to="/page/terms" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Правилами</Link>
+                            </span>
+                          </label>
+                        )}
+                      </div>
+                    )}
 
                     {/* Submit */}
                     <button
                       onClick={handleOrder}
-                      disabled={!link.trim() || !consentOffer || !consentPD || ordering}
+                      disabled={!link.trim() || (checkboxSettings.show_offer_checkbox && !consentOffer) || (checkboxSettings.show_policy_checkbox && !consentPD) || ordering}
                       className={`w-full py-3 rounded-xl ${activeNetConfig?.bg || 'bg-gradient-to-r from-primary to-secondary'} text-white font-bold text-sm shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/20'} hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shrink-0`}
                     >
                       {ordering ? (
@@ -769,23 +846,29 @@ const Catalog = () => {
 
               {/* Consents + Button */}
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 shrink-0">
-                  <label className="flex items-center gap-1 cursor-pointer" onClick={() => setConsentOffer(!consentOffer)}>
-                    <span className={`w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${consentOffer ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent` : 'border-border bg-background'}`}>
-                      {consentOffer && <Check className="w-2.5 h-2.5 text-white" />}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">Оферта</span>
-                  </label>
-                  <label className="flex items-center gap-1 cursor-pointer" onClick={() => setConsentPD(!consentPD)}>
-                    <span className={`w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${consentPD ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent` : 'border-border bg-background'}`}>
-                      {consentPD && <Check className="w-2.5 h-2.5 text-white" />}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">Политика</span>
-                  </label>
-                </div>
+                {(checkboxSettings.show_offer_checkbox || checkboxSettings.show_policy_checkbox) && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    {checkboxSettings.show_offer_checkbox && (
+                      <label className="flex items-center gap-1 cursor-pointer" onClick={() => setConsentOffer(!consentOffer)}>
+                        <span className={`w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${consentOffer ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent` : 'border-border bg-background'}`}>
+                          {consentOffer && <Check className="w-2.5 h-2.5 text-white" />}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">Оферта</span>
+                      </label>
+                    )}
+                    {checkboxSettings.show_policy_checkbox && (
+                      <label className="flex items-center gap-1 cursor-pointer" onClick={() => setConsentPD(!consentPD)}>
+                        <span className={`w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${consentPD ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent` : 'border-border bg-background'}`}>
+                          {consentPD && <Check className="w-2.5 h-2.5 text-white" />}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">Политика</span>
+                      </label>
+                    )}
+                  </div>
+                )}
                 <button
                   onClick={handleOrder}
-                  disabled={!link.trim() || !consentOffer || !consentPD || ordering}
+                  disabled={!link.trim() || (checkboxSettings.show_offer_checkbox && !consentOffer) || (checkboxSettings.show_policy_checkbox && !consentPD) || ordering}
                   className={`flex-1 py-2.5 rounded-xl ${activeNetConfig?.bg || 'bg-primary'} text-white font-bold text-sm disabled:opacity-40 flex items-center justify-center gap-2`}
                 >
                   {ordering ? 'Оформляем...' : `${totalPrice.toFixed(2)} ₽ — Заказать`}
