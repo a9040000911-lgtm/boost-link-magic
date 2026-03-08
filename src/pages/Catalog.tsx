@@ -254,7 +254,8 @@ const Catalog = () => {
                     </button>
                   );
                 })}
-              </motion.div>
+              </div>
+            </motion.div>
 
             {/* Right Content — Services & Order */}
             <div className="flex-1 min-w-0">
