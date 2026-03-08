@@ -86,6 +86,7 @@ const SETTINGS_META: SettingMeta[] = [
 const GROUPS = [
   { id: "telegram_support", label: "Telegram-бот поддержки", icon: MessageCircle, description: "Отдельный бот для приёма обращений через Telegram" },
   { id: "email_support", label: "Email поддержки", icon: Mail, description: "Настройки почты для приёма и отправки обращений" },
+  { id: "ai_support", label: "ИИ-подсказки", icon: Sparkles, description: "Настройки ИИ-помощника для операторов поддержки (Lovable AI)" },
   { id: "support", label: "Поддержка", icon: MessageSquare, description: "Настройки тикетов и общения с клиентами" },
   { id: "orders", label: "Заказы", icon: ShoppingCart, description: "Лимиты и наценки на заказы" },
   { id: "finance", label: "Финансы", icon: Wallet, description: "Пополнения, выводы и бонусы" },
