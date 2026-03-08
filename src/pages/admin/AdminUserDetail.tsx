@@ -119,20 +119,43 @@ const AdminUserDetail = () => {
   const adjustBalance = async (direction: "add" | "sub") => {
     const amount = parseFloat(balanceAmount);
     if (isNaN(amount) || amount <= 0) return;
+    if (amount > 100000) {
+      toast.error("Максимальная сумма операции: 100,000₽");
+      return;
+    }
+    if (!balanceReason.trim()) {
+      toast.error("Укажите причину изменения баланса");
+      return;
+    }
     setSaving(true);
     try {
-      const newBalance = direction === "add"
-        ? Number(profile.balance) + amount
-        : Math.max(0, Number(profile.balance) - amount);
-      await supabase.from("profiles").update({ balance: newBalance, updated_at: new Date().toISOString() }).eq("id", userId);
+      // Use atomic DB functions instead of read-then-write
+      const rpcFn = direction === "add" ? "credit_balance" : "deduct_balance";
+      const { data: newBalance, error: rpcErr } = await supabase.rpc(rpcFn as any, {
+        p_user_id: userId,
+        p_amount: amount,
+      });
+
+      if (rpcErr) throw rpcErr;
+      if (newBalance === -1) {
+        toast.error("Недостаточно средств для списания");
+        setSaving(false);
+        return;
+      }
+
       await supabase.from("transactions").insert({
         user_id: userId!, type: direction === "add" ? "admin_deposit" : "admin_withdraw",
-        amount, balance_after: newBalance, status: "completed",
-        description: direction === "add" ? "Пополнение администратором" : "Списание администратором",
+        amount: direction === "add" ? amount : -amount,
+        balance_after: newBalance as number,
+        status: "completed",
+        description: `${direction === "add" ? "Пополнение" : "Списание"} администратором: ${balanceReason.trim()}`,
       });
-      await logAuditAction("update_user_balance", "user", userId, { direction, amount, new_balance: newBalance });
-      toast.success(`${direction === "add" ? "+" : "−"}${amount.toFixed(2)}₽ → ${newBalance.toFixed(2)}₽`);
+      await logAuditAction("update_user_balance", "user", userId, {
+        direction, amount, new_balance: newBalance, reason: balanceReason.trim(),
+      });
+      toast.success(`${direction === "add" ? "+" : "−"}${amount.toFixed(2)}₽ → ${(newBalance as number).toFixed(2)}₽`);
       setBalanceAmount("");
+      setBalanceReason("");
       await loadAll();
     } catch (e: any) { toast.error(e.message); }
     setSaving(false);
