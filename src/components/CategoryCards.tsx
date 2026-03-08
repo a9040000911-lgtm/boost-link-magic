@@ -97,16 +97,16 @@ const CategoryCards = ({ categories, onSelect, recommendedIds = [] }: CategoryCa
 
             {/* CTA footer */}
             <div className="flex items-center justify-between relative z-10">
-              <span className="text-xs text-white/60 font-medium">
+              <span className="text-sm text-white/60 font-medium">
                 {cat.serviceCount} услуг
               </span>
               <motion.span
-                className="flex items-center gap-1.5 text-xs font-semibold text-white bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full"
+                className="flex items-center gap-1.5 text-sm font-semibold text-white bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full"
                 animate={{ x: [0, 4, 0] }}
                 transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
               >
                 Выбрать
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-4 h-4" />
               </motion.span>
             </div>
           </motion.button>
