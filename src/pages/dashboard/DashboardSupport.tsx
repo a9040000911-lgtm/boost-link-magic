@@ -246,6 +246,7 @@ const DashboardSupport = () => {
     toast.success("Обращение создано!");
     setSelectedTopicId("");
     setSelectedOrderId("");
+    setContactIdentifier("");
     setNewMessage("");
     setNewPriority("normal");
     setCreating(false);
