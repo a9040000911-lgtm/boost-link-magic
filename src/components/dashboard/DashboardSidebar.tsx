@@ -48,6 +48,22 @@ export function DashboardSidebar() {
           )}
           <SidebarGroupContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/" className="hover:bg-muted/50 transition-colors flex items-center">
+                    <Home className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>На главную</span>}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/catalog" className="hover:bg-primary/10 text-primary transition-colors flex items-center font-medium">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>Новый заказ</span>}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               {userMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
