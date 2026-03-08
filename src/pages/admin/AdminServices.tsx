@@ -230,6 +230,7 @@ const AdminServices = () => {
     setCreateProviderSearch("");
     setCreateProviderFilter("all");
     await loadAll();
+  };
 
   const createFromProvider = async (ps: ProviderService) => {
     const ladderMarkup = getMarkupForRate(ps.rate, markupLadder);
