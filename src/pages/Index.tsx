@@ -306,12 +306,12 @@ const Index = () => {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 justify-center flex-wrap relative z-10">
+                  <div className="flex gap-2 justify-center flex-wrap relative z-10 shrink-0">
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.96 }}
                       onClick={() => { setCompletedOrders(null); setUrls(urls.length ? urls : completedOrders!.map(o => o.url)); }}
-                      className="px-5 py-2.5 rounded-xl bg-muted text-foreground text-sm font-medium"
+                      className="px-4 py-2 rounded-xl bg-muted text-foreground text-sm font-medium"
                     >
                       ← Назад
                     </motion.button>
