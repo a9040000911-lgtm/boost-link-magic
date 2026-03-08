@@ -16,6 +16,8 @@ export function useAdminRole() {
       return;
     }
 
+    setLoading(true);
+
     supabase
       .from("user_roles")
       .select("role")
