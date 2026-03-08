@@ -53,6 +53,7 @@ const App = () => (
             <Route path="users/:userId" element={<AdminUserDetail />} />
             <Route path="support" element={<AdminSupport />} />
             <Route path="staff" element={<AdminStaff />} />
+            <Route path="providers" element={<AdminProviders />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
