@@ -596,12 +596,22 @@ export default function AdminLinks() {
           <div className="space-y-3">
             <div>
               <Label className="text-xs">Платформа</Label>
-              <Select value={assignPlatformKey} onValueChange={setAssignPlatformKey}>
+              <Select value={assignPlatformKey} onValueChange={(v) => {
+                if (v === '__create_new__') {
+                  setShowAssignDialog(false);
+                  openPlatformDialog();
+                } else {
+                  setAssignPlatformKey(v);
+                }
+              }}>
                 <SelectTrigger><SelectValue placeholder="Выберите платформу..." /></SelectTrigger>
                 <SelectContent>
                   {platforms.map(p => (
                     <SelectItem key={p.key} value={p.key}>{p.name}</SelectItem>
                   ))}
+                  <SelectItem value="__create_new__" className="text-primary font-medium">
+                    <span className="flex items-center gap-1"><Plus className="w-3 h-3" /> Создать новую платформу</span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
