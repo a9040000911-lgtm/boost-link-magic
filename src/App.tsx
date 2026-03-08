@@ -49,6 +49,8 @@ import AdminPayments from "./pages/admin/AdminPayments";
 import AdminAPI from "./pages/admin/AdminAPI";
 import Contact from "./pages/Contact";
 import AdminSiteContent from "./pages/admin/AdminSiteContent";
+import AdminMarketing from "./pages/admin/AdminMarketing";
+import DashboardBonuses from "./pages/dashboard/DashboardBonuses";
 
 const queryClient = new QueryClient();
 
