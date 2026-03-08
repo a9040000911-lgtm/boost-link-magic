@@ -160,6 +160,17 @@ const DashboardOrders = () => {
                         <TableCell className="text-muted-foreground text-sm">
                           {new Date(order.created_at).toLocaleDateString("ru-RU")}
                         </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Создать тикет по заказу"
+                            onClick={() => navigate(`/dashboard/support?new=1&order_id=${order.id}`)}
+                          >
+                            <MessageSquare className="h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
