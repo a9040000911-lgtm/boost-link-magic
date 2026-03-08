@@ -975,7 +975,18 @@ const AdminSupport = () => {
                           </div>
                         )}
                         {msg.message && <p className="text-xs whitespace-pre-wrap">{msg.message}</p>}
-                        <MessageAttachment msg={msg} onImageClick={setViewerImage} />
+                        <MessageAttachment msg={msg} onImageClick={setViewerImage} onTranscribe={transcribeAudio} />
+                        {transcribing.has(msg.id) && (
+                          <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
+                            <Loader2 className="h-2.5 w-2.5 animate-spin" /> Расшифровка...
+                          </div>
+                        )}
+                        {transcriptions[msg.id] && (
+                          <div className="mt-1 p-1.5 bg-primary/5 rounded text-[11px] border border-primary/10">
+                            <span className="text-[9px] text-muted-foreground font-medium flex items-center gap-1 mb-0.5"><Mic className="h-2.5 w-2.5" /> Расшифровка:</span>
+                            {transcriptions[msg.id]}
+                          </div>
+                        )}
                         <p className={`text-[9px] mt-0.5 ${msg.is_admin ? "text-primary-foreground/60" : "text-muted-foreground"}`}>{formatFullTime(msg.created_at)}</p>
                       </div>
                       {msg.is_admin && (
