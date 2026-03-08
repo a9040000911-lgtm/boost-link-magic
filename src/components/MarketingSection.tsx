@@ -1,48 +1,48 @@
 import { motion } from 'framer-motion';
-import { Shield, Zap, Clock, Users, Star, Headphones } from 'lucide-react';
+import { Shield, Zap, Clock, Brain, Sparkles, MousePointerClick } from 'lucide-react';
 
 const stats = [
-  { value: '10M+', label: 'Заказов выполнено' },
-  { value: '50K+', label: 'Довольных клиентов' },
-  { value: '99.8%', label: 'Успешных заказов' },
+  { value: '5K+', label: 'Заказов выполнено' },
+  { value: '1K+', label: 'Активных клиентов' },
+  { value: '99.5%', label: 'Успешных заказов' },
   { value: '24/7', label: 'Поддержка' },
 ];
 
 const features = [
   {
-    icon: Zap,
-    title: 'Мгновенный старт',
-    description: 'Заказы начинают выполняться в течение нескольких минут после оплаты',
+    icon: Brain,
+    title: 'Умный подбор услуг',
+    description: 'Вставьте ссылку — система сама определит платформу и подберёт подходящие услуги',
     gradient: 'card-gradient-amber',
   },
   {
     icon: Shield,
-    title: 'Безопасно для аккаунта',
-    description: 'Используем только проверенные методы продвижения без риска блокировки',
+    title: 'Минимум ошибок',
+    description: 'Автоматическая валидация ссылок и параметров заказа до оформления — меньше отмен и проблем',
     gradient: 'card-gradient-blue',
   },
   {
     icon: Clock,
     title: 'Гарантия и возврат',
-    description: '30 дней гарантии на все услуги. Полный возврат если что-то пойдёт не так',
+    description: '30 дней гарантии на все услуги. Возврат средств, если результат не соответствует',
     gradient: 'card-gradient-violet',
   },
   {
-    icon: Users,
-    title: 'Реальные пользователи',
-    description: 'Живые аккаунты с аватарками и активностью — никаких ботов',
+    icon: MousePointerClick,
+    title: 'Удобный интерфейс',
+    description: 'Продуманный сервис: от вставки ссылки до результата за пару кликов, без лишних шагов',
     gradient: 'card-gradient-pink',
   },
   {
-    icon: Star,
-    title: 'Премиум качество',
-    description: 'Высокое удержание и минимальный процент отписок благодаря качественным аккаунтам',
+    icon: Sparkles,
+    title: 'Новый подход',
+    description: 'Современная платформа, созданная с нуля — быстрая, понятная и без устаревших решений',
     gradient: 'card-gradient-blue',
   },
   {
-    icon: Headphones,
-    title: 'Личный менеджер',
-    description: 'Персональная поддержка для оптовых заказов и индивидуальных решений',
+    icon: Zap,
+    title: 'Быстрый старт',
+    description: 'Заказы начинают выполняться в течение нескольких минут после оплаты',
     gradient: 'card-gradient-amber',
   },
 ];
@@ -92,7 +92,7 @@ const MarketingSection = () => {
             Почему выбирают <span className="gradient-text">нас</span>
           </h2>
           <p className="text-muted-foreground max-w-lg mx-auto">
-            Мы — лидер рынка SMM-услуг с 2020 года. Тысячи блогеров и бизнесов доверяют нам продвижение
+            Современный сервис продвижения, продуманный до мелочей. Умный подбор услуг, удобный интерфейс и минимум ошибок
           </p>
         </motion.div>
 
