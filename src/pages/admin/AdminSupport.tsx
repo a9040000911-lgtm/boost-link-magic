@@ -734,6 +734,46 @@ const AdminSupport = () => {
               )}
             </div>
 
+            {/* Staff Rules Panel */}
+            {showRules && staffRules && (
+              <div className="border-b bg-muted/30 p-2 shrink-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold flex items-center gap-1"><BookOpen className="h-3 w-3" /> Правила для сотрудников</span>
+                  <button onClick={() => setShowRules(false)} className="text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /></button>
+                </div>
+                <div className="text-[10px] text-muted-foreground whitespace-pre-wrap max-h-[120px] overflow-y-auto">{staffRules}</div>
+              </div>
+            )}
+
+            {/* AI Suggestions Widget */}
+            {aiEnabled && activeTicket && activeTicket.status !== "closed" && (
+              <div className="border-b bg-gradient-to-r from-primary/5 to-primary/0 p-2 shrink-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold flex items-center gap-1"><Sparkles className="h-3 w-3 text-primary" /> ИИ-подсказки</span>
+                  <Button variant="ghost" size="sm" className="h-5 text-[10px] px-2" onClick={fetchAiSuggestions} disabled={aiLoading}>
+                    {aiLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Получить подсказки"}
+                  </Button>
+                </div>
+                {aiError && <p className="text-[10px] text-destructive">{aiError}</p>}
+                {aiSuggestions.length > 0 && (
+                  <div className="space-y-1">
+                    {aiSuggestions.map((s, i) => (
+                      <button
+                        key={i}
+                        onClick={() => applySuggestion(s)}
+                        className="w-full text-left text-[10px] bg-background border rounded-md px-2 py-1.5 hover:border-primary/50 hover:bg-primary/5 transition-colors line-clamp-2"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {!aiLoading && aiSuggestions.length === 0 && !aiError && (
+                  <p className="text-[10px] text-muted-foreground">Нажмите «Получить подсказки» для генерации вариантов ответа</p>
+                )}
+              </div>
+            )}
+
             {/* Messages */}
             <div className="flex-1 overflow-auto p-3 space-y-2">
               {messagesWithDividers.map((item, idx) => {
