@@ -152,6 +152,7 @@ const Catalog = () => {
     }
   };
 
+  const activeNetConfig = networkConfig.find(n => n.key === activeNetwork);
   const totalPrice = selectedService ? (selectedService.price / 1000) * quantity : 0;
 
   const handleOrder = () => {
