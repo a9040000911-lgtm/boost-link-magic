@@ -27,7 +27,7 @@ const gradientClasses = [
 
 const CategoryCards = ({ categories, onSelect }: CategoryCardsProps) => {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full max-w-4xl mx-auto">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full max-w-4xl mx-auto">
       {categories.map((cat, i) => {
         const Icon = iconMap[cat.icon] || Heart;
         return (
