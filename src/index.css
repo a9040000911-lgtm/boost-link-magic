@@ -61,10 +61,10 @@
   .hero-gradient {
     background: linear-gradient(
       180deg,
-      hsl(210 100% 94%) 0%,
-      hsl(270 80% 88%) 30%,
-      hsl(320 85% 75%) 60%,
-      hsl(345 90% 65%) 100%
+      hsl(210 100% 85%) 0%,
+      hsl(270 85% 75%) 30%,
+      hsl(320 90% 62%) 60%,
+      hsl(345 95% 55%) 100%
     );
   }
   .gradient-text {
