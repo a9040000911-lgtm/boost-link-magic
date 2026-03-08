@@ -828,8 +828,9 @@ const AdminServices = () => {
               <TabsContent value="catalog" className="mt-0">
                 {/* Bulk action bar */}
                 {selectedIds.size > 0 && activeTab === "catalog" && (
-                  <div className="flex items-center gap-2 p-2 bg-primary/5 border-b border-primary/20 sticky top-0 z-10">
+                  <div className="flex items-center gap-2 p-2 bg-primary/5 border-b border-primary/20 sticky top-0 z-10 flex-wrap">
                     <Badge variant="default" className="text-[10px]">{selectedIds.size} выбрано</Badge>
+                    {/* Markup */}
                     <div className="flex items-center gap-1">
                       <Input
                         type="number"
@@ -844,21 +845,52 @@ const AdminServices = () => {
                             setBulkMarkup(v);
                           }
                         }}
-                        className="h-7 w-[90px] text-xs"
+                        className="h-7 w-[80px] text-xs"
                       />
                       <Button size="sm" className="h-7 text-xs" onClick={applyBulkMarkup} disabled={!bulkMarkup}>
-                        <Percent className="h-3 w-3 mr-1" />Применить
+                        <Percent className="h-3 w-3 mr-1" />Наценка
                       </Button>
                     </div>
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={applyLadderToSelected}>
                       <Layers className="h-3 w-3 mr-1" />Лестница
                     </Button>
+                    <div className="w-px h-5 bg-border" />
+                    {/* Category */}
+                    <div className="flex items-center gap-1">
+                      <Input
+                        placeholder="Категория"
+                        value={bulkCategory}
+                        onChange={(e) => setBulkCategory(e.target.value)}
+                        className="h-7 w-[120px] text-xs"
+                        list="bulk-categories"
+                      />
+                      <datalist id="bulk-categories">
+                        {categories.map(c => <option key={c} value={c} />)}
+                      </datalist>
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={applyBulkCategory} disabled={!bulkCategory.trim()}>
+                        Категория
+                      </Button>
+                    </div>
+                    {/* Network */}
+                    <div className="flex items-center gap-1">
+                      <Input
+                        placeholder="Платформа"
+                        value={bulkNetwork}
+                        onChange={(e) => setBulkNetwork(e.target.value)}
+                        className="h-7 w-[110px] text-xs"
+                        list="bulk-networks"
+                      />
+                      <datalist id="bulk-networks">
+                        {networks.map(n => <option key={n} value={n} />)}
+                      </datalist>
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={applyBulkNetwork} disabled={!bulkNetwork.trim()}>
+                        Платформа
+                      </Button>
+                    </div>
+                    <div className="w-px h-5 bg-border" />
                     <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
                       Сбросить
                     </Button>
-                    <span className="text-[9px] text-muted-foreground ml-auto">
-                      Мин. наценка: {minMarkup}% · Лестница: {markupLadder.map(t => `≤${t.maxRate === Infinity ? '∞' : t.maxRate}₽→${t.markup}%`).join(', ')}
-                    </span>
                   </div>
                 )}
                 {filteredServices.length === 0 ? (
