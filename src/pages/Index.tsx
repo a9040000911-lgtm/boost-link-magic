@@ -13,6 +13,7 @@ import { useSiteContent } from '@/hooks/useSiteContent';
 import { Sparkles, Check, ExternalLink, Mail, PartyPopper, Zap, AlertTriangle, BookOpen, ArrowRight, X } from 'lucide-react';
 
 const Index = () => {
+  const { content: siteContent } = useSiteContent();
   const navigate = useNavigate();
   const [urls, setUrls] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
