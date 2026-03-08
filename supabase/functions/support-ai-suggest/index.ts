@@ -1,3 +1,4 @@
+// support-ai-suggest v2 — multi-provider with key rotation
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
