@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,13 +59,11 @@ interface Mapping {
 
 const AdminServices = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [providerServices, setProviderServices] = useState<ProviderService[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [mappings, setMappings] = useState<Mapping[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [search, setSearch] = useState("");
   const [networkFilter, setNetworkFilter] = useState("all");
   const [providerFilter, setProviderFilter] = useState("all");
@@ -86,25 +83,8 @@ const AdminServices = () => {
 
   useEffect(() => {
     if (!user) return;
-    checkAdminAndLoad();
+    loadAll();
   }, [user]);
-
-  const checkAdminAndLoad = async () => {
-    if (!user) return;
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .single();
-
-    if (!roleData) {
-      navigate("/dashboard");
-      return;
-    }
-    setIsAdmin(true);
-    await loadAll();
-  };
 
   const loadAll = async () => {
     setLoading(true);
@@ -265,13 +245,6 @@ const AdminServices = () => {
     });
   }, [providerServices, search, networkFilter, providerFilter]);
 
-  if (!isAdmin) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

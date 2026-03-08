@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LayoutDashboard, ShoppingCart, FolderKanban, Settings, LogOut, Wallet, Shield } from "lucide-react";
+import { Package, LayoutDashboard, LogOut, ArrowLeft } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,32 +17,16 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-const userMenuItems = [
-  { title: "Обзор", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Заказы", url: "/dashboard/orders", icon: ShoppingCart },
-  { title: "Транзакции", url: "/dashboard/transactions", icon: Wallet },
-  { title: "Проекты", url: "/dashboard/projects", icon: FolderKanban },
-  { title: "Настройки", url: "/dashboard/settings", icon: Settings },
+const adminMenuItems = [
+  { title: "Услуги", url: "/admin/services", icon: Package },
 ];
 
-export function DashboardSidebar() {
+export function AdminSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { user, signOut } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .single()
-      .then(({ data }) => setIsAdmin(!!data));
-  }, [user]);
-
-  const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "User";
+  const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Admin";
   const initials = displayName.slice(0, 2).toUpperCase();
 
   return (
@@ -50,18 +34,17 @@ export function DashboardSidebar() {
       <SidebarContent>
         <SidebarGroup>
           {!collapsed && (
-            <SidebarGroupLabel className="gradient-text font-bold text-lg px-4 py-3">
-              SMM Panel
+            <SidebarGroupLabel className="text-destructive font-bold text-lg px-4 py-3">
+              Админ-панель
             </SidebarGroupLabel>
           )}
           <SidebarGroupContent>
             <SidebarMenu>
-              {userMenuItems.map((item) => (
+              {adminMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      end={item.url === "/dashboard"}
                       className="hover:bg-muted/50 transition-colors"
                       activeClassName="bg-primary/10 text-primary font-medium"
                     >
@@ -75,37 +58,31 @@ export function DashboardSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {isAdmin && (
-          <SidebarGroup>
-            {!collapsed && (
-              <SidebarGroupLabel className="text-xs text-muted-foreground px-4 pt-2">
-                Администрирование
-              </SidebarGroupLabel>
-            )}
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to="/admin"
-                      className="hover:bg-muted/50 transition-colors"
-                      activeClassName="bg-primary/10 text-primary font-medium"
-                    >
-                      <Shield className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>Админ-панель</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+        <SidebarGroup>
+          {!collapsed && (
+            <SidebarGroupLabel className="text-xs text-muted-foreground px-4 pt-2">
+              Навигация
+            </SidebarGroupLabel>
+          )}
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/dashboard" className="hover:bg-muted/50 transition-colors">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>Личный кабинет</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border/60 p-3">
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-primary-foreground text-xs">
+            <AvatarFallback className="bg-gradient-to-br from-destructive to-primary text-primary-foreground text-xs">
               {initials}
             </AvatarFallback>
           </Avatar>
