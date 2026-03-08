@@ -25,6 +25,7 @@ interface SupportTopic {
 
 interface UserOrder {
   id: string;
+  order_number: number;
   service_name: string;
   created_at: string;
   status: string;
@@ -145,7 +146,7 @@ const DashboardSupport = () => {
     if (!user) return;
     const { data } = await supabase
       .from("orders")
-      .select("id, service_name, created_at, status")
+      .select("id, order_number, service_name, created_at, status")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(50);
@@ -458,7 +459,7 @@ const DashboardSupport = () => {
                   ) : (
                     userOrders.map((o) => (
                       <SelectItem key={o.id} value={o.id}>
-                        <span className="truncate">#{o.id.slice(0, 8)} — {o.service_name}</span>
+                        <span className="truncate">#{o.order_number} — {o.service_name}</span>
                       </SelectItem>
                     ))
                   )}
