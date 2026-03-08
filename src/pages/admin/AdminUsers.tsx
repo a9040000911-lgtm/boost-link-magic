@@ -98,6 +98,10 @@ const AdminUsers = () => {
   };
 
   const handleExport = () => {
+    if (!isAdmin) {
+      toast.error("Экспорт доступен только администраторам");
+      return;
+    }
     const headers = ["Имя", "Email", "Баланс", "Скидка", "Заказов", "Потрачено", "Посл. вход", "Статус", "Регистрация"];
     const rows = filtered.map((p) => {
       const auth = authMap[p.id];
@@ -114,6 +118,7 @@ const AdminUsers = () => {
       ];
     });
     exportToCsv("users", headers, rows);
+    logAuditAction("update_user_profile", "export", undefined, { type: "csv_users", count: rows.length });
     toast.success(`Экспортировано ${rows.length} пользователей`);
   };
 
