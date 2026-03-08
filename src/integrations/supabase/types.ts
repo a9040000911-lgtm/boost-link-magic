@@ -194,6 +194,59 @@ export type Database = {
         }
         Relationships: []
       }
+      link_patterns: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          extract_id_group: number | null
+          extract_username_group: number | null
+          id: string
+          is_enabled: boolean
+          label: string
+          link_type: string
+          pattern: string
+          platform: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          extract_id_group?: number | null
+          extract_username_group?: number | null
+          id?: string
+          is_enabled?: boolean
+          label: string
+          link_type?: string
+          pattern: string
+          platform: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          extract_id_group?: number | null
+          extract_username_group?: number | null
+          id?: string
+          is_enabled?: boolean
+          label?: string
+          link_type?: string
+          pattern?: string
+          platform?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "link_patterns_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           created_at: string
