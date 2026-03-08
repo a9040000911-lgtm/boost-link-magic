@@ -73,6 +73,8 @@ serve(async (req) => {
       ? (settingsMap.yookassa_test_secret_key || Deno.env.get('YOOKASSA_TEST_SECRET_KEY') || '')
       : (settingsMap.yookassa_secret_key || Deno.env.get('YOOKASSA_SECRET_KEY') || '');
 
+    console.log(`Webhook credentials: test_mode=${isTestMode}, shopId=${shopId}, settingsCount=${(credSettings || []).length}, keys=${Object.keys(settingsMap).join(',')}`);
+
     if (!shopId || !secretKey) {
       console.error(`YooKassa credentials not configured (test_mode=${isTestMode})`);
       return json({ error: 'Payment system not configured' }, 500);
