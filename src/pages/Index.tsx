@@ -1,60 +1,61 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import HeroInput from '@/components/HeroInput';
-import CategoryCards from '@/components/CategoryCards';
-import ServiceCarousel from '@/components/ServiceCarousel';
+import MultiLinkFlow from '@/components/MultiLinkFlow';
+import type { LinkOrder } from '@/components/MultiLinkFlow';
 import MarketingSection from '@/components/MarketingSection';
-import {
-  detectPlatform,
-  categoriesByPlatform,
-  getServicesForCategory,
-  platformNames,
-  type Platform,
-  type Category,
-} from '@/lib/smm-data';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { detectPlatform } from '@/lib/smm-data';
+import { Sparkles, Check, ExternalLink } from 'lucide-react';
 
 const Index = () => {
-  const [platform, setPlatform] = useState<Platform | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [urls, setUrls] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [completedOrders, setCompletedOrders] = useState<LinkOrder[] | null>(null);
 
-  const handleSubmit = (url: string) => {
+  const handleSubmit = (inputUrls: string[]) => {
     setIsLoading(true);
     setError('');
-    setSelectedCategory(null);
+    setCompletedOrders(null);
 
     setTimeout(() => {
-      const detected = detectPlatform(url);
-      if (detected) {
-        setPlatform(detected);
-        setError('');
+      const valid = inputUrls.filter((u) => detectPlatform(u) !== null);
+      if (valid.length === 0) {
+        setError('Ни одна платформа не определена. Поддерживаются: Instagram, YouTube, TikTok, Telegram, VK');
+        setUrls([]);
       } else {
-        setPlatform(null);
-        setError('Платформа не определена. Поддерживаются: Instagram, YouTube, TikTok, Telegram, VK');
+        setUrls(valid);
+        if (valid.length < inputUrls.length) {
+          setError(`${inputUrls.length - valid.length} ссылок не распознано и пропущено`);
+        }
       }
       setIsLoading(false);
     }, 800);
   };
 
-  const handleCategorySelect = (cat: Category) => {
-    setSelectedCategory(cat);
+  const handleComplete = (orders: LinkOrder[]) => {
+    setCompletedOrders(orders);
+    setUrls([]);
   };
 
-  const handleBack = () => {
-    setSelectedCategory(null);
+  const handleCancel = () => {
+    setUrls([]);
+    setError('');
   };
 
-  const categories = platform ? categoriesByPlatform[platform] : [];
-  const services = selectedCategory ? getServicesForCategory(selectedCategory.id) : [];
-  const view = selectedCategory ? 'services' : platform ? 'categories' : 'hero';
+  const handleReset = () => {
+    setCompletedOrders(null);
+    setUrls([]);
+    setError('');
+  };
+
+  const showFlow = urls.length > 0;
+  const showSummary = completedOrders !== null;
 
   return (
     <div className="min-h-screen flex flex-col overflow-hidden">
       {/* Hero */}
       <div className="hero-gradient flex flex-col items-center justify-center px-4 pt-24 pb-32 relative overflow-hidden">
-        {/* Animated background blobs */}
         <motion.div
           className="absolute top-10 left-[10%] w-72 h-72 bg-primary/10 rounded-full blur-3xl"
           animate={{ x: [0, 60, 0], y: [0, -40, 0], scale: [1, 1.2, 1] }}
@@ -74,7 +75,6 @@ const Index = () => {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
           className="mb-6 relative z-10"
         >
           <motion.span
@@ -97,9 +97,11 @@ const Index = () => {
           Продвигайте свои соцсети
         </motion.h1>
 
-        <div className="relative z-10 w-full">
-          <HeroInput onSubmit={handleSubmit} isLoading={isLoading} />
-        </div>
+        {!showFlow && !showSummary && (
+          <div className="relative z-10 w-full">
+            <HeroInput onSubmit={handleSubmit} isLoading={isLoading} />
+          </div>
+        )}
 
         <AnimatePresence>
           {error && (
@@ -118,60 +120,86 @@ const Index = () => {
       {/* Content */}
       <div className="flex-1 bg-background px-4 -mt-16 relative z-10 pb-16">
         <div className="max-w-5xl mx-auto">
-          <AnimatePresence>
-            {platform && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="flex justify-center mb-8"
-              >
-                <motion.span
-                  className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold border border-primary/20 shadow-lg shadow-primary/10"
-                  animate={{ y: [0, -3, 0] }}
-                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                >
-                  {platformNames[platform]}
-                  <motion.span
-                    className="w-2.5 h-2.5 rounded-full bg-primary"
-                    animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  />
-                </motion.span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           <AnimatePresence mode="wait">
-            {view === 'categories' && (
+            {showFlow && (
               <motion.div
-                key="categories"
-                initial={{ opacity: 0, y: 20 }}
+                key="flow"
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                transition={{ duration: 0.4 }}
+                exit={{ opacity: 0, y: -20 }}
               >
-                <CategoryCards categories={categories} onSelect={handleCategorySelect} selectedId={null} />
+                <MultiLinkFlow
+                  urls={urls}
+                  onComplete={handleComplete}
+                  onCancel={handleCancel}
+                />
               </motion.div>
             )}
 
-            {view === 'services' && selectedCategory && (
+            {showSummary && completedOrders && (
               <motion.div
-                key="services"
-                initial={{ opacity: 0, x: 100 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 100 }}
-                transition={{ duration: 0.4, type: 'spring', bounce: 0.2 }}
+                key="summary"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="max-w-2xl mx-auto"
               >
-                <motion.button
-                  onClick={handleBack}
-                  whileHover={{ x: -4 }}
-                  className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Назад к категориям
-                </motion.button>
-                <ServiceCarousel services={services} categoryName={selectedCategory.name} />
+                <div className="glass-card p-8 text-center mb-6">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', bounce: 0.5 }}
+                    className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4"
+                  >
+                    <Check className="w-8 h-8 text-primary" />
+                  </motion.div>
+                  <h2 className="text-xl font-bold text-foreground mb-2">Заказ сформирован!</h2>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    {completedOrders.length} {completedOrders.length === 1 ? 'ссылка' : 'ссылок'} настроено
+                  </p>
+
+                  <div className="space-y-3 text-left mb-8">
+                    {completedOrders.map((order, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-muted/50"
+                      >
+                        <span className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                          {i + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                            <ExternalLink className="w-3 h-3 shrink-0" />
+                            {order.url}
+                          </span>
+                          <span className="text-sm font-medium text-foreground block">
+                            {order.category?.name} → {order.service?.name} ({order.service?.price}/шт)
+                          </span>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-3 justify-center">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.96 }}
+                      onClick={handleReset}
+                      className="px-6 py-3 rounded-xl bg-muted text-foreground text-sm font-medium"
+                    >
+                      Новый заказ
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.96 }}
+                      className="px-6 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:shadow-lg hover:shadow-primary/30 transition-shadow"
+                    >
+                      Оплатить
+                    </motion.button>
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -179,7 +207,7 @@ const Index = () => {
       </div>
 
       {/* Marketing */}
-      <MarketingSection />
+      {!showFlow && !showSummary && <MarketingSection />}
     </div>
   );
 };
