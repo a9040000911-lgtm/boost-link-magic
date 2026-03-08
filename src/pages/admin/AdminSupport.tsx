@@ -199,6 +199,59 @@ const AdminSupport = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
 
+  // Quick-switch tabs
+  const MAX_TABS = 7;
+  const [openTabs, setOpenTabs] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("support_open_tabs");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("support_open_tabs", JSON.stringify(openTabs));
+  }, [openTabs]);
+
+  const selectUser = (userId: string) => {
+    setSelectedUserId(userId);
+    setOpenTabs(prev => {
+      if (prev.includes(userId)) return prev;
+      const next = [...prev, userId];
+      return next.length > MAX_TABS ? next.slice(next.length - MAX_TABS) : next;
+    });
+  };
+
+  const closeTab = (userId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setOpenTabs(prev => prev.filter(id => id !== userId));
+    if (selectedUserId === userId) {
+      const remaining = openTabs.filter(id => id !== userId);
+      setSelectedUserId(remaining.length > 0 ? remaining[remaining.length - 1] : null);
+    }
+  };
+
+  // Keyboard shortcuts: Alt+1..7 switch tabs, Alt+W close current
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!e.altKey) return;
+      if (e.key >= "1" && e.key <= "7") {
+        const idx = parseInt(e.key) - 1;
+        if (idx < openTabs.length) {
+          e.preventDefault();
+          setSelectedUserId(openTabs[idx]);
+        }
+      }
+      if (e.key === "w" || e.key === "W" || e.key === "ц" || e.key === "Ц") {
+        if (selectedUserId) {
+          e.preventDefault();
+          closeTab(selectedUserId);
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [openTabs, selectedUserId]);
+
   useEffect(() => {
     if (!user) return;
     loadTickets();
@@ -648,7 +701,7 @@ const AdminSupport = () => {
               const ban = bansMap[g.user_id];
               const isBanned = ban?.is_banned && (!ban.ban_expires_at || new Date(ban.ban_expires_at) > new Date());
               return (
-                <div key={g.user_id} className={`p-2 border-b cursor-pointer hover:bg-muted/50 transition-colors ${selectedUserId === g.user_id ? "bg-primary/5 border-l-2 border-l-primary" : ""}`} onClick={() => setSelectedUserId(g.user_id)}>
+                <div key={g.user_id} className={`p-2 border-b cursor-pointer hover:bg-muted/50 transition-colors ${selectedUserId === g.user_id ? "bg-primary/5 border-l-2 border-l-primary" : ""}`} onClick={() => selectUser(g.user_id)}>
                   <div className="flex items-start justify-between gap-1">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1">
@@ -697,6 +750,40 @@ const AdminSupport = () => {
           </div>
         ) : (
           <>
+            {/* Quick-switch tabs */}
+            {openTabs.length > 1 && (
+              <div className="flex items-center border-b bg-muted/30 shrink-0 overflow-x-auto">
+                {openTabs.map((tabUserId, idx) => {
+                  const isActive = tabUserId === selectedUserId;
+                  const name = profilesMap[tabUserId] || tabUserId.slice(0, 8);
+                  const userTickets = tickets.filter(t => t.user_id === tabUserId);
+                  const openCount = userTickets.filter(t => t.status === "open").length;
+                  return (
+                    <button
+                      key={tabUserId}
+                      onClick={() => setSelectedUserId(tabUserId)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] border-r border-border/50 whitespace-nowrap transition-colors group ${
+                        isActive
+                          ? "bg-background text-foreground font-medium border-b-2 border-b-primary"
+                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      }`}
+                    >
+                      <span className="text-[9px] text-muted-foreground/50 font-mono">{idx + 1}</span>
+                      <User className="h-2.5 w-2.5" />
+                      <span className="max-w-[80px] truncate">{name}</span>
+                      {openCount > 0 && <span className="bg-destructive/20 text-destructive text-[8px] px-1 rounded-full">{openCount}</span>}
+                      <button
+                        onClick={(e) => closeTab(tabUserId, e)}
+                        className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity ml-0.5"
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </button>
+                  );
+                })}
+                <span className="text-[8px] text-muted-foreground/40 px-2 whitespace-nowrap">Alt+1..{Math.min(openTabs.length, 7)} · Alt+W закрыть</span>
+              </div>
+            )}
             {/* Header */}
             <div className="p-2 border-b shrink-0">
               <div className="flex items-center justify-between">
