@@ -292,6 +292,35 @@ const Index = () => {
                     </div>
                   </div>
 
+                  {/* Consent checkboxes — 152-ФЗ */}
+                  <div className="space-y-2 mb-3 relative z-10 shrink-0 text-left">
+                    <label className="flex items-start gap-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={consentPD}
+                        onChange={(e) => setConsentPD(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 rounded border-border text-primary focus:ring-primary/30 shrink-0"
+                      />
+                      <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                        Даю согласие на обработку моих{' '}
+                        <a href="/privacy" target="_blank" className="text-primary hover:underline">персональных данных</a>{' '}
+                        в соответствии с 152-ФЗ
+                      </span>
+                    </label>
+                    <label className="flex items-start gap-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={consentOffer}
+                        onChange={(e) => setConsentOffer(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 rounded border-border text-primary focus:ring-primary/30 shrink-0"
+                      />
+                      <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                        Принимаю условия{' '}
+                        <a href="/privacy" target="_blank" className="text-primary hover:underline">публичной оферты</a>
+                      </span>
+                    </label>
+                  </div>
+
                   <div className="flex gap-2 justify-center flex-wrap relative z-10 shrink-0">
                     <motion.button
                       whileHover={{ scale: 1.05 }}
@@ -312,7 +341,7 @@ const Index = () => {
                     <motion.button
                       whileHover={{ scale: 1.08, boxShadow: '0 8px 30px -5px hsl(335 85% 56% / 0.5)' }}
                       whileTap={{ scale: 0.96 }}
-                      disabled={!email.includes('@')}
+                      disabled={!email.includes('@') || !consentPD || !consentOffer}
                       className="px-5 py-2 rounded-xl bg-gradient-to-r from-primary via-pink-500 to-rose-500 text-primary-foreground text-sm font-bold shadow-lg shadow-primary/25 transition-shadow disabled:opacity-40 disabled:shadow-none"
                     >
                       🚀 Оплатить
