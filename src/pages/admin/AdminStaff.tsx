@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Shield, UserPlus, Trash2, RefreshCw, Search, History, Settings2, X } from "lucide-react";
+import { Shield, UserPlus, Trash2, RefreshCw, Search, History, Settings2, X, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { logAuditAction, PERMISSIONS, PERMISSION_LABELS } from "@/lib/audit";
 
@@ -22,6 +22,7 @@ interface StaffMember {
   balance: number;
   created_at: string;
   permissions: string[];
+  telegram_chat_id: string | null;
 }
 
 const AdminStaff = () => {
@@ -48,6 +49,7 @@ const AdminStaff = () => {
   const [editMember, setEditMember] = useState<StaffMember | null>(null);
   const [editRole, setEditRole] = useState<string>("");
   const [editPermissions, setEditPermissions] = useState<string[]>([]);
+  const [editTelegramChatId, setEditTelegramChatId] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -80,6 +82,7 @@ const AdminStaff = () => {
           balance: profile?.balance || 0,
           created_at: profile?.created_at || "",
           permissions: userPerms,
+          telegram_chat_id: (profile as any)?.telegram_chat_id || null,
         };
       });
       setStaff(staffList);
@@ -153,12 +156,21 @@ const AdminStaff = () => {
     setEditMember(member);
     setEditRole(member.role.split(", ")[0]);
     setEditPermissions([...member.permissions]);
+    setEditTelegramChatId(member.telegram_chat_id || "");
     setEditOpen(true);
   };
 
   // ── Save edits ──
   const saveEdits = async () => {
     if (!editMember || !user) return;
+    setSaving(true);
+
+    // Update telegram_chat_id if changed
+    const oldTg = editMember.telegram_chat_id || "";
+    if (editTelegramChatId !== oldTg) {
+      await supabase.from("profiles").update({ telegram_chat_id: editTelegramChatId || null } as any).eq("id", editMember.user_id);
+      await logAuditAction("update_telegram_2fa", "staff", editMember.user_id, { telegram_chat_id: editTelegramChatId || null });
+    }
     setSaving(true);
 
     const currentRole = editMember.role.split(", ")[0];
@@ -355,7 +367,10 @@ const AdminStaff = () => {
                         <button className="text-primary hover:underline font-medium" onClick={() => navigate(`/admin/users/${s.user_id}`)}>
                           {s.display_name || s.user_id.slice(0, 12)}
                         </button>
-                        <p className="text-[9px] text-muted-foreground font-mono">{s.user_id.slice(0, 16)}</p>
+                        <p className="text-[9px] text-muted-foreground font-mono">
+                          {s.user_id.slice(0, 16)}
+                          {s.telegram_chat_id && <MessageCircle className="inline h-3 w-3 ml-1 text-blue-500" />}
+                        </p>
                       </TableCell>
                       <TableCell className="px-2">
                         <Badge variant={isAdmin ? "destructive" : "secondary"} className="text-[9px]">{s.role}</Badge>
@@ -541,6 +556,24 @@ const AdminStaff = () => {
                   <p className="text-[10px] text-muted-foreground mt-1">Все права включены автоматически. Для ограниченного доступа используйте роль «Модератор».</p>
                 </div>
               )}
+
+              {/* Telegram 2FA */}
+              <Separator />
+              <div>
+                <Label className="text-xs font-medium flex items-center gap-1.5">
+                  <MessageCircle className="h-3 w-3" />
+                  Telegram Chat ID (для 2FA)
+                </Label>
+                <Input
+                  className="mt-1 text-xs"
+                  placeholder="Например: 123456789"
+                  value={editTelegramChatId}
+                  onChange={(e) => setEditTelegramChatId(e.target.value)}
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Коды 2FA будут отправляться в Telegram и на почту. Если ID не указан — только на почту.
+                </p>
+              </div>
             </div>
           )}
 
