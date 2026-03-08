@@ -11,13 +11,14 @@ import {
   type Category,
   type Service,
 } from '@/lib/smm-data';
-import { ArrowLeft, ArrowRight, Check, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ExternalLink, Minus, Plus } from 'lucide-react';
 
 export interface LinkOrder {
   url: string;
   platform: Platform;
   category: Category | null;
   service: Service | null;
+  quantity: number;
 }
 
 interface MultiLinkFlowProps {
@@ -31,7 +32,7 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
     urls
       .map((url) => {
         const platform = detectPlatform(url);
-        return platform ? { url, platform, category: null, service: null } : null;
+        return platform ? { url, platform, category: null, service: null, quantity: 100 } : null;
       })
       .filter(Boolean) as LinkOrder[]
   );
@@ -47,14 +48,23 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
 
   const handleCategorySelect = (cat: Category) => {
     const updated = [...orders];
-    updated[currentIndex] = { ...current, category: cat, service: null };
+    updated[currentIndex] = { ...current, category: cat, service: null, quantity: 100 };
     setOrders(updated);
     setStep('service');
   };
 
   const handleServiceSelect = (service: Service) => {
     const updated = [...orders];
-    updated[currentIndex] = { ...current, service };
+    const qty = Math.max(service.minOrder, Math.min(current.quantity, service.maxOrder));
+    updated[currentIndex] = { ...current, service, quantity: qty };
+    setOrders(updated);
+  };
+
+  const handleQuantityChange = (value: number) => {
+    if (!current.service) return;
+    const clamped = Math.max(current.service.minOrder, Math.min(value, current.service.maxOrder));
+    const updated = [...orders];
+    updated[currentIndex] = { ...current, quantity: clamped };
     setOrders(updated);
   };
 
@@ -76,6 +86,10 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
 
   const isLastLink = currentIndex === orders.length - 1;
   const canProceed = current.service !== null;
+
+  // Parse price number from string like "0.8₽"
+  const priceNum = current.service ? parseFloat(current.service.price.replace(/[^\d.]/g, '')) : 0;
+  const total = priceNum * current.quantity;
 
   return (
     <div className="w-full max-w-5xl mx-auto">
@@ -178,11 +192,68 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
               selectedServiceId={current.service?.id ?? null}
             />
 
+            {/* Quantity input */}
+            <AnimatePresence>
+              {current.service && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="mt-8 max-w-md mx-auto"
+                >
+                  <div className="glass-card p-6">
+                    <label className="text-sm font-medium text-foreground block mb-3">
+                      Количество
+                    </label>
+                    <div className="flex items-center gap-3 mb-4">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => handleQuantityChange(current.quantity - (current.service?.minOrder || 50))}
+                        className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </motion.button>
+                      <input
+                        type="number"
+                        value={current.quantity}
+                        onChange={(e) => handleQuantityChange(Number(e.target.value))}
+                        min={current.service.minOrder}
+                        max={current.service.maxOrder}
+                        className="flex-1 text-center text-2xl font-bold bg-muted/50 rounded-xl py-2 text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => handleQuantityChange(current.quantity + (current.service?.minOrder || 50))}
+                        className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </motion.button>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        от {current.service.minOrder} до {current.service.maxOrder.toLocaleString()}
+                      </span>
+                      <motion.span
+                        key={total}
+                        initial={{ scale: 1.2 }}
+                        animate={{ scale: 1 }}
+                        className="text-lg font-bold text-primary"
+                      >
+                        {total.toFixed(1)}₽
+                      </motion.span>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Next button */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex justify-center mt-8"
+              className="flex justify-center mt-6"
             >
               <motion.button
                 whileHover={{ scale: canProceed ? 1.05 : 1 }}
