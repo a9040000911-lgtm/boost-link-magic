@@ -595,6 +595,21 @@ const Catalog = () => {
                         <SpeedBadge speed={selectedService.speed} />
                         <GuaranteeBadge guarantee={selectedService.guarantee} />
                       </div>
+                      {/* Description in order form */}
+                      {selectedService.description && (
+                        <p className="text-xs text-muted-foreground leading-relaxed mt-2 p-2 rounded-lg bg-muted/30 border border-border/30">
+                          {selectedService.description}
+                        </p>
+                      )}
+                      {/* Requirements reminder */}
+                      <div className="flex gap-2 mt-2">
+                        <span className={`text-[10px] font-medium ${activeNetConfig?.color || 'text-primary'} bg-primary/10 px-2 py-0.5 rounded-md`}>
+                          от {selectedService.min_quantity.toLocaleString()}
+                        </span>
+                        <span className={`text-[10px] font-medium ${activeNetConfig?.color || 'text-primary'} bg-primary/10 px-2 py-0.5 rounded-md`}>
+                          до {selectedService.max_quantity.toLocaleString()}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Link */}
