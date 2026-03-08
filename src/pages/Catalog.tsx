@@ -179,6 +179,7 @@ const fmtPrice = (perUnit: number) => {
 };
 
 const Catalog = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [services, setServices] = useState<CatalogService[]>([]);
