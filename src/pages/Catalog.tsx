@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, ArrowLeft, Package, Link2, Mail, Minus, Plus, Sparkles, Check,
   BarChart3, Zap, Clock, Timer, Snail, TrendingUp, Shield, ShieldCheck, ShieldAlert,
@@ -423,62 +423,32 @@ const Catalog = () => {
       {/* Platform Icons — ultra-smooth animation */}
       <div className="border-b border-border/40 bg-muted/20 shrink-0">
         <div className="max-w-7xl mx-auto px-4 py-2">
-          <LayoutGroup>
             <div className="flex flex-wrap gap-1.5 justify-center items-center">
               {availableNetworks.map((net) => {
                 const isActive = activeNetwork === net.key;
                 return (
-                  <motion.button
+                  <button
                     key={net.key}
-                    layout
-                    layoutId={`network-${net.key}`}
                     onClick={() => handleNetworkChange(net.key)}
-                    initial={false}
-                    animate={{
-                      scale: isActive ? 1.05 : 1,
-                    }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 500,
-                      damping: 35,
-                      mass: 1,
-                    }}
-                    className={`relative ${
+                    className={`relative transition-all duration-300 ease-out ${
                       isActive
-                        ? `inline-flex items-center gap-2 px-4 py-2.5 rounded-xl ${net.bg} text-white shadow-lg ${net.shadow}`
-                        : "w-11 h-11 rounded-xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border hover:shadow-sm"
+                        ? `inline-flex items-center gap-2 px-4 py-2.5 rounded-xl ${net.bg} text-white shadow-lg ${net.shadow} scale-105`
+                        : "w-11 h-11 rounded-xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border hover:shadow-sm scale-100"
                     }`}
                     title={net.label}
                   >
-                    <motion.div
-                      layout
-                      className="flex items-center gap-2"
-                      transition={{
-                        type: "spring",
-                        stiffness: 500,
-                        damping: 35,
-                      }}
-                    >
+                    <div className="flex items-center gap-2">
                       <PlatformIcon platform={net.icon} className="w-7 h-7" />
-                      <AnimatePresence mode="popLayout">
-                        {isActive && (
-                          <motion.span
-                            initial={{ opacity: 0, width: 0 }}
-                            animate={{ opacity: 1, width: "auto" }}
-                            exit={{ opacity: 0, width: 0 }}
-                            transition={{ duration: 0.2, ease: "easeInOut" }}
-                            className="text-sm font-semibold hidden sm:inline overflow-hidden whitespace-nowrap"
-                          >
-                            {net.label}
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
-                  </motion.button>
+                      {isActive && (
+                        <span className="text-sm font-semibold hidden sm:inline whitespace-nowrap">
+                          {net.label}
+                        </span>
+                      )}
+                    </div>
+                  </button>
                 );
               })}
             </div>
-          </LayoutGroup>
         </div>
       </div>
 
@@ -641,9 +611,9 @@ const Catalog = () => {
                             return (
                               <motion.button
                                 key={service.id}
-                                initial={{ opacity: 0, y: 10 }}
+                                initial={{ opacity: 0, y: 6 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.2, delay: i * 0.04 }}
+                                transition={{ duration: 0.25, ease: "easeOut", delay: i * 0.03 }}
                                 onClick={() => selectService(service)}
                                 whileHover={{ y: -2 }}
                                 whileTap={{ scale: 0.98 }}
