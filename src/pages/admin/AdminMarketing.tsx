@@ -127,7 +127,7 @@ export default function AdminMarketing() {
     if (tiersRes.data) setTiers(tiersRes.data as LoyaltyTier[]);
     if (achievementsRes.data) setAchievements(achievementsRes.data as Achievement[]);
     if (prizesRes.data) setPrizes(prizesRes.data as WheelPrize[]);
-    if (spartanRes.count !== null) setSpartanCount(spartanRes.count);
+    if (spartanRes.data !== null) setSpartanCount(spartanRes.data);
 
     const s = { ...MARKETING_DEFAULTS };
     settingsRes.data?.forEach((r: any) => { s[r.key] = r.value; });
