@@ -54,6 +54,7 @@ const Catalog = () => {
   const [quantity, setQuantity] = useState(10);
   const [consentOffer, setConsentOffer] = useState(false);
   const [consentPD, setConsentPD] = useState(false);
+  const [ordering, setOrdering] = useState(false);
 
   const carouselRef = useRef<HTMLDivElement>(null);
 
