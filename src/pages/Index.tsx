@@ -10,7 +10,7 @@ import Footer from '@/components/Footer';
 import { detectPlatformWithDb, type DbLinkPattern, type DbPlatform } from '@/lib/smm-data';
 import { supabase } from '@/integrations/supabase/client';
 import { useSiteContent } from '@/hooks/useSiteContent';
-import { Sparkles, Check, ExternalLink, Mail, PartyPopper, Zap, AlertTriangle, BookOpen, ArrowRight, X, Lock, KeyRound } from 'lucide-react';
+import { Sparkles, Check, ExternalLink, Mail, PartyPopper, Zap, AlertTriangle, BookOpen, ArrowRight, X, Lock, KeyRound, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Index = () => {
@@ -356,212 +356,241 @@ const Index = () => {
                 key="summary"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="h-full flex items-center justify-center"
+                className="h-[85vh] flex flex-col"
               >
-                <div className="relative w-full max-w-2xl rounded-2xl border border-border/60 shadow-xl bg-card/95 backdrop-blur-xl px-6 py-5 text-center">
+                <div className="relative w-full h-full rounded-2xl border border-border/60 shadow-xl bg-card/95 backdrop-blur-xl flex flex-col overflow-hidden">
                   {/* Header */}
-                  <div className="flex items-center justify-center gap-3 mb-4 relative z-10">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center shadow-md">
-                      <PartyPopper className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <h2 className="text-xl font-bold text-foreground leading-tight">🎉 Заказ сформирован!</h2>
-                      <p className="text-sm text-muted-foreground">{completedOrders.length} {completedOrders.length === 1 ? 'ссылка' : 'ссылок'}</p>
+                  <div className="shrink-0 px-6 py-5 border-b border-border/60 bg-muted/30">
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-md">
+                        <ShoppingCart className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="text-left">
+                        <h2 className="text-xl font-bold text-foreground leading-tight">Проверьте заказ перед оплатой</h2>
+                        <p className="text-sm text-muted-foreground">
+                          {completedOrders.length} {completedOrders.length === 1 ? 'услуга' : 'услуг'} · внимательно проверьте детали
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Order rows */}
-                  <div className="space-y-2 text-left mb-4 relative z-10">
+                  {/* Scrollable order details */}
+                  <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
                     {completedOrders.map((order, i) => {
                       const price = parseFloat(order.service?.price?.replace(/[^\d.]/g, '') || '0');
                       const lineTotal = price * order.quantity;
                       return (
-                        <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-muted/40">
-                          <span className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-sm font-bold shrink-0">
-                            {i + 1}
-                          </span>
-                          <div className="flex-1 min-w-0 flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                              <span className="text-base font-semibold text-foreground block truncate">
+                        <div key={i} className="rounded-xl border border-border/60 bg-muted/20 overflow-hidden">
+                          {/* Order row header */}
+                          <div className="flex items-center gap-3 px-5 py-3 bg-muted/40 border-b border-border/40">
+                            <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-sm font-bold shrink-0">
+                              {i + 1}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-base font-bold text-foreground block truncate">
                                 {order.category?.name} → {order.service?.name}
                               </span>
                               <span className="text-sm text-muted-foreground truncate block">{order.url}</span>
                             </div>
-                            <span className="text-lg font-bold text-primary shrink-0">{lineTotal.toFixed(1)}₽</span>
+                            <span className="text-xl font-bold text-primary shrink-0">{lineTotal.toFixed(1)}₽</span>
+                          </div>
+
+                          {/* Service details */}
+                          <div className="px-5 py-4 space-y-3">
+                            {order.service?.description && (
+                              <div>
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Описание услуги</p>
+                                <p className="text-sm text-foreground leading-relaxed">{order.service.description}</p>
+                              </div>
+                            )}
+                            <div className="grid grid-cols-3 gap-3">
+                              <div className="rounded-lg bg-muted/50 p-3 text-center">
+                                <p className="text-xs text-muted-foreground mb-0.5">Количество</p>
+                                <p className="text-lg font-bold text-foreground">{order.quantity.toLocaleString()}</p>
+                              </div>
+                              <div className="rounded-lg bg-muted/50 p-3 text-center">
+                                <p className="text-xs text-muted-foreground mb-0.5">Мин — Макс</p>
+                                <p className="text-sm font-semibold text-foreground">
+                                  {order.service?.minOrder.toLocaleString()} — {order.service?.maxOrder.toLocaleString()}
+                                </p>
+                              </div>
+                              <div className="rounded-lg bg-muted/50 p-3 text-center">
+                                <p className="text-xs text-muted-foreground mb-0.5">Скорость</p>
+                                <p className="text-sm font-semibold text-foreground">{order.service?.speed || '—'}</p>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       );
                     })}
                   </div>
 
-                  {/* Total */}
-                  <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-primary/5 border border-primary/10 mb-4 relative z-10">
-                    <span className="text-base font-semibold text-foreground flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-primary" /> Итого
-                    </span>
-                    <span className="text-2xl font-bold gradient-text">
-                      {completedOrders.reduce((sum, o) => {
-                        const p = parseFloat(o.service?.price?.replace(/[^\d.]/g, '') || '0');
-                        return sum + p * o.quantity;
-                      }, 0).toFixed(1)}₽
-                    </span>
-                  </div>
+                  {/* Fixed bottom: total + email + buttons */}
+                  <div className="shrink-0 border-t border-border/60 bg-card px-6 py-4 space-y-3">
+                    {/* Total */}
+                    <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-primary/5 border border-primary/10">
+                      <span className="text-base font-semibold text-foreground flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-primary" /> Итого к оплате
+                      </span>
+                      <span className="text-2xl font-bold gradient-text">
+                        {completedOrders.reduce((sum, o) => {
+                          const p = parseFloat(o.service?.price?.replace(/[^\d.]/g, '') || '0');
+                          return sum + p * o.quantity;
+                        }, 0).toFixed(1)}₽
+                      </span>
+                    </div>
 
-                  {/* Email — compact */}
-                  <AnimatePresence mode="wait">
-                    {!loginMode ? (
-                      <motion.div key="email-input" initial={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted/50 border border-border mb-2 relative z-10">
-                          <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                          <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Email для регистрации"
-                            className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-xs"
-                          />
-                        </div>
-
-                        {/* Consent */}
-                        <div className="space-y-1 mb-2 relative z-10 text-left">
-                          <label className="flex items-center gap-1.5 cursor-pointer">
-                            <input type="checkbox" checked={consentPD} onChange={(e) => setConsentPD(e.target.checked)}
-                              className="w-3.5 h-3.5 rounded border-border text-primary shrink-0" />
-                            <span className="text-[10px] text-muted-foreground">
-                              Согласен на обработку <a href="/privacy" target="_blank" className="text-primary hover:underline">персональных данных</a> (152-ФЗ)
-                            </span>
-                          </label>
-                          <label className="flex items-center gap-1.5 cursor-pointer">
-                            <input type="checkbox" checked={consentOffer} onChange={(e) => setConsentOffer(e.target.checked)}
-                              className="w-3.5 h-3.5 rounded border-border text-primary shrink-0" />
-                            <span className="text-[10px] text-muted-foreground">
-                              Принимаю <a href="/privacy" target="_blank" className="text-primary hover:underline">публичную оферту</a>
-                            </span>
-                          </label>
-                        </div>
-
-                        {/* Buttons */}
-                        <div className="flex gap-2 justify-center relative z-10">
-                          <button
-                            onClick={() => { setCompletedOrders(null); setUrls(urls.length ? urls : completedOrders!.map(o => o.url)); }}
-                            className="px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium"
-                          >
-                            ← Назад
-                          </button>
-                          <button onClick={handleReset} className="px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium">
-                            Новый заказ
-                          </button>
-                          <button
-                            disabled={!email.includes('@') || !consentPD || !consentOffer || authLoading}
-                            onClick={async () => {
-                              if (!completedOrders) return;
-                              setAuthLoading(true);
-                              // Save order data
-                              sessionStorage.setItem('pending_order', JSON.stringify({
-                                orders: completedOrders.map(o => ({
-                                  url: o.url,
-                                  platform: o.platform,
-                                  categoryName: o.category?.name,
-                                  serviceName: o.service?.name,
-                                  serviceId: o.service?.id,
-                                  quantity: o.quantity,
-                                  price: o.service?.price,
-                                })),
-                                email,
-                              }));
-                              // Try signing in with a dummy password to check if account exists
-                              const { error: signInErr } = await supabase.auth.signInWithPassword({
-                                email,
-                                password: '__check_exists__',
-                              });
-                              // "Invalid login credentials" means account exists but wrong password
-                              if (signInErr?.message?.includes('Invalid login credentials')) {
-                                setLoginMode(true);
-                                setAuthLoading(false);
-                                return;
-                              }
-                              // If no error somehow (unlikely) or email not confirmed, just redirect to auth
-                              setAuthLoading(false);
-                              navigate(`/auth?email=${encodeURIComponent(email)}&redirect=/dashboard/orders&pending=1`);
-                            }}
-                            className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-primary to-rose-500 text-primary-foreground text-xs font-bold shadow-md disabled:opacity-40 hover:shadow-lg transition-shadow"
-                          >
-                            {authLoading ? '...' : '🚀 Оплатить'}
-                          </button>
-                        </div>
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="login-form"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        className="relative z-10"
-                      >
-                        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 mb-2">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Lock className="w-4 h-4 text-primary" />
-                            <span className="text-xs font-semibold text-foreground">
-                              Аккаунт с {email} уже существует
-                            </span>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground mb-3">
-                            Введите пароль для входа или восстановите доступ через почту
-                          </p>
-                          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted/50 border border-border mb-2">
-                            <KeyRound className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    {/* Email + consent + actions */}
+                    <AnimatePresence mode="wait">
+                      {!loginMode ? (
+                        <motion.div key="email-input" initial={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-muted/50 border border-border mb-3">
+                            <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
                             <input
-                              type="password"
-                              value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                              placeholder="Пароль"
-                              onKeyDown={(e) => e.key === 'Enter' && password.length >= 6 && document.getElementById('btn-login')?.click()}
-                              className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-xs"
+                              type="email"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              placeholder="Email для регистрации"
+                              className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm"
                             />
                           </div>
-                          <div className="flex gap-2">
+
+                          <div className="space-y-1.5 mb-3 text-left">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={consentPD} onChange={(e) => setConsentPD(e.target.checked)}
+                                className="w-4 h-4 rounded border-border text-primary shrink-0" />
+                              <span className="text-xs text-muted-foreground">
+                                Согласен на обработку <a href="/privacy" target="_blank" className="text-primary hover:underline">персональных данных</a> (152-ФЗ)
+                              </span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={consentOffer} onChange={(e) => setConsentOffer(e.target.checked)}
+                                className="w-4 h-4 rounded border-border text-primary shrink-0" />
+                              <span className="text-xs text-muted-foreground">
+                                Принимаю <a href="/privacy" target="_blank" className="text-primary hover:underline">публичную оферту</a>
+                              </span>
+                            </label>
+                          </div>
+
+                          <div className="flex gap-3 justify-center">
                             <button
-                              onClick={() => { setLoginMode(false); setPassword(''); setResetSent(false); }}
-                              className="px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium"
+                              onClick={() => { setCompletedOrders(null); setUrls(urls.length ? urls : completedOrders!.map(o => o.url)); }}
+                              className="px-5 py-2.5 rounded-xl bg-muted text-foreground text-sm font-medium hover:bg-accent transition-colors"
                             >
                               ← Назад
                             </button>
+                            <button onClick={handleReset} className="px-5 py-2.5 rounded-xl bg-muted text-foreground text-sm font-medium hover:bg-accent transition-colors">
+                              Новый заказ
+                            </button>
                             <button
-                              id="btn-login"
-                              disabled={password.length < 6 || authLoading}
+                              disabled={!email.includes('@') || !consentPD || !consentOffer || authLoading}
                               onClick={async () => {
+                                if (!completedOrders) return;
                                 setAuthLoading(true);
-                                const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-                                if (err) {
-                                  toast.error('Неверный пароль');
+                                sessionStorage.setItem('pending_order', JSON.stringify({
+                                  orders: completedOrders.map(o => ({
+                                    url: o.url,
+                                    platform: o.platform,
+                                    categoryName: o.category?.name,
+                                    serviceName: o.service?.name,
+                                    serviceId: o.service?.id,
+                                    quantity: o.quantity,
+                                    price: o.service?.price,
+                                  })),
+                                  email,
+                                }));
+                                const { error: signInErr } = await supabase.auth.signInWithPassword({
+                                  email,
+                                  password: '__check_exists__',
+                                });
+                                if (signInErr?.message?.includes('Invalid login credentials')) {
+                                  setLoginMode(true);
                                   setAuthLoading(false);
                                   return;
                                 }
-                                toast.success('Вход выполнен!');
-                                navigate('/dashboard/orders?pending=1');
+                                setAuthLoading(false);
+                                navigate(`/auth?email=${encodeURIComponent(email)}&redirect=/dashboard/orders&pending=1`);
                               }}
-                              className="flex-1 px-4 py-1.5 rounded-lg bg-gradient-to-r from-primary to-rose-500 text-primary-foreground text-xs font-bold shadow-md disabled:opacity-40"
+                              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary to-rose-500 text-primary-foreground text-sm font-bold shadow-lg disabled:opacity-40 hover:shadow-xl transition-shadow inline-flex items-center gap-2"
                             >
-                              {authLoading ? '...' : '🚀 Войти и оплатить'}
+                              <Sparkles className="w-4 h-4" />
+                              {authLoading ? 'Загрузка...' : 'Перейти к оплате'}
                             </button>
                           </div>
-                          <button
-                            disabled={resetSent}
-                            onClick={async () => {
-                              await supabase.auth.resetPasswordForEmail(email, {
-                                redirectTo: `${window.location.origin}/reset-password`,
-                              });
-                              setResetSent(true);
-                              toast.success('Ссылка для сброса пароля отправлена на ' + email);
-                            }}
-                            className="mt-2 text-[10px] text-primary hover:underline disabled:opacity-50"
-                          >
-                            {resetSent ? '✓ Ссылка отправлена' : 'Забыли пароль? Восстановить →'}
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="login-form"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                        >
+                          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Lock className="w-4 h-4 text-primary" />
+                              <span className="text-sm font-semibold text-foreground">
+                                Аккаунт с {email} уже существует
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mb-3">
+                              Введите пароль для входа или восстановите доступ через почту
+                            </p>
+                            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-muted/50 border border-border mb-3">
+                              <KeyRound className="w-4 h-4 text-muted-foreground shrink-0" />
+                              <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Пароль"
+                                onKeyDown={(e) => e.key === 'Enter' && password.length >= 6 && document.getElementById('btn-login')?.click()}
+                                className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm"
+                              />
+                            </div>
+                            <div className="flex gap-3">
+                              <button
+                                onClick={() => { setLoginMode(false); setPassword(''); setResetSent(false); }}
+                                className="px-5 py-2.5 rounded-xl bg-muted text-foreground text-sm font-medium"
+                              >
+                                ← Назад
+                              </button>
+                              <button
+                                id="btn-login"
+                                disabled={password.length < 6 || authLoading}
+                                onClick={async () => {
+                                  setAuthLoading(true);
+                                  const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+                                  if (err) {
+                                    toast.error('Неверный пароль');
+                                    setAuthLoading(false);
+                                    return;
+                                  }
+                                  toast.success('Вход выполнен!');
+                                  navigate('/dashboard/orders?pending=1');
+                                }}
+                                className="flex-1 px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary to-rose-500 text-primary-foreground text-sm font-bold shadow-lg disabled:opacity-40 inline-flex items-center justify-center gap-2"
+                              >
+                                <Sparkles className="w-4 h-4" />
+                                {authLoading ? 'Загрузка...' : 'Войти и оплатить'}
+                              </button>
+                            </div>
+                            <button
+                              disabled={resetSent}
+                              onClick={async () => {
+                                await supabase.auth.resetPasswordForEmail(email, {
+                                  redirectTo: `${window.location.origin}/reset-password`,
+                                });
+                                setResetSent(true);
+                                toast.success('Ссылка для сброса пароля отправлена на ' + email);
+                              }}
+                              className="mt-3 text-xs text-primary hover:underline disabled:opacity-50"
+                            >
+                              {resetSent ? '✓ Ссылка отправлена' : 'Забыли пароль? Восстановить →'}
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
               </motion.div>
             )}
