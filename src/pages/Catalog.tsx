@@ -262,24 +262,28 @@ const Catalog = () => {
         </div>
       </motion.div>
 
-      {/* Platform Grid */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.15 }} className="border-b border-border/40 bg-card/30">
-        <div className="max-w-6xl mx-auto px-4 py-3">
-          <div className="flex flex-wrap gap-1.5 justify-center">
-            {availableNetworks.map((net) => (
-              <button
-                key={net.key}
-                onClick={() => handleNetworkChange(net.key)}
-                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  activeNetwork === net.key
-                    ? `${net.bg} text-white shadow-lg ${net.shadow} scale-105`
-                    : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-              >
-                <PlatformIcon platform={net.icon} className="w-4 h-4" />
-                {net.label}
-              </button>
-            ))}
+      {/* Platform Icons */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.15 }} className="border-b border-border/40 bg-muted/20">
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="flex flex-wrap gap-2 justify-center items-center">
+            {availableNetworks.map((net) => {
+              const isActive = activeNetwork === net.key;
+              return (
+                <button
+                  key={net.key}
+                  onClick={() => handleNetworkChange(net.key)}
+                  className={`relative transition-all duration-200 ${
+                    isActive
+                      ? `inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl ${net.bg} text-white shadow-lg ${net.shadow} scale-105`
+                      : "w-11 h-11 rounded-2xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border hover:shadow-sm hover:scale-105"
+                  }`}
+                  title={net.label}
+                >
+                  <PlatformIcon platform={net.icon} className={isActive ? "w-5 h-5" : "w-5 h-5"} />
+                  {isActive && <span className="text-sm font-semibold">{net.label}</span>}
+                </button>
+              );
+            })}
           </div>
         </div>
       </motion.div>
