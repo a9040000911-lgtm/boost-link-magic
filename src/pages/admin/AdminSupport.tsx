@@ -750,6 +750,40 @@ const AdminSupport = () => {
           </div>
         ) : (
           <>
+            {/* Quick-switch tabs */}
+            {openTabs.length > 1 && (
+              <div className="flex items-center border-b bg-muted/30 shrink-0 overflow-x-auto">
+                {openTabs.map((tabUserId, idx) => {
+                  const isActive = tabUserId === selectedUserId;
+                  const name = profilesMap[tabUserId] || tabUserId.slice(0, 8);
+                  const userTickets = tickets.filter(t => t.user_id === tabUserId);
+                  const openCount = userTickets.filter(t => t.status === "open").length;
+                  return (
+                    <button
+                      key={tabUserId}
+                      onClick={() => setSelectedUserId(tabUserId)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] border-r border-border/50 whitespace-nowrap transition-colors group ${
+                        isActive
+                          ? "bg-background text-foreground font-medium border-b-2 border-b-primary"
+                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      }`}
+                    >
+                      <span className="text-[9px] text-muted-foreground/50 font-mono">{idx + 1}</span>
+                      <User className="h-2.5 w-2.5" />
+                      <span className="max-w-[80px] truncate">{name}</span>
+                      {openCount > 0 && <span className="bg-destructive/20 text-destructive text-[8px] px-1 rounded-full">{openCount}</span>}
+                      <button
+                        onClick={(e) => closeTab(tabUserId, e)}
+                        className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity ml-0.5"
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </button>
+                  );
+                })}
+                <span className="text-[8px] text-muted-foreground/40 px-2 whitespace-nowrap">Alt+1..{Math.min(openTabs.length, 7)} · Alt+W закрыть</span>
+              </div>
+            )}
             {/* Header */}
             <div className="p-2 border-b shrink-0">
               <div className="flex items-center justify-between">
