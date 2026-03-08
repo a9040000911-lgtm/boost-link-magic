@@ -358,48 +358,48 @@ const Index = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 className="h-full flex items-center justify-center"
               >
-                <div className="relative w-full max-w-2xl rounded-2xl border border-border/60 shadow-xl bg-card/95 backdrop-blur-xl px-4 py-3 text-center">
-                  {/* Header — inline */}
-                  <div className="flex items-center justify-center gap-2 mb-2 relative z-10">
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center shadow-md">
-                      <PartyPopper className="w-4 h-4 text-white" />
+                <div className="relative w-full max-w-2xl rounded-2xl border border-border/60 shadow-xl bg-card/95 backdrop-blur-xl px-6 py-5 text-center">
+                  {/* Header */}
+                  <div className="flex items-center justify-center gap-3 mb-4 relative z-10">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center shadow-md">
+                      <PartyPopper className="w-6 h-6 text-white" />
                     </div>
                     <div className="text-left">
-                      <h2 className="text-sm font-bold text-foreground leading-tight">🎉 Заказ сформирован!</h2>
-                      <p className="text-[10px] text-muted-foreground">{completedOrders.length} {completedOrders.length === 1 ? 'ссылка' : 'ссылок'}</p>
+                      <h2 className="text-xl font-bold text-foreground leading-tight">🎉 Заказ сформирован!</h2>
+                      <p className="text-sm text-muted-foreground">{completedOrders.length} {completedOrders.length === 1 ? 'ссылка' : 'ссылок'}</p>
                     </div>
                   </div>
 
-                  {/* Order rows — compact */}
-                  <div className="space-y-1 text-left mb-2 relative z-10">
+                  {/* Order rows */}
+                  <div className="space-y-2 text-left mb-4 relative z-10">
                     {completedOrders.map((order, i) => {
                       const price = parseFloat(order.service?.price?.replace(/[^\d.]/g, '') || '0');
                       const lineTotal = price * order.quantity;
                       return (
-                        <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted/40">
-                          <span className="w-5 h-5 rounded bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
+                        <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-muted/40">
+                          <span className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-sm font-bold shrink-0">
                             {i + 1}
                           </span>
-                          <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+                          <div className="flex-1 min-w-0 flex items-center justify-between gap-3">
                             <div className="min-w-0">
-                              <span className="text-xs font-medium text-foreground block truncate">
+                              <span className="text-base font-semibold text-foreground block truncate">
                                 {order.category?.name} → {order.service?.name}
                               </span>
-                              <span className="text-[10px] text-muted-foreground truncate block">{order.url}</span>
+                              <span className="text-sm text-muted-foreground truncate block">{order.url}</span>
                             </div>
-                            <span className="text-xs font-bold text-primary shrink-0">{lineTotal.toFixed(1)}₽</span>
+                            <span className="text-lg font-bold text-primary shrink-0">{lineTotal.toFixed(1)}₽</span>
                           </div>
                         </div>
                       );
                     })}
                   </div>
 
-                  {/* Total — inline */}
-                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-primary/5 border border-primary/10 mb-2 relative z-10">
-                    <span className="text-xs font-semibold text-foreground flex items-center gap-1">
-                      <Zap className="w-3 h-3 text-primary" /> Итого
+                  {/* Total */}
+                  <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-primary/5 border border-primary/10 mb-4 relative z-10">
+                    <span className="text-base font-semibold text-foreground flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-primary" /> Итого
                     </span>
-                    <span className="text-lg font-bold gradient-text">
+                    <span className="text-2xl font-bold gradient-text">
                       {completedOrders.reduce((sum, o) => {
                         const p = parseFloat(o.service?.price?.replace(/[^\d.]/g, '') || '0');
                         return sum + p * o.quantity;
