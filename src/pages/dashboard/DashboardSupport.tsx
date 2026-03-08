@@ -507,7 +507,7 @@ const DashboardSupport = () => {
           </div>
           <Button
             onClick={handleCreate}
-            disabled={creating || !selectedTopicId || !newMessage.trim() || (selectedTopic?.requires_order_id && !selectedOrderId)}
+            disabled={creating || !selectedTopicId || !newMessage.trim() || (selectedTopic?.requires_order_id && !selectedOrderId && !contactIdentifier.trim())}
             className="w-full bg-gradient-to-r from-primary to-secondary text-primary-foreground"
           >
             <Send className="w-4 h-4 mr-2" /> {creating ? "Создание..." : "Отправить обращение"}
