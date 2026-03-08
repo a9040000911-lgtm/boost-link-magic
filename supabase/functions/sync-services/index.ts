@@ -69,6 +69,22 @@ serve(async (req) => {
       });
     }
 
+    // Load cleanup rules
+    const { data: cleanupRules } = await adminClient
+      .from('provider_cleanup_rules')
+      .select('*')
+      .eq('is_enabled', true);
+
+    const applyCleanup = (field: string, value: string): string => {
+      if (!cleanupRules || !value) return value;
+      for (const rule of cleanupRules) {
+        if (rule.field === field && value.includes(rule.match_value)) {
+          value = value.replace(rule.match_value, rule.replace_value).trim();
+        }
+      }
+      return value;
+    };
+
     const results: Record<string, { total: number; inserted: number; updated: number }> = {};
 
     for (const prov of dbProviders) {
