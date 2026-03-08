@@ -27,6 +27,7 @@ const adminMenuItems = [
   { title: "Страницы и SEO", url: "/admin/pages", icon: FileText },
   { title: "FAQ", url: "/admin/faq", icon: HelpCircle },
   { title: "Виджеты", url: "/admin/widgets", icon: Puzzle },
+  { title: "Ссылки", url: "/admin/links", icon: Link2 },
   { title: "Поддержка", url: "/admin/support", icon: MessageSquare },
   { title: "Сотрудники", url: "/admin/staff", icon: Shield },
   { title: "Настройки", url: "/admin/settings", icon: Settings },

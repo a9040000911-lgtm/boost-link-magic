@@ -77,6 +77,7 @@ const App = () => (
             <Route path="support" element={<AdminSupport />} />
             <Route path="staff" element={<AdminStaff />} />
             <Route path="providers" element={<AdminProviders />} />
+            <Route path="links" element={<AdminLinks />} />
           </Route>
           <Route path="/page/:slug" element={<DynamicPage />} />
           <Route path="*" element={<NotFound />} />
