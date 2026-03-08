@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageSquare, Send, Search, User, Clock, ChevronLeft, Paperclip, Mail, MessageCircle, AlertTriangle, Ban, ShieldOff, ShieldCheck } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { MessageSquare, Send, Search, User, Clock, ChevronLeft, Paperclip, Mail, MessageCircle, AlertTriangle, Ban, ShieldOff, ShieldCheck, Timer, TimerOff } from "lucide-react";
 import { ImageViewer } from "@/components/support/ImageViewer";
 import { AudioPlayer } from "@/components/support/AudioPlayer";
 import { VideoPlayer } from "@/components/support/VideoPlayer";
@@ -22,6 +23,10 @@ interface Ticket {
   created_at: string;
   updated_at: string;
   channel?: string;
+  auto_close_at?: string | null;
+  auto_closed?: boolean;
+  last_admin_reply_at?: string | null;
+  reopened_at?: string | null;
 }
 
 interface Message {
@@ -42,6 +47,7 @@ interface ClientGroup {
   tickets: Ticket[];
   lastActivity: string;
   openCount: number;
+  waitingCount: number;
   totalCount: number;
 }
 
@@ -57,10 +63,21 @@ interface SupportBan {
   unban_reason: string | null;
 }
 
+const AUTO_CLOSE_HOURS = 24;
+const REOPEN_HOURS = 48;
+
 const statusColors: Record<string, string> = {
   open: "bg-green-500/20 text-green-600",
   in_progress: "bg-blue-500/20 text-blue-600",
+  waiting_reply: "bg-orange-500/20 text-orange-600",
   closed: "bg-muted text-muted-foreground",
+};
+
+const statusLabels: Record<string, string> = {
+  open: "Открыт",
+  in_progress: "В работе",
+  waiting_reply: "Ожидание",
+  closed: "Закрыт",
 };
 
 const channelIcons: Record<string, React.ReactNode> = {
@@ -82,22 +99,61 @@ function MessageAttachment({ msg, onImageClick }: { msg: Message; onImageClick: 
   const category = getAttachmentCategory(msg.attachment_type);
   switch (category) {
     case "image":
-      return (
-        <div className="mt-1">
-          <img src={msg.attachment_url} alt={msg.attachment_name || "Image"} className="max-w-[220px] max-h-[160px] rounded cursor-pointer hover:opacity-80 transition-opacity object-cover" onClick={() => onImageClick(msg.attachment_url!)} />
-        </div>
-      );
+      return <div className="mt-1"><img src={msg.attachment_url} alt={msg.attachment_name || "Image"} className="max-w-[220px] max-h-[160px] rounded cursor-pointer hover:opacity-80 transition-opacity object-cover" onClick={() => onImageClick(msg.attachment_url!)} /></div>;
     case "audio":
       return <div className="mt-1"><AudioPlayer src={msg.attachment_url} name={msg.attachment_name || "Голосовое сообщение"} /></div>;
     case "video":
       return <div className="mt-1"><VideoPlayer src={msg.attachment_url} name={msg.attachment_name || "Видео"} /></div>;
     default:
-      return (
-        <div className="mt-1">
-          <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-1">📎 {msg.attachment_name || "Файл"}</a>
-        </div>
-      );
+      return <div className="mt-1"><a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-1">📎 {msg.attachment_name || "Файл"}</a></div>;
   }
+}
+
+// Countdown component that updates every second
+function CountdownTimer({ autoCloseAt }: { autoCloseAt: string }) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const target = new Date(autoCloseAt).getTime();
+  const totalMs = AUTO_CLOSE_HOURS * 60 * 60 * 1000;
+  const remainingMs = Math.max(0, target - now);
+  const progress = ((totalMs - remainingMs) / totalMs) * 100;
+
+  if (remainingMs <= 0) return <span className="text-[9px] text-destructive font-bold">Закрывается...</span>;
+
+  const hours = Math.floor(remainingMs / 3600000);
+  const minutes = Math.floor((remainingMs % 3600000) / 60000);
+  const seconds = Math.floor((remainingMs % 60000) / 1000);
+
+  const timeStr = hours > 0 ? `${hours}ч ${minutes}м` : `${minutes}м ${seconds}с`;
+
+  return (
+    <div className="flex items-center gap-1.5 w-full">
+      <Timer className="h-3 w-3 text-orange-500 shrink-0" />
+      <Progress value={progress} className="h-1.5 flex-1 [&>div]:bg-orange-500" />
+      <span className="text-[9px] text-orange-600 font-mono font-bold whitespace-nowrap">{timeStr}</span>
+    </div>
+  );
+}
+
+// Mini countdown for sidebar
+function MiniCountdown({ autoCloseAt }: { autoCloseAt: string }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const remaining = Math.max(0, new Date(autoCloseAt).getTime() - now);
+  if (remaining <= 0) return <span className="text-[8px] text-destructive">⏰</span>;
+
+  const hours = Math.floor(remaining / 3600000);
+  const minutes = Math.floor((remaining % 3600000) / 60000);
+  return <span className="text-[8px] text-orange-500 font-mono">{hours}ч{minutes}м</span>;
 }
 
 const AdminSupport = () => {
@@ -127,7 +183,6 @@ const AdminSupport = () => {
     loadBans();
   }, [user]);
 
-  // Load all messages for the selected user's tickets
   useEffect(() => {
     if (!selectedUserId) return;
     const userTickets = tickets.filter(t => t.user_id === selectedUserId);
@@ -135,14 +190,11 @@ const AdminSupport = () => {
 
     loadAllUserMessages(userTickets);
 
-    // Set active ticket to the latest non-closed or first
     const active = userTickets.find(t => t.status !== "closed") || userTickets[0];
     setActiveTicketId(active.id);
 
-    // Subscribe to all user tickets
     const channels = userTickets.map(t =>
-      supabase
-        .channel(`ticket-${t.id}`)
+      supabase.channel(`ticket-${t.id}`)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages", filter: `ticket_id=eq.${t.id}` }, (payload) => {
           setMessages(prev => [...prev, payload.new as Message]);
         })
@@ -158,11 +210,7 @@ const AdminSupport = () => {
 
   const loadAllUserMessages = async (userTickets: Ticket[]) => {
     const ticketIds = userTickets.map(t => t.id);
-    const { data } = await supabase
-      .from("support_messages")
-      .select("*")
-      .in("ticket_id", ticketIds)
-      .order("created_at", { ascending: true });
+    const { data } = await supabase.from("support_messages").select("*").in("ticket_id", ticketIds).order("created_at", { ascending: true });
     setMessages((data || []) as Message[]);
   };
 
@@ -189,7 +237,6 @@ const AdminSupport = () => {
     setBansMap(map);
   };
 
-  // Group tickets by user
   const clientGroups = useMemo((): ClientGroup[] => {
     const groupMap: Record<string, Ticket[]> = {};
     tickets.forEach(t => {
@@ -203,11 +250,13 @@ const AdminSupport = () => {
       tickets: userTickets,
       lastActivity: userTickets.reduce((max, t) => t.updated_at > max ? t.updated_at : max, ""),
       openCount: userTickets.filter(t => t.status === "open").length,
+      waitingCount: userTickets.filter(t => t.status === "waiting_reply").length,
       totalCount: userTickets.length,
     })).sort((a, b) => {
-      // Sort: open tickets first, then by last activity
       if (a.openCount > 0 && b.openCount === 0) return -1;
       if (b.openCount > 0 && a.openCount === 0) return 1;
+      if (a.waitingCount > 0 && b.waitingCount === 0) return -1;
+      if (b.waitingCount > 0 && a.waitingCount === 0) return 1;
       return b.lastActivity.localeCompare(a.lastActivity);
     });
   }, [tickets, profilesMap]);
@@ -215,18 +264,14 @@ const AdminSupport = () => {
   const filteredGroups = useMemo(() => {
     return clientGroups.filter(g => {
       if (statusFilter !== "all") {
-        const hasStatus = g.tickets.some(t => t.status === statusFilter);
-        if (!hasStatus) return false;
+        if (!g.tickets.some(t => t.status === statusFilter)) return false;
       }
       if (channelFilter !== "all") {
-        const hasChannel = g.tickets.some(t => (t.channel || "web") === channelFilter);
-        if (!hasChannel) return false;
+        if (!g.tickets.some(t => (t.channel || "web") === channelFilter)) return false;
       }
       if (search) {
         const s = search.toLowerCase();
-        const nameMatch = g.displayName.toLowerCase().includes(s);
-        const subjectMatch = g.tickets.some(t => t.subject.toLowerCase().includes(s));
-        if (!nameMatch && !subjectMatch) return false;
+        if (!g.displayName.toLowerCase().includes(s) && !g.tickets.some(t => t.subject.toLowerCase().includes(s))) return false;
       }
       return true;
     });
@@ -237,22 +282,25 @@ const AdminSupport = () => {
     return tickets.filter(t => t.user_id === selectedUserId).sort((a, b) => b.updated_at.localeCompare(a.updated_at));
   }, [selectedUserId, tickets]);
 
-  const activeTicket = useMemo(() => {
-    return selectedUserTickets.find(t => t.id === activeTicketId) || null;
-  }, [selectedUserTickets, activeTicketId]);
+  const activeTicket = useMemo(() => selectedUserTickets.find(t => t.id === activeTicketId) || null, [selectedUserTickets, activeTicketId]);
 
   const currentBan = selectedUserId ? bansMap[selectedUserId] : null;
   const isUserBanned = currentBan?.is_banned && (!currentBan.ban_expires_at || new Date(currentBan.ban_expires_at) > new Date());
+
+  const canReopen = (ticket: Ticket) => {
+    if (ticket.status !== "closed") return false;
+    if (!ticket.auto_closed) return true; // manual close can always reopen
+    // Auto-closed: can reopen within 48h
+    const closedAt = new Date(ticket.updated_at).getTime();
+    return Date.now() - closedAt < REOPEN_HOURS * 60 * 60 * 1000;
+  };
 
   const uploadFile = async (file: File): Promise<{ url: string; type: string; name: string } | null> => {
     if (!activeTicket) return null;
     const ext = file.name.split(".").pop();
     const path = `${activeTicket.id}/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("support-attachments").upload(path, file);
-    if (error) {
-      toast({ title: "Ошибка загрузки", description: error.message, variant: "destructive" });
-      return null;
-    }
+    if (error) { toast({ title: "Ошибка загрузки", description: error.message, variant: "destructive" }); return null; }
     const { data } = supabase.storage.from("support-attachments").getPublicUrl(path);
     return { url: data.publicUrl, type: file.type, name: file.name };
   };
@@ -275,14 +323,20 @@ const AdminSupport = () => {
 
     await supabase.from("support_messages").insert(msgData);
 
-    if (activeTicket.status === "open") {
-      await supabase.from("support_tickets").update({ status: "in_progress", updated_at: new Date().toISOString() }).eq("id", activeTicket.id);
-      setTickets(prev => prev.map(t => t.id === activeTicket.id ? { ...t, status: "in_progress" } : t));
-    }
+    // After admin reply → set to waiting_reply with auto-close timer
+    const autoCloseAt = new Date(Date.now() + AUTO_CLOSE_HOURS * 60 * 60 * 1000).toISOString();
+    await supabase.from("support_tickets").update({
+      status: "waiting_reply",
+      auto_close_at: autoCloseAt,
+      last_admin_reply_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as any).eq("id", activeTicket.id);
+
+    setTickets(prev => prev.map(t => t.id === activeTicket.id ? { ...t, status: "waiting_reply", auto_close_at: autoCloseAt, last_admin_reply_at: new Date().toISOString() } : t));
 
     try {
       await supabase.functions.invoke("telegram-bot", {
-        body: { action: "notify", text: `📤 Ответ на тикет: <b>${activeTicket.subject}</b>\n\n${newMessage.trim() || "📎 Файл"}` },
+        body: { action: "notify", text: `📤 Ответ на тикет: <b>${activeTicket.subject}</b>\n\n${newMessage.trim() || "📎 Файл"}\n\n⏳ Автозакрытие через 24ч если клиент не ответит` },
       });
     } catch (e) {}
 
@@ -304,10 +358,7 @@ const AdminSupport = () => {
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 20 * 1024 * 1024) {
-      toast({ title: "Файл слишком большой", description: "Максимум 20 МБ", variant: "destructive" });
-      return;
-    }
+    if (file.size > 20 * 1024 * 1024) { toast({ title: "Файл слишком большой", description: "Максимум 20 МБ", variant: "destructive" }); return; }
     setUploading(true);
     const result = await uploadFile(file);
     if (result) await sendMessage(result);
@@ -317,14 +368,22 @@ const AdminSupport = () => {
 
   const closeTicket = async () => {
     if (!activeTicket) return;
-    await supabase.from("support_tickets").update({ status: "closed", updated_at: new Date().toISOString() }).eq("id", activeTicket.id);
-    setTickets(prev => prev.map(t => t.id === activeTicket.id ? { ...t, status: "closed" } : t));
+    await supabase.from("support_tickets").update({ status: "closed", auto_close_at: null, updated_at: new Date().toISOString() } as any).eq("id", activeTicket.id);
+    setTickets(prev => prev.map(t => t.id === activeTicket.id ? { ...t, status: "closed", auto_close_at: null } : t));
   };
 
   const reopenTicket = async () => {
     if (!activeTicket) return;
-    await supabase.from("support_tickets").update({ status: "open", updated_at: new Date().toISOString() }).eq("id", activeTicket.id);
-    setTickets(prev => prev.map(t => t.id === activeTicket.id ? { ...t, status: "open" } : t));
+    await supabase.from("support_tickets").update({ status: "open", auto_closed: false, auto_close_at: null, reopened_at: new Date().toISOString(), updated_at: new Date().toISOString() } as any).eq("id", activeTicket.id);
+    setTickets(prev => prev.map(t => t.id === activeTicket.id ? { ...t, status: "open", auto_closed: false, auto_close_at: null } : t));
+  };
+
+  // Cancel auto-close (keep as in_progress)
+  const cancelAutoClose = async () => {
+    if (!activeTicket) return;
+    await supabase.from("support_tickets").update({ status: "in_progress", auto_close_at: null, updated_at: new Date().toISOString() } as any).eq("id", activeTicket.id);
+    setTickets(prev => prev.map(t => t.id === activeTicket.id ? { ...t, status: "in_progress", auto_close_at: null } : t));
+    toast({ title: "Автозакрытие отменено", description: "Тикет вернулся в статус «В работе»" });
   };
 
   // Ban system
@@ -332,25 +391,12 @@ const AdminSupport = () => {
     if (!selectedUserId || !user) return;
     const current = bansMap[selectedUserId];
     const newWarnings = (current?.warnings || 0) + 1;
-
-    if (newWarnings >= 3) {
-      // Auto 24h ban
-      await applyBan("24h");
-      return;
-    }
-
+    if (newWarnings >= 3) { await applyBan("24h"); return; }
     if (current) {
-      await supabase.from("support_bans").update({
-        warnings: newWarnings,
-        updated_at: new Date().toISOString(),
-      } as any).eq("user_id", selectedUserId);
+      await supabase.from("support_bans").update({ warnings: newWarnings, updated_at: new Date().toISOString() } as any).eq("user_id", selectedUserId);
     } else {
-      await supabase.from("support_bans").insert({
-        user_id: selectedUserId,
-        warnings: newWarnings,
-      } as any);
+      await supabase.from("support_bans").insert({ user_id: selectedUserId, warnings: newWarnings } as any);
     }
-
     toast({ title: `Предупреждение ${newWarnings}/3`, description: newWarnings === 2 ? "Следующее предупреждение = бан на 24ч" : "" });
     await loadBans();
   };
@@ -360,28 +406,20 @@ const AdminSupport = () => {
     const banData: any = {
       user_id: selectedUserId,
       warnings: type === "24h" ? 3 : (bansMap[selectedUserId]?.warnings || 0),
-      is_banned: true,
-      ban_type: type,
-      banned_at: new Date().toISOString(),
-      banned_by: user.id,
+      is_banned: true, ban_type: type,
+      banned_at: new Date().toISOString(), banned_by: user.id,
       ban_expires_at: type === "24h" ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null,
       updated_at: new Date().toISOString(),
     };
-
     const current = bansMap[selectedUserId];
-    if (current) {
-      await supabase.from("support_bans").update(banData).eq("user_id", selectedUserId);
-    } else {
-      await supabase.from("support_bans").insert(banData);
-    }
+    if (current) { await supabase.from("support_bans").update(banData).eq("user_id", selectedUserId); }
+    else { await supabase.from("support_bans").insert(banData); }
 
-    // Close all open tickets
     const userTicketIds = tickets.filter(t => t.user_id === selectedUserId && t.status !== "closed").map(t => t.id);
     for (const tid of userTicketIds) {
-      await supabase.from("support_tickets").update({ status: "closed", updated_at: new Date().toISOString() }).eq("id", tid);
+      await supabase.from("support_tickets").update({ status: "closed", auto_close_at: null, updated_at: new Date().toISOString() } as any).eq("id", tid);
     }
-    setTickets(prev => prev.map(t => userTicketIds.includes(t.id) ? { ...t, status: "closed" } : t));
-
+    setTickets(prev => prev.map(t => userTicketIds.includes(t.id) ? { ...t, status: "closed", auto_close_at: null } : t));
     toast({ title: type === "24h" ? "Бан на 24 часа" : "Пожизненный бан", description: `Пользователь ${profilesMap[selectedUserId] || ""} заблокирован` });
     setBanDialogOpen(false);
     await loadBans();
@@ -389,15 +427,7 @@ const AdminSupport = () => {
 
   const unbanUser = async () => {
     if (!selectedUserId) return;
-    await supabase.from("support_bans").update({
-      is_banned: false,
-      ban_type: null,
-      ban_expires_at: null,
-      warnings: 0,
-      unban_reason: "Разбан администратором",
-      updated_at: new Date().toISOString(),
-    } as any).eq("user_id", selectedUserId);
-
+    await supabase.from("support_bans").update({ is_banned: false, ban_type: null, ban_expires_at: null, warnings: 0, unban_reason: "Разбан администратором", updated_at: new Date().toISOString() } as any).eq("user_id", selectedUserId);
     toast({ title: "Пользователь разбанен" });
     setBanDialogOpen(false);
     await loadBans();
@@ -405,8 +435,7 @@ const AdminSupport = () => {
 
   const formatTime = (d: string) => {
     const date = new Date(d);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
+    const diff = Date.now() - date.getTime();
     if (diff < 60000) return "только что";
     if (diff < 3600000) return `${Math.floor(diff / 60000)}м`;
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}ч`;
@@ -419,17 +448,14 @@ const AdminSupport = () => {
   };
 
   const totalOpen = tickets.filter(t => t.status === "open").length;
+  const totalWaiting = tickets.filter(t => t.status === "waiting_reply").length;
 
-  // Get ticket subject for a message
-  const getTicketForMessage = (msg: Message) => tickets.find(t => t.id === msg.ticket_id);
-
-  // Group messages by ticket with dividers
   const messagesWithDividers = useMemo(() => {
     const result: Array<{ type: "divider"; ticket: Ticket } | { type: "message"; msg: Message }> = [];
     let lastTicketId = "";
     for (const msg of messages) {
       if (msg.ticket_id !== lastTicketId) {
-        const ticket = getTicketForMessage(msg);
+        const ticket = tickets.find(t => t.id === msg.ticket_id);
         if (ticket) result.push({ type: "divider", ticket });
         lastTicketId = msg.ticket_id;
       }
@@ -440,7 +466,7 @@ const AdminSupport = () => {
 
   return (
     <div className="flex h-full gap-0 border rounded-md overflow-hidden">
-      {/* Client list (grouped by user) */}
+      {/* Client list */}
       <div className={`flex flex-col border-r w-[320px] shrink-0 ${selectedUserId ? "hidden lg:flex" : "flex w-full lg:w-[320px]"}`}>
         <div className="p-2 border-b shrink-0 space-y-1">
           <div className="flex items-center justify-between">
@@ -448,6 +474,7 @@ const AdminSupport = () => {
               <MessageSquare className="h-3 w-3" />
               Тикеты
               {totalOpen > 0 && <Badge variant="destructive" className="text-[9px] px-1 h-4">{totalOpen}</Badge>}
+              {totalWaiting > 0 && <Badge className="bg-orange-500/20 text-orange-600 text-[9px] px-1 h-4">{totalWaiting}⏳</Badge>}
             </h2>
           </div>
           <div className="flex gap-1">
@@ -456,11 +483,12 @@ const AdminSupport = () => {
               <Input placeholder="Поиск..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-7 h-6 text-[11px]" />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[70px] h-6 text-[10px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[80px] h-6 text-[10px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Все</SelectItem>
                 <SelectItem value="open">Открыт</SelectItem>
                 <SelectItem value="in_progress">В работе</SelectItem>
+                <SelectItem value="waiting_reply">Ожидание</SelectItem>
                 <SelectItem value="closed">Закрыт</SelectItem>
               </SelectContent>
             </Select>
@@ -482,24 +510,18 @@ const AdminSupport = () => {
           ) : filteredGroups.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground text-xs">Нет тикетов</div>
           ) : (
-            filteredGroups.map((g) => {
+            filteredGroups.map(g => {
               const ban = bansMap[g.user_id];
               const isBanned = ban?.is_banned && (!ban.ban_expires_at || new Date(ban.ban_expires_at) > new Date());
               return (
-                <div
-                  key={g.user_id}
-                  className={`p-2 border-b cursor-pointer hover:bg-muted/50 transition-colors ${selectedUserId === g.user_id ? "bg-primary/5 border-l-2 border-l-primary" : ""}`}
-                  onClick={() => setSelectedUserId(g.user_id)}
-                >
+                <div key={g.user_id} className={`p-2 border-b cursor-pointer hover:bg-muted/50 transition-colors ${selectedUserId === g.user_id ? "bg-primary/5 border-l-2 border-l-primary" : ""}`} onClick={() => setSelectedUserId(g.user_id)}>
                   <div className="flex items-start justify-between gap-1">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1">
                         <User className="h-3 w-3 text-muted-foreground shrink-0" />
                         <p className="text-[11px] font-medium truncate">{g.displayName}</p>
                         {isBanned && <Ban className="h-3 w-3 text-destructive shrink-0" />}
-                        {ban && !isBanned && ban.warnings > 0 && (
-                          <span className="text-[9px] text-orange-500 font-bold">{ban.warnings}/3</span>
-                        )}
+                        {ban && !isBanned && ban.warnings > 0 && <span className="text-[9px] text-orange-500 font-bold">{ban.warnings}/3</span>}
                       </div>
                       <div className="flex flex-col gap-0.5 mt-0.5">
                         {g.tickets.slice(0, 2).map(t => (
@@ -507,19 +529,17 @@ const AdminSupport = () => {
                             {channelIcons[t.channel || "web"]}
                             <span className="text-[10px] text-muted-foreground truncate">{t.subject}</span>
                             <span className={`text-[8px] px-1 py-0 rounded ${statusColors[t.status]}`}>
-                              {t.status === "open" ? "Открыт" : t.status === "in_progress" ? "В работе" : "Закрыт"}
+                              {statusLabels[t.status] || t.status}
                             </span>
+                            {t.status === "waiting_reply" && t.auto_close_at && <MiniCountdown autoCloseAt={t.auto_close_at} />}
                           </div>
                         ))}
-                        {g.totalCount > 2 && (
-                          <span className="text-[9px] text-muted-foreground">+{g.totalCount - 2} ещё</span>
-                        )}
+                        {g.totalCount > 2 && <span className="text-[9px] text-muted-foreground">+{g.totalCount - 2} ещё</span>}
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-0.5 shrink-0">
-                      {g.openCount > 0 && (
-                        <Badge variant="destructive" className="text-[8px] px-1 h-3.5">{g.openCount}</Badge>
-                      )}
+                      {g.openCount > 0 && <Badge variant="destructive" className="text-[8px] px-1 h-3.5">{g.openCount}</Badge>}
+                      {g.waitingCount > 0 && <Badge className="bg-orange-500/20 text-orange-600 text-[8px] px-1 h-3.5">⏳{g.waitingCount}</Badge>}
                       <span className="text-[9px] text-muted-foreground flex items-center gap-0.5">
                         <Clock className="h-2 w-2" />{formatTime(g.lastActivity)}
                       </span>
@@ -553,8 +573,7 @@ const AdminSupport = () => {
                   <div className="min-w-0">
                     <div className="flex items-center gap-1">
                       <button className="text-xs font-bold hover:underline flex items-center gap-1" onClick={() => navigate(`/admin/users/${selectedUserId}`)}>
-                        <User className="h-3 w-3" />
-                        {profilesMap[selectedUserId] || selectedUserId.slice(0, 8)}
+                        <User className="h-3 w-3" />{profilesMap[selectedUserId] || selectedUserId.slice(0, 8)}
                       </button>
                       {isUserBanned && (
                         <Badge variant="destructive" className="text-[8px] px-1 h-4">
@@ -562,31 +581,38 @@ const AdminSupport = () => {
                         </Badge>
                       )}
                       {currentBan && !isUserBanned && currentBan.warnings > 0 && (
-                        <Badge className="bg-orange-500/20 text-orange-600 text-[8px] px-1 h-4">
-                          ⚠ {currentBan.warnings}/3
-                        </Badge>
+                        <Badge className="bg-orange-500/20 text-orange-600 text-[8px] px-1 h-4">⚠ {currentBan.warnings}/3</Badge>
                       )}
                     </div>
                     <p className="text-[10px] text-muted-foreground">{selectedUserTickets.length} тикетов</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  {/* Ban actions */}
                   <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-orange-500 hover:text-orange-600" onClick={addWarning} title="Предупреждение">
                     <AlertTriangle className="h-3 w-3" />
                   </Button>
                   <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-destructive hover:text-destructive" onClick={() => setBanDialogOpen(true)} title="Бан">
                     <Ban className="h-3 w-3" />
                   </Button>
-
-                  {/* Ticket actions */}
+                  {activeTicket && activeTicket.status === "waiting_reply" && (
+                    <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-orange-500" onClick={cancelAutoClose} title="Отменить автозакрытие">
+                      <TimerOff className="h-3 w-3" />
+                    </Button>
+                  )}
                   {activeTicket && activeTicket.status !== "closed" ? (
                     <Button variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={closeTicket}>Закрыть</Button>
-                  ) : activeTicket ? (
+                  ) : activeTicket && canReopen(activeTicket) ? (
                     <Button variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={reopenTicket}>Открыть</Button>
                   ) : null}
                 </div>
               </div>
+
+              {/* Countdown bar for active ticket */}
+              {activeTicket?.status === "waiting_reply" && activeTicket.auto_close_at && (
+                <div className="mt-1.5 px-1">
+                  <CountdownTimer autoCloseAt={activeTicket.auto_close_at} />
+                </div>
+              )}
 
               {/* Ticket tabs */}
               {selectedUserTickets.length > 1 && (
@@ -599,9 +625,9 @@ const AdminSupport = () => {
                       }`}
                       onClick={() => setActiveTicketId(t.id)}
                     >
-                      {channelIcons[t.channel || "web"]} {t.subject.slice(0, 30)}{t.subject.length > 30 ? "…" : ""}
+                      {channelIcons[t.channel || "web"]} {t.subject.slice(0, 25)}{t.subject.length > 25 ? "…" : ""}
                       <span className={`ml-1 text-[8px] px-1 rounded ${statusColors[t.status]}`}>
-                        {t.status === "open" ? "○" : t.status === "in_progress" ? "●" : "✕"}
+                        {t.status === "waiting_reply" ? "⏳" : t.status === "open" ? "○" : t.status === "in_progress" ? "●" : "✕"}
                       </span>
                     </button>
                   ))}
@@ -629,9 +655,7 @@ const AdminSupport = () => {
                     <div className={`max-w-[70%] rounded-lg px-3 py-1.5 ${msg.is_admin ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
                       {msg.message && <p className="text-xs whitespace-pre-wrap">{msg.message}</p>}
                       <MessageAttachment msg={msg} onImageClick={setViewerImage} />
-                      <p className={`text-[9px] mt-0.5 ${msg.is_admin ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
-                        {formatFullTime(msg.created_at)}
-                      </p>
+                      <p className={`text-[9px] mt-0.5 ${msg.is_admin ? "text-primary-foreground/60" : "text-muted-foreground"}`}>{formatFullTime(msg.created_at)}</p>
                     </div>
                   </div>
                 );
@@ -659,6 +683,16 @@ const AdminSupport = () => {
               </div>
             )}
 
+            {activeTicket?.status === "closed" && activeTicket.auto_closed && (
+              <div className="p-2 border-t shrink-0 flex items-center justify-center gap-2 bg-muted/30">
+                <Timer className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Тикет закрыт автоматически</span>
+                {canReopen(activeTicket) && (
+                  <Button size="sm" variant="outline" className="h-6 text-[10px] px-2 ml-2" onClick={reopenTicket}>Переоткрыть</Button>
+                )}
+              </div>
+            )}
+
             {isUserBanned && (
               <div className="p-2 border-t shrink-0 flex items-center justify-center gap-2 bg-destructive/5">
                 <Ban className="h-3.5 w-3.5 text-destructive" />
@@ -673,42 +707,29 @@ const AdminSupport = () => {
       <Dialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-sm flex items-center gap-2">
-              <Ban className="h-4 w-4" />
-              Управление баном — {profilesMap[selectedUserId || ""] || ""}
-            </DialogTitle>
+            <DialogTitle className="text-sm flex items-center gap-2"><Ban className="h-4 w-4" />Управление баном — {profilesMap[selectedUserId || ""] || ""}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             {currentBan && (
               <div className="text-xs space-y-1 p-2 rounded bg-muted/50">
                 <p>Предупреждений: <b>{currentBan.warnings}/3</b></p>
-                <p>Статус: {isUserBanned ? (
-                  <span className="text-destructive font-bold">
-                    {currentBan.ban_type === "permanent" ? "Пожизненный бан" : `Бан до ${formatFullTime(currentBan.ban_expires_at || "")}`}
-                  </span>
-                ) : <span className="text-green-600">Не заблокирован</span>}
-                </p>
+                <p>Статус: {isUserBanned ? <span className="text-destructive font-bold">{currentBan.ban_type === "permanent" ? "Пожизненный бан" : `Бан до ${formatFullTime(currentBan.ban_expires_at || "")}`}</span> : <span className="text-green-600">Не заблокирован</span>}</p>
               </div>
             )}
-
             <div className="grid grid-cols-2 gap-2">
               <Button variant="outline" size="sm" className="text-xs" onClick={addWarning}>
-                <AlertTriangle className="h-3 w-3 mr-1 text-orange-500" />
-                Предупреждение
+                <AlertTriangle className="h-3 w-3 mr-1 text-orange-500" />Предупреждение
               </Button>
               <Button variant="outline" size="sm" className="text-xs text-destructive" onClick={() => applyBan("24h")}>
-                <ShieldOff className="h-3 w-3 mr-1" />
-                Бан 24ч
+                <ShieldOff className="h-3 w-3 mr-1" />Бан 24ч
               </Button>
             </div>
             <Button variant="destructive" size="sm" className="w-full text-xs" onClick={() => applyBan("permanent")}>
-              <Ban className="h-3 w-3 mr-1" />
-              Пожизненный бан
+              <Ban className="h-3 w-3 mr-1" />Пожизненный бан
             </Button>
             {isUserBanned && (
               <Button variant="outline" size="sm" className="w-full text-xs text-green-600 border-green-200" onClick={unbanUser}>
-                <ShieldCheck className="h-3 w-3 mr-1" />
-                Снять бан
+                <ShieldCheck className="h-3 w-3 mr-1" />Снять бан
               </Button>
             )}
           </div>
