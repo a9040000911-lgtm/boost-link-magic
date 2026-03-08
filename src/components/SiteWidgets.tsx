@@ -265,7 +265,7 @@ const SiteWidgets = () => {
   if (!hasAnyWidget) return null;
 
   return (
-    <>
+    <div style={{ visibility: screenshotHidden ? 'hidden' : 'visible' }}>
       {/* Floating buttons */}
       <div className="fixed bottom-20 right-4 z-[9999] flex flex-col gap-2 items-end">
         {bugreportEnabled && (
