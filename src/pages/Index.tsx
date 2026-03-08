@@ -290,11 +290,11 @@ const Index = () => {
                   </motion.div>
 
                   {/* Email input */}
-                  <div className="mb-4 relative z-10">
-                    <label className="text-sm font-medium text-foreground block mb-1.5 text-left">
+                  <div className="mb-3 relative z-10 shrink-0">
+                    <label className="text-xs font-medium text-foreground block mb-1 text-left">
                       Email для регистрации
                     </label>
-                    <div className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/50 border border-border focus-within:ring-2 focus-within:ring-primary/30 transition-shadow">
+                    <div className="flex items-center gap-2 p-2 rounded-xl bg-muted/50 border border-border focus-within:ring-2 focus-within:ring-primary/30 transition-shadow">
                       <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
                       <input
                         type="email"
