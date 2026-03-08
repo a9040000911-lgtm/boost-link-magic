@@ -253,9 +253,10 @@ const AdminSettingsPage = () => {
         <TabsList className="h-8 shrink-0 w-fit">
           {TABS.map(tab => {
             const TabIcon = tab.icon;
-            const tabChanges = tab.groupIds.flatMap(gid =>
+            let tabChanges = tab.groupIds.flatMap(gid =>
               SETTINGS_META.filter(s => s.group === gid).map(s => s.key)
             ).filter(k => values[k] !== original[k]).length;
+            if (tab.id === "markup" && ladderChanged) tabChanges++;
             return (
               <TabsTrigger key={tab.id} value={tab.id} className="text-xs h-7 px-3 gap-1.5">
                 <TabIcon className="h-3 w-3" />
