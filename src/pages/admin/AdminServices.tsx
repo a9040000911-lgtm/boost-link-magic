@@ -429,6 +429,38 @@ const AdminServices = () => {
                       <div><Label className="text-xs">Макс</Label><Input type="number" value={newService.max_quantity} onChange={(e) => setNewService({ ...newService, max_quantity: e.target.value })} /></div>
                       <div><Label className="text-xs">Цена/1к</Label><Input type="number" value={newService.price} onChange={(e) => setNewService({ ...newService, price: e.target.value })} /></div>
                     </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Скорость</Label>
+                        <Select value={newService.speed} onValueChange={(v) => setNewService({ ...newService, speed: v })}>
+                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="instant">⚡ Мгновенно</SelectItem>
+                            <SelectItem value="fast">🚀 Быстро</SelectItem>
+                            <SelectItem value="medium">⏱ Средне</SelectItem>
+                            <SelectItem value="slow">🐢 Медленно</SelectItem>
+                            <SelectItem value="gradual">📈 Постепенно</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Гарантия</Label>
+                        <Select value={newService.guarantee} onValueChange={(v) => setNewService({ ...newService, guarantee: v })}>
+                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Без гарантии</SelectItem>
+                            <SelectItem value="7d">7 дней</SelectItem>
+                            <SelectItem value="30d">30 дней</SelectItem>
+                            <SelectItem value="60d">60 дней</SelectItem>
+                            <SelectItem value="lifetime">♾ Навсегда</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Предупреждение (warning)</Label>
+                      <Textarea value={newService.warning_text} onChange={(e) => setNewService({ ...newService, warning_text: e.target.value })} placeholder="Текст предупреждения перед заказом..." className="h-16" />
+                    </div>
                     <Button onClick={createService} disabled={!newService.name} className="w-full">Создать</Button>
                   </div>
                 </DialogContent>
