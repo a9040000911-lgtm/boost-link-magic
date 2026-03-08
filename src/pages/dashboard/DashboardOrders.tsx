@@ -128,8 +128,9 @@ const DashboardOrders = () => {
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                 <TableHeader>
+               <TableHeader>
                    <TableRow>
+                     <TableHead>ID</TableHead>
                      <TableHead>Услуга</TableHead>
                      <TableHead>Ссылка</TableHead>
                      <TableHead>Платформа</TableHead>
@@ -137,7 +138,8 @@ const DashboardOrders = () => {
                      <TableHead>Цена</TableHead>
                      <TableHead>Прогресс</TableHead>
                      <TableHead>Статус</TableHead>
-                     <TableHead>Дата</TableHead>
+                     <TableHead>Создан</TableHead>
+                     <TableHead>Обновлён</TableHead>
                      <TableHead className="w-10"></TableHead>
                    </TableRow>
                  </TableHeader>
@@ -146,6 +148,9 @@ const DashboardOrders = () => {
                     const st = statusMap[order.status] || { label: order.status, variant: "outline" as const };
                     return (
                       <TableRow key={order.id}>
+                        <TableCell className="font-mono text-xs text-muted-foreground" title={order.id}>
+                          #{order.id.slice(0, 8)}
+                        </TableCell>
                         <TableCell className="font-medium max-w-[200px] truncate">{order.service_name}</TableCell>
                         <TableCell className="max-w-[180px]">
                           <a
@@ -170,8 +175,15 @@ const DashboardOrders = () => {
                         <TableCell>
                           <Badge variant={st.variant}>{st.label}</Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                           {new Date(order.created_at).toLocaleDateString("ru-RU")}
+                          <br />
+                          <span className="text-[10px] opacity-70">{new Date(order.created_at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</span>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          {new Date(order.updated_at).toLocaleDateString("ru-RU")}
+                          <br />
+                          <span className="text-[10px] opacity-70">{new Date(order.updated_at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</span>
                         </TableCell>
                         <TableCell>
                           <Button
