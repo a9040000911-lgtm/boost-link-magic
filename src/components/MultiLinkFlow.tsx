@@ -19,6 +19,7 @@ import { ArrowLeft, ArrowRight, Check, ExternalLink, Minus, Plus } from 'lucide-
 export interface LinkOrder {
   url: string;
   platform: Platform;
+  analysis: LinkAnalysis | null;
   category: Category | null;
   service: Service | null;
   quantity: number;
@@ -34,8 +35,9 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
   const [orders, setOrders] = useState<LinkOrder[]>(() =>
     urls
       .map((url) => {
-        const platform = detectPlatform(url);
-        return platform ? { url, platform, category: null, service: null, quantity: 100 } : null;
+        const analysis = analyzeLink(url);
+        const platform = analysis?.platform ?? detectPlatform(url);
+        return platform ? { url, platform, analysis, category: null, service: null, quantity: 100 } : null;
       })
       .filter(Boolean) as LinkOrder[]
   );
