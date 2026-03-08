@@ -33,6 +33,7 @@ import AdminFAQ from "./pages/admin/AdminFAQ";
 import AdminWidgets from "./pages/admin/AdminWidgets";
 import CookieConsent from "./components/CookieConsent";
 import SiteWidgets from "./components/SiteWidgets";
+import DynamicPage from "./pages/DynamicPage";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="staff" element={<AdminStaff />} />
             <Route path="providers" element={<AdminProviders />} />
           </Route>
+          <Route path="/page/:slug" element={<DynamicPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <CookieConsent />
