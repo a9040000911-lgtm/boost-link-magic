@@ -817,7 +817,7 @@ const Catalog = () => {
                         </span>
                       ) : (
                         <>
-                          <span className="font-bold">{totalPrice.toFixed(2)} ₽</span>
+                          <span className="font-bold">{fmtPrice(totalPrice)} ₽</span>
                           <span className="border-l border-white/30 pl-2">Оформить</span>
                         </>
                       )}
