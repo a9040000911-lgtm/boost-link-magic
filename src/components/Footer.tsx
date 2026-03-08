@@ -58,9 +58,12 @@ const Footer = () => {
         </div>
 
         {/* Bottom */}
-        <div className="border-t border-background/10 pt-4">
+        <div className="border-t border-background/10 pt-4 space-y-2">
           <p className="text-xs text-background/40 text-center">
             © {new Date().getFullYear()} CoolLike. Все права защищены.
+          </p>
+          <p className="text-[10px] text-background/30 text-center leading-relaxed">
+            Meta Platforms Inc. (Facebook, Instagram) признана экстремистской организацией и запрещена на территории Российской Федерации.
           </p>
         </div>
       </div>
