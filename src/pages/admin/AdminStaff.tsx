@@ -49,6 +49,7 @@ const AdminStaff = () => {
   const [editMember, setEditMember] = useState<StaffMember | null>(null);
   const [editRole, setEditRole] = useState<string>("");
   const [editPermissions, setEditPermissions] = useState<string[]>([]);
+  const [editTelegramChatId, setEditTelegramChatId] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
