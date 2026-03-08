@@ -126,6 +126,8 @@ const Catalog = () => {
   const [selectedService, setSelectedService] = useState<CatalogService | null>(null);
   const [compareMode, setCompareMode] = useState(false);
   const [showExplainer, setShowExplainer] = useState(false);
+  const [warningAccepted, setWarningAccepted] = useState<Record<string, boolean>>({});
+  const [showWarning, setShowWarning] = useState(false);
 
   const prefillLink = searchParams.get('link') || '';
   const [link, setLink] = useState(prefillLink);
