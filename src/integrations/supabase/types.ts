@@ -453,6 +453,48 @@ export type Database = {
         }
         Relationships: []
       }
+      support_bans: {
+        Row: {
+          ban_expires_at: string | null
+          ban_type: string | null
+          banned_at: string | null
+          banned_by: string | null
+          created_at: string
+          id: string
+          is_banned: boolean
+          unban_reason: string | null
+          updated_at: string
+          user_id: string
+          warnings: number
+        }
+        Insert: {
+          ban_expires_at?: string | null
+          ban_type?: string | null
+          banned_at?: string | null
+          banned_by?: string | null
+          created_at?: string
+          id?: string
+          is_banned?: boolean
+          unban_reason?: string | null
+          updated_at?: string
+          user_id: string
+          warnings?: number
+        }
+        Update: {
+          ban_expires_at?: string | null
+          ban_type?: string | null
+          banned_at?: string | null
+          banned_by?: string | null
+          created_at?: string
+          id?: string
+          is_banned?: boolean
+          unban_reason?: string | null
+          updated_at?: string
+          user_id?: string
+          warnings?: number
+        }
+        Relationships: []
+      }
       support_messages: {
         Row: {
           attachment_name: string | null
