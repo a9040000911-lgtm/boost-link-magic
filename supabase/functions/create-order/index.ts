@@ -56,6 +56,44 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
+    // === LICENSE PLAN LIMITS ===
+    const PLAN_LIMITS: Record<string, { maxOrdersPerMonth: number; maxOrderAmount: number }> = {
+      standard: { maxOrdersPerMonth: 100, maxOrderAmount: 5000 },
+      pro: { maxOrdersPerMonth: 1000, maxOrderAmount: 50000 },
+      enterprise: { maxOrdersPerMonth: 0, maxOrderAmount: 0 }, // 0 = unlimited
+    };
+
+    // Get active license
+    const { data: activeLicense } = await adminClient
+      .from('licenses')
+      .select('plan, is_active, expires_at')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const currentPlan = activeLicense?.plan || 'standard';
+    const limits = PLAN_LIMITS[currentPlan] || PLAN_LIMITS.standard;
+
+    // Check monthly order count
+    if (limits.maxOrdersPerMonth > 0) {
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+
+      const { count } = await adminClient
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .gte('created_at', monthStart.toISOString());
+
+      if ((count ?? 0) >= limits.maxOrdersPerMonth) {
+        return json({
+          error: `Лимит заказов для плана ${currentPlan} исчерпан (${limits.maxOrdersPerMonth}/мес). Обновите лицензию.`,
+          plan_limit: true,
+        }, 403);
+      }
+    }
+
     // === IDEMPOTENCY CHECK (prevent double orders from fast clicks) ===
     if (idempotency_key) {
       const { data: existing } = await adminClient
