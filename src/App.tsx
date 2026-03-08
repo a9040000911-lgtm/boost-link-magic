@@ -48,8 +48,8 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <LicenseGate>
-        <BrowserRouter>
+      <BrowserRouter>
+        <LicenseGate>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/catalog" element={<Catalog />} />
@@ -88,10 +88,10 @@ const App = () => (
             <Route path="/page/:slug" element={<DynamicPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <CookieConsent />
-          <SiteWidgets />
-        </BrowserRouter>
-      </LicenseGate>
+        </LicenseGate>
+        <CookieConsent />
+        <SiteWidgets />
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
