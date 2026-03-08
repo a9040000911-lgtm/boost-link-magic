@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, Save, RefreshCw, MessageSquare, Shield, Wallet, ShoppingCart, Bell, Clock } from "lucide-react";
+import { Settings, Save, RefreshCw, MessageSquare, Shield, Wallet, ShoppingCart, Bell, Clock, MessageCircle, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 // ===== CONFIG: all settings metadata in one place =====
