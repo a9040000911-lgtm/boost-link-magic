@@ -418,7 +418,32 @@ const AdminServices = () => {
     await loadAll();
   };
 
-  const getMappingsForService = (serviceId: string) =>
+  const applyBulkCategory = async () => {
+    if (!bulkCategory.trim()) { toast.error("Введите категорию"); return; }
+    const ids = [...selectedIds];
+    for (const id of ids) {
+      await supabase.from("services").update({ category: bulkCategory.trim(), updated_at: new Date().toISOString() }).eq("id", id);
+    }
+    toast.success(`Категория «${bulkCategory}» → ${ids.length} услуг`);
+    await logAuditAction("bulk_category", "services", undefined, { count: ids.length, category: bulkCategory });
+    setSelectedIds(new Set());
+    setBulkCategory("");
+    await loadAll();
+  };
+
+  const applyBulkNetwork = async () => {
+    if (!bulkNetwork.trim()) { toast.error("Введите платформу"); return; }
+    const ids = [...selectedIds];
+    for (const id of ids) {
+      await supabase.from("services").update({ network: bulkNetwork.trim(), updated_at: new Date().toISOString() }).eq("id", id);
+    }
+    toast.success(`Платформа «${bulkNetwork}» → ${ids.length} услуг`);
+    await logAuditAction("bulk_network", "services", undefined, { count: ids.length, network: bulkNetwork });
+    setSelectedIds(new Set());
+    setBulkNetwork("");
+    await loadAll();
+  };
+
     mappings.filter((m) => m.service_id === serviceId).sort((a, b) => a.priority - b.priority);
 
   const getProviderService = (psId: string) => providerServices.find((ps) => ps.id === psId);
