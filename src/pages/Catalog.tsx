@@ -247,6 +247,17 @@ const Catalog = () => {
   const selectService = (service: CatalogService) => {
     setSelectedService(service);
     setQuantity(Math.max(service.min_quantity, 10));
+    // Show warning if service has one and user hasn't accepted it yet
+    if (service.warning_text && !warningAccepted[service.id]) {
+      setShowWarning(true);
+    }
+  };
+
+  const acceptWarning = () => {
+    if (selectedService) {
+      setWarningAccepted(prev => ({ ...prev, [selectedService.id]: true }));
+    }
+    setShowWarning(false);
   };
 
   /* ─── Speed/Guarantee badges (reusable) ─── */
