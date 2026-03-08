@@ -156,7 +156,17 @@ const Index = () => {
                 className="inline-block"
                 style={{
                   color: "white",
-                  textShadow: "0 4px 20px rgba(0,0,0,0.3), 0 2px 8px rgba(255,255,255,0.2)",
+                  textShadow: `
+                    0 1px 0 rgba(255,255,255,0.4),
+                    0 2px 0 rgba(200,200,200,0.3),
+                    0 3px 0 rgba(180,180,180,0.2),
+                    0 4px 0 rgba(160,160,160,0.15),
+                    0 5px 0 rgba(140,140,140,0.1),
+                    0 6px 1px rgba(0,0,0,0.06),
+                    0 0 10px rgba(255,255,255,0.15),
+                    0 3px 15px rgba(0,0,0,0.2),
+                    0 6px 25px rgba(0,0,0,0.15)
+                  `,
                   animationDelay: `${i * 0.15}s`,
                 }}
                 initial={{ opacity: 0, y: -20, rotate: -10 }}
