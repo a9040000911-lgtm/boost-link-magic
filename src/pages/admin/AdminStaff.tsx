@@ -375,7 +375,9 @@ const AdminStaff = () => {
                         </p>
                       </TableCell>
                       <TableCell className="px-2">
-                        <Badge variant={isAdmin ? "destructive" : "secondary"} className="text-[9px]">{s.role}</Badge>
+                        <Badge variant={isFullAccess ? "destructive" : s.role.includes("investor") ? "secondary" : "outline"} className="text-[9px]">
+                          {s.role.split(", ").map(r => ROLE_LABELS[r] || r).join(", ")}
+                        </Badge>
                       </TableCell>
                       <TableCell className="px-2">
                         <div className="flex flex-wrap gap-1">
