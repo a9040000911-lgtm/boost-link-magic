@@ -308,7 +308,7 @@ const AdminStaff = () => {
                     </p>
                   </div>
 
-                  {addRole === "moderator" && (
+                  {(addRole === "moderator" || addRole === "investor") && (
                     <>
                       <Separator />
                       <div>
