@@ -484,7 +484,7 @@ const AdminSupport = () => {
 
   // Ban system
   const addWarning = async () => {
-    if (!selectedUserId || !user) return;
+    if (!selectedUserId || !user || !activeTicket) return;
     const current = bansMap[selectedUserId];
     const newWarnings = (current?.warnings || 0) + 1;
     if (newWarnings >= 3) { await applyBan("24h"); return; }
@@ -493,8 +493,45 @@ const AdminSupport = () => {
     } else {
       await supabase.from("support_bans").insert({ user_id: selectedUserId, warnings: newWarnings } as any);
     }
-    toast({ title: `Предупреждение ${newWarnings}/3`, description: newWarnings === 2 ? "Следующее предупреждение = бан на 24ч" : "" });
+
+    // Send warning message to all channels
+    const warningText = `⚠️ Предупреждение ${newWarnings}/3\n\nВы получили предупреждение от службы поддержки. При получении 3 предупреждений ваш аккаунт будет заблокирован на 24 часа.`;
+
+    // 1. Web — insert as admin message in ticket
+    await supabase.from("support_messages").insert({
+      ticket_id: activeTicket.id,
+      user_id: user.id,
+      message: warningText,
+      is_admin: true,
+    } as any);
+
+    // 2. Telegram — if ticket came from telegram
+    if (activeTicket.channel === "telegram") {
+      const chatIdMatch = activeTicket.subject?.match(/chat:(\d+)/);
+      if (chatIdMatch) {
+        try {
+          await supabase.functions.invoke("support-telegram-bot", {
+            body: { action: "reply", chat_id: chatIdMatch[1], text: warningText },
+          });
+        } catch (e) {}
+      }
+    }
+
+    // 3. Email — if ticket came from email
+    if (activeTicket.channel === "email") {
+      const emailMatch = activeTicket.subject?.match(/email:([^\s]+)/);
+      if (emailMatch) {
+        try {
+          await supabase.functions.invoke("support-email", {
+            body: { action: "reply", to: emailMatch[1], subject: `⚠️ Предупреждение — ${activeTicket.subject}`, text: warningText },
+          });
+        } catch (e) {}
+      }
+    }
+
+    toast({ title: `Предупреждение ${newWarnings}/3`, description: newWarnings === 2 ? "Следующее предупреждение = бан на 24ч" : "Отправлено пользователю" });
     await loadBans();
+    await loadMessages(activeTicket.id);
   };
 
   const applyBan = async (type: "24h" | "permanent") => {
