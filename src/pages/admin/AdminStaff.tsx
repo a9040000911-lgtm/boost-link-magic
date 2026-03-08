@@ -367,7 +367,10 @@ const AdminStaff = () => {
                         <button className="text-primary hover:underline font-medium" onClick={() => navigate(`/admin/users/${s.user_id}`)}>
                           {s.display_name || s.user_id.slice(0, 12)}
                         </button>
-                        <p className="text-[9px] text-muted-foreground font-mono">{s.user_id.slice(0, 16)}</p>
+                        <p className="text-[9px] text-muted-foreground font-mono">
+                          {s.user_id.slice(0, 16)}
+                          {s.telegram_chat_id && <MessageCircle className="inline h-3 w-3 ml-1 text-blue-500" />}
+                        </p>
                       </TableCell>
                       <TableCell className="px-2">
                         <Badge variant={isAdmin ? "destructive" : "secondary"} className="text-[9px]">{s.role}</Badge>
