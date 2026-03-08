@@ -37,9 +37,11 @@ const AdminStaff = () => {
 
   // Add staff dialog
   const [addOpen, setAddOpen] = useState(false);
-  const [addUserId, setAddUserId] = useState("");
+  const [addEmail, setAddEmail] = useState("");
   const [addRole, setAddRole] = useState<"moderator" | "admin">("moderator");
   const [addPermissions, setAddPermissions] = useState<string[]>([]);
+  const [addLoading, setAddLoading] = useState(false);
+  const [createdCreds, setCreatedCreds] = useState<{ email: string; password: string } | null>(null);
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false);
@@ -105,33 +107,45 @@ const AdminStaff = () => {
 
   // ── Add staff ──
   const addStaff = async () => {
-    if (!addUserId || addUserId.length < 10) {
-      toast.error("Введите UUID пользователя");
+    if (!addEmail || !addEmail.includes("@")) {
+      toast.error("Введите корректный email");
       return;
     }
+    setAddLoading(true);
+    try {
+      // Create user via admin edge function
+      const { data: createData, error: createError } = await supabase.functions.invoke("admin-user-management", {
+        body: { action: "create_user", email: addEmail },
+      });
+      if (createError) throw createError;
+      if (createData?.error) throw new Error(createData.error);
 
-    const { error } = await supabase.from("user_roles").insert({ user_id: addUserId, role: addRole });
-    if (error) {
-      toast.error("Ошибка: " + error.message);
-      return;
+      const newUserId = createData.user_id;
+      const generatedPassword = createData.generated_password;
+
+      // Assign role
+      const { error: roleErr } = await supabase.from("user_roles").insert({ user_id: newUserId, role: addRole });
+      if (roleErr) throw roleErr;
+
+      // Grant permissions
+      if (addPermissions.length > 0 && addRole === "moderator") {
+        const permsToInsert = addPermissions.map((p) => ({
+          user_id: newUserId,
+          permission: p,
+          granted_by: user!.id,
+        }));
+        await supabase.from("staff_permissions").insert(permsToInsert);
+      }
+
+      await logAuditAction("assign_role", "staff", newUserId, { role: addRole, permissions: addPermissions, email: addEmail });
+      
+      setCreatedCreds({ email: addEmail, password: generatedPassword });
+      toast.success(`Сотрудник ${addEmail} создан`);
+      await loadData();
+    } catch (e: any) {
+      toast.error("Ошибка: " + (e.message || e));
     }
-
-    // Grant selected permissions
-    if (addPermissions.length > 0 && addRole === "moderator") {
-      const permsToInsert = addPermissions.map((p) => ({
-        user_id: addUserId,
-        permission: p,
-        granted_by: user!.id,
-      }));
-      await supabase.from("staff_permissions").insert(permsToInsert);
-    }
-
-    await logAuditAction("assign_role", "staff", addUserId, { role: addRole, permissions: addPermissions });
-    toast.success(`Роль ${addRole} назначена`);
-    setAddOpen(false);
-    setAddUserId("");
-    setAddPermissions([]);
-    await loadData();
+    setAddLoading(false);
   };
 
   // ── Edit dialog open ──
@@ -240,11 +254,30 @@ const AdminStaff = () => {
               </DialogTrigger>
               <DialogContent className="max-w-md">
                 <DialogHeader><DialogTitle>Добавить сотрудника</DialogTitle></DialogHeader>
+                {createdCreds ? (
+                  <div className="space-y-4">
+                    <div className="bg-accent/50 border border-primary/20 rounded-md p-4 space-y-2">
+                      <p className="text-sm font-medium text-primary">✅ Сотрудник создан!</p>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Email</Label>
+                        <p className="text-sm font-mono">{createdCreds.email}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Пароль</Label>
+                        <p className="text-sm font-mono select-all">{createdCreds.password}</p>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Скопируйте пароль и отправьте сотруднику. Он не будет показан повторно.</p>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={() => { setCreatedCreds(null); setAddEmail(""); setAddPermissions([]); setAddOpen(false); }}>Закрыть</Button>
+                    </DialogFooter>
+                  </div>
+                ) : (
                 <div className="space-y-4">
                   <div>
-                    <Label className="text-xs">UUID пользователя</Label>
-                    <p className="text-[10px] text-muted-foreground mb-1">Скопируйте из раздела «Пользователи»</p>
-                    <Input placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" value={addUserId} onChange={(e) => setAddUserId(e.target.value)} className="font-mono text-xs" />
+                    <Label className="text-xs">Email сотрудника</Label>
+                    <p className="text-[10px] text-muted-foreground mb-1">Аккаунт будет создан автоматически, пароль сгенерируется</p>
+                    <Input type="email" placeholder="employee@example.com" value={addEmail} onChange={(e) => setAddEmail(e.target.value)} className="text-xs" />
                   </div>
 
                   <div>
@@ -281,11 +314,14 @@ const AdminStaff = () => {
                       </div>
                     </>
                   )}
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setAddOpen(false)}>Отмена</Button>
+                    <Button onClick={addStaff} disabled={!addEmail || addLoading}>
+                      {addLoading ? "Создание..." : "Создать сотрудника"}
+                    </Button>
+                  </DialogFooter>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setAddOpen(false)}>Отмена</Button>
-                  <Button onClick={addStaff} disabled={!addUserId}>Назначить роль</Button>
-                </DialogFooter>
+                )}
               </DialogContent>
             </Dialog>
           )}

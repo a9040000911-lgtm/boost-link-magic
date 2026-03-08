@@ -112,6 +112,27 @@ serve(async (req) => {
         return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
+      case "create_user": {
+        const { email, password, display_name } = params;
+        if (!email) {
+          return new Response(JSON.stringify({ error: "Email is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        const pwd = password || crypto.randomUUID().slice(0, 12) + "Aa1!";
+        const { data: newUser, error: createErr } = await adminClient.auth.admin.createUser({
+          email,
+          password: pwd,
+          email_confirm: true,
+          user_metadata: { display_name: display_name || email.split("@")[0] },
+        });
+        if (createErr) throw createErr;
+        return new Response(JSON.stringify({ 
+          success: true, 
+          user_id: newUser.user.id, 
+          email,
+          generated_password: pwd,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
       case "list_users_auth": {
         const { user_ids } = params;
         if (!user_ids || !Array.isArray(user_ids)) {
