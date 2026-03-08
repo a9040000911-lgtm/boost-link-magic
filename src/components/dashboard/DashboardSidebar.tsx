@@ -1,7 +1,8 @@
-import { LayoutDashboard, ShoppingCart, FolderKanban, Settings, LogOut, Wallet, Shield, MessageSquare, Sparkles, ShieldAlert } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, FolderKanban, Settings, LogOut, Wallet, Shield, MessageSquare, Sparkles, ShieldAlert, Home, PlusCircle } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminRole } from "@/hooks/useAdminRole";
+import { Link } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -47,6 +48,22 @@ export function DashboardSidebar() {
           )}
           <SidebarGroupContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/" className="hover:bg-muted/50 transition-colors flex items-center">
+                    <Home className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>На главную</span>}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/catalog" className="hover:bg-primary/10 text-primary transition-colors flex items-center font-medium">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>Новый заказ</span>}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               {userMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
