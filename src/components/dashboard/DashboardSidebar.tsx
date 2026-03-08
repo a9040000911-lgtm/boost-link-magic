@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingCart, FolderKanban, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, FolderKanban, Settings, LogOut, Wallet } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
