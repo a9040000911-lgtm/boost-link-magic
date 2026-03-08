@@ -516,7 +516,7 @@ const AdminStaff = () => {
               </div>
 
               {/* Permissions */}
-              {editRole === "moderator" && (
+              {(editRole === "moderator" || editRole === "investor") && (
                 <>
                   <Separator />
                   <div>
