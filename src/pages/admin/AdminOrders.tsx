@@ -292,7 +292,7 @@ const AdminOrders = () => {
                         className="text-primary hover:underline font-medium text-sm"
                         onClick={() => navigate(`/admin/users/${o.user_id}`)}
                       >
-                        {profile?.name || o.user_id.slice(0, 8)}
+                        {profile?.email || profile?.name || o.user_id.slice(0, 8)}
                       </button>
                     </TableCell>
                     <TableCell className="px-3 py-3">
