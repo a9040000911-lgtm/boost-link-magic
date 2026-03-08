@@ -48,47 +48,50 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/catalog" element={<Catalog />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/dashboard" element={<Dashboard />}>
-            <Route index element={<DashboardOverview />} />
-            <Route path="orders" element={<DashboardOrders />} />
-            <Route path="transactions" element={<DashboardTransactions />} />
-            <Route path="projects" element={<DashboardProjects />} />
-            <Route path="projects/:projectId" element={<DashboardProjectDetail />} />
-            <Route path="settings" element={<DashboardSettings />} />
-            <Route path="support" element={<DashboardSupport />} />
-          </Route>
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="orders" element={<AdminOrders />} />
-            <Route path="transactions" element={<AdminTransactions />} />
-            <Route path="services" element={<AdminServices />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="users/:userId" element={<AdminUserDetail />} />
-            <Route path="categories" element={<AdminCategories />} />
-            <Route path="promocodes" element={<AdminPromocodes />} />
-            <Route path="settings" element={<AdminSettingsPage />} />
-            <Route path="pages" element={<AdminPages />} />
-            <Route path="faq" element={<AdminFAQ />} />
-            <Route path="widgets" element={<AdminWidgets />} />
-            <Route path="support" element={<AdminSupport />} />
-            <Route path="staff" element={<AdminStaff />} />
-            <Route path="providers" element={<AdminProviders />} />
-            <Route path="links" element={<AdminLinks />} />
-            <Route path="docs" element={<AdminDocs />} />
-          </Route>
-          <Route path="/page/:slug" element={<DynamicPage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <CookieConsent />
-        <SiteWidgets />
-      </BrowserRouter>
+      <LicenseGate>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/catalog" element={<Catalog />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/dashboard" element={<Dashboard />}>
+              <Route index element={<DashboardOverview />} />
+              <Route path="orders" element={<DashboardOrders />} />
+              <Route path="transactions" element={<DashboardTransactions />} />
+              <Route path="projects" element={<DashboardProjects />} />
+              <Route path="projects/:projectId" element={<DashboardProjectDetail />} />
+              <Route path="settings" element={<DashboardSettings />} />
+              <Route path="support" element={<DashboardSupport />} />
+            </Route>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="orders" element={<AdminOrders />} />
+              <Route path="transactions" element={<AdminTransactions />} />
+              <Route path="services" element={<AdminServices />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="users/:userId" element={<AdminUserDetail />} />
+              <Route path="categories" element={<AdminCategories />} />
+              <Route path="promocodes" element={<AdminPromocodes />} />
+              <Route path="settings" element={<AdminSettingsPage />} />
+              <Route path="pages" element={<AdminPages />} />
+              <Route path="faq" element={<AdminFAQ />} />
+              <Route path="widgets" element={<AdminWidgets />} />
+              <Route path="support" element={<AdminSupport />} />
+              <Route path="staff" element={<AdminStaff />} />
+              <Route path="providers" element={<AdminProviders />} />
+              <Route path="links" element={<AdminLinks />} />
+              <Route path="docs" element={<AdminDocs />} />
+              <Route path="licenses" element={<AdminLicenses />} />
+            </Route>
+            <Route path="/page/:slug" element={<DynamicPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <CookieConsent />
+          <SiteWidgets />
+        </BrowserRouter>
+      </LicenseGate>
     </TooltipProvider>
   </QueryClientProvider>
 );
