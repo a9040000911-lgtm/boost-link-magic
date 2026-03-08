@@ -509,7 +509,7 @@ const AdminServices = () => {
       </div>
 
       {/* Tabs + filters */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setSelectedIds(new Set()); }} className="flex flex-col flex-1 min-h-0">
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
           <TabsList className="h-7">
             <TabsTrigger value="catalog" className="text-xs h-6 px-2">Каталог ({services.length})</TabsTrigger>
