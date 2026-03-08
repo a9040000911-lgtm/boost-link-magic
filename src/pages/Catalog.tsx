@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, ArrowLeft, Package, Link2, Mail, Minus, Plus, Sparkles, Check,
   BarChart3, Zap, Clock, Timer, Snail, TrendingUp, Shield, ShieldCheck, ShieldAlert,
-  HelpCircle, Info, X
+  HelpCircle, Info, X, AlertTriangle
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import PlatformIcon from "@/components/PlatformIcon";
@@ -23,6 +23,7 @@ interface CatalogService {
   network: string;
   speed: string;
   guarantee: string;
+  warning_text: string | null;
 }
 
 /* ─── Speed & Guarantee display helpers ─── */
@@ -125,6 +126,8 @@ const Catalog = () => {
   const [selectedService, setSelectedService] = useState<CatalogService | null>(null);
   const [compareMode, setCompareMode] = useState(false);
   const [showExplainer, setShowExplainer] = useState(false);
+  const [warningAccepted, setWarningAccepted] = useState<Record<string, boolean>>({});
+  const [showWarning, setShowWarning] = useState(false);
 
   const prefillLink = searchParams.get('link') || '';
   const [link, setLink] = useState(prefillLink);
@@ -138,7 +141,7 @@ const Catalog = () => {
     const fetchServices = async () => {
       const { data } = await supabase
         .from("services")
-        .select("id, name, description, price, min_quantity, max_quantity, category, network, speed, guarantee")
+        .select("id, name, description, price, min_quantity, max_quantity, category, network, speed, guarantee, warning_text")
         .eq("is_enabled", true)
         .order("network")
         .order("category")
@@ -244,6 +247,17 @@ const Catalog = () => {
   const selectService = (service: CatalogService) => {
     setSelectedService(service);
     setQuantity(Math.max(service.min_quantity, 10));
+    // Show warning if service has one and user hasn't accepted it yet
+    if (service.warning_text && !warningAccepted[service.id]) {
+      setShowWarning(true);
+    }
+  };
+
+  const acceptWarning = () => {
+    if (selectedService) {
+      setWarningAccepted(prev => ({ ...prev, [selectedService.id]: true }));
+    }
+    setShowWarning(false);
   };
 
   /* ─── Speed/Guarantee badges (reusable) ─── */
@@ -778,6 +792,41 @@ const Catalog = () => {
                 </button>
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Warning Modal ─── */}
+      <AnimatePresence>
+        {showWarning && selectedService?.warning_text && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowWarning(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className={`relative max-w-md w-full rounded-2xl ${activeNetConfig?.bg || 'bg-primary'} p-6 shadow-2xl text-white`}
+            >
+              <div className="flex items-start gap-3 mb-4">
+                <AlertTriangle className="w-7 h-7 shrink-0 mt-0.5" />
+                <h3 className="text-lg font-bold">Внимание!</h3>
+              </div>
+              <p className="text-sm leading-relaxed whitespace-pre-line opacity-95 mb-6">
+                {selectedService.warning_text}
+              </p>
+              <button
+                onClick={acceptWarning}
+                className="w-full py-3 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-white font-bold text-sm transition-colors"
+              >
+                Принять
+              </button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
