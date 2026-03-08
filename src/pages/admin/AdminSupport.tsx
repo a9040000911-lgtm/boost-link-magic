@@ -178,6 +178,7 @@ const AdminSupport = () => {
   const [uploading, setUploading] = useState(false);
   const [viewerImage, setViewerImage] = useState<string | null>(null);
   const [banDialogOpen, setBanDialogOpen] = useState(false);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
 
   useEffect(() => {
     if (!user) return;
