@@ -60,7 +60,7 @@ const Footer = () => {
         {/* Bottom */}
         <div className="border-t border-background/10 pt-4">
           <p className="text-xs text-background/40 text-center">
-            © {new Date().getFullYear()} SMM Panel. Все права защищены.
+            © {new Date().getFullYear()} CoolLike. Все права защищены.
           </p>
         </div>
       </div>

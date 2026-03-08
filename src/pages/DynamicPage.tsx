@@ -34,7 +34,7 @@ const DynamicPage = () => {
       } else {
         setPage(data);
         // Update document title
-        document.title = data.meta_title || data.title || "SMM Panel";
+        document.title = data.meta_title || data.title || "CoolLike";
         // Update meta description
         const metaDesc = document.querySelector('meta[name="description"]');
         if (metaDesc && data.meta_description) {
