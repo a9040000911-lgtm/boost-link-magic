@@ -11,6 +11,7 @@ import {
   type Platform,
   type Category,
 } from '@/lib/smm-data';
+import { ArrowLeft } from 'lucide-react';
 
 const Index = () => {
   const [platform, setPlatform] = useState<Platform | null>(null);
@@ -37,17 +38,23 @@ const Index = () => {
   };
 
   const handleCategorySelect = (cat: Category) => {
-    setSelectedCategory(selectedCategory?.id === cat.id ? null : cat);
+    setSelectedCategory(cat);
+  };
+
+  const handleBack = () => {
+    setSelectedCategory(null);
   };
 
   const categories = platform ? categoriesByPlatform[platform] : [];
   const services = selectedCategory ? getServicesForCategory(selectedCategory.id) : [];
 
+  // Current view: 'hero' | 'categories' | 'services'
+  const view = selectedCategory ? 'services' : platform ? 'categories' : 'hero';
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Hero gradient area */}
       <div className="hero-gradient flex flex-col items-center justify-center px-4 pt-24 pb-32 relative">
-        {/* Announcement pill */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -86,7 +93,7 @@ const Index = () => {
       </div>
 
       {/* Content area */}
-      <div className="flex-1 bg-background px-4 -mt-16 relative z-10">
+      <div className="flex-1 bg-background px-4 -mt-16 relative z-10 pb-16">
         <div className="max-w-5xl mx-auto">
           {/* Platform badge */}
           <AnimatePresence>
@@ -105,34 +112,40 @@ const Index = () => {
             )}
           </AnimatePresence>
 
-          {/* Categories */}
           <AnimatePresence mode="wait">
-            {platform && categories.length > 0 && (
+            {/* Categories screen */}
+            {view === 'categories' && (
               <motion.div
-                key={platform}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                key="categories"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.35 }}
               >
                 <CategoryCards
                   categories={categories}
                   onSelect={handleCategorySelect}
-                  selectedId={selectedCategory?.id ?? null}
+                  selectedId={null}
                 />
               </motion.div>
             )}
-          </AnimatePresence>
 
-          {/* Services */}
-          <AnimatePresence mode="wait">
-            {selectedCategory && services.length > 0 && (
+            {/* Services screen */}
+            {view === 'services' && selectedCategory && (
               <motion.div
-                key={selectedCategory.id}
-                initial={{ opacity: 0, y: 40 }}
+                key="services"
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                className="mt-10 pb-16"
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.35 }}
               >
+                <button
+                  onClick={handleBack}
+                  className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Назад к категориям
+                </button>
                 <ServiceCarousel
                   services={services}
                   categoryName={selectedCategory.name}
