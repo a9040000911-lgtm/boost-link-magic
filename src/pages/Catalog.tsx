@@ -380,6 +380,9 @@ const Catalog = () => {
                       {categoryServices.map((service, i) => {
                         const isSelected = selectedService?.id === service.id;
                         const pricePerUnit = service.price / 1000;
+                        // Mark cheapest service as popular
+                        const minPrice = Math.min(...categoryServices.map(s => s.price));
+                        const isPopular = service.price === minPrice && categoryServices.length > 1;
                         return (
                           <motion.button
                             key={service.id}
@@ -395,9 +398,16 @@ const Catalog = () => {
                             className={`snap-start shrink-0 w-[220px] p-4 rounded-2xl text-left transition-all relative overflow-hidden ${
                               isSelected
                                 ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/10'}`
-                                : "bg-card border border-border/60 hover:border-border hover:shadow-md"
+                                : isPopular
+                                  ? `bg-gradient-to-br from-primary/5 to-accent/10 border-2 border-primary/30 hover:border-primary/50 hover:shadow-md`
+                                  : "bg-card border border-border/60 hover:border-border hover:shadow-md"
                             }`}
                           >
+                            {isPopular && !isSelected && (
+                              <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center gap-1">
+                                <Sparkles className="w-3 h-3" /> Хит
+                              </div>
+                            )}
                             {isSelected && (
                               <div className={`absolute top-2.5 right-2.5 w-5 h-5 rounded-full ${activeNetConfig?.bg || 'bg-primary'} flex items-center justify-center`}>
                                 <Check className="w-3 h-3 text-white" />
@@ -416,7 +426,9 @@ const Catalog = () => {
                                 className={`inline-block px-3 py-1.5 rounded-full text-xs font-bold ${
                                   isSelected
                                     ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
-                                    : "bg-muted text-foreground"
+                                    : isPopular
+                                      ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
+                                      : "bg-muted text-foreground"
                                 }`}
                               >
                                 {pricePerUnit.toFixed(2)} ₽/1 шт
