@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search, ArrowLeft, Package, ChevronLeft, ChevronRight,
-  Link2, Mail, Minus, Plus, Sparkles, Check, ShieldCheck
+  Search, ArrowLeft, Package, Link2, Mail, Minus, Plus, Sparkles, Check,
+  BarChart3
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import PlatformIcon from "@/components/PlatformIcon";
@@ -48,12 +48,11 @@ const Catalog = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  // Selection state
   const [activeNetwork, setActiveNetwork] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedService, setSelectedService] = useState<CatalogService | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
 
-  // Order form — pre-fill link from query param
   const prefillLink = searchParams.get('link') || '';
   const [link, setLink] = useState(prefillLink);
   const [email, setEmail] = useState("");
@@ -61,8 +60,6 @@ const Catalog = () => {
   const [consentOffer, setConsentOffer] = useState(false);
   const [consentPD, setConsentPD] = useState(false);
   const [ordering, setOrdering] = useState(false);
-
-  const carouselRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -77,7 +74,6 @@ const Catalog = () => {
       setServices(items);
       setLoading(false);
 
-      // Auto-select first available network
       if (items.length > 0) {
         const firstNet = networkConfig.find((n) => items.some((s) => s.network === n.key));
         if (firstNet) {
@@ -90,13 +86,11 @@ const Catalog = () => {
     fetchServices();
   }, []);
 
-  // Available networks (only those with services)
   const availableNetworks = useMemo(
     () => networkConfig.filter((n) => services.some((s) => s.network === n.key)),
     [services]
   );
 
-  // Categories for active network
   const categories = useMemo(() => {
     if (!activeNetwork) return [];
     let filtered = services.filter((s) => s.network === activeNetwork);
@@ -113,7 +107,6 @@ const Catalog = () => {
     return [...new Set(filtered.map((s) => s.category))].sort();
   }, [services, activeNetwork, search]);
 
-  // Services for active category
   const categoryServices = useMemo(() => {
     if (!activeNetwork || !activeCategory) return [];
     let filtered = services.filter((s) => s.network === activeNetwork && s.category === activeCategory);
@@ -129,7 +122,6 @@ const Catalog = () => {
     return filtered;
   }, [services, activeNetwork, activeCategory, search]);
 
-  // When network changes, auto-select first category
   const handleNetworkChange = (net: string) => {
     setActiveNetwork(net);
     setSelectedService(null);
@@ -137,13 +129,11 @@ const Catalog = () => {
     setActiveCategory(cats[0] || null);
   };
 
-  // When category changes
   const handleCategoryChange = (cat: string) => {
     setActiveCategory(cat);
     setSelectedService(null);
   };
 
-  // Auto-select first service when category services load
   useEffect(() => {
     if (categoryServices.length > 0 && !categoryServices.find((s) => s.id === selectedService?.id)) {
       setSelectedService(categoryServices[0]);
@@ -151,18 +141,9 @@ const Catalog = () => {
     }
   }, [categoryServices]);
 
-  const scrollCarousel = (dir: "left" | "right") => {
-    if (carouselRef.current) {
-      const scrollAmount = 280;
-      carouselRef.current.scrollBy({
-        left: dir === "left" ? -scrollAmount : scrollAmount,
-        behavior: "smooth",
-      });
-    }
-  };
-
   const activeNetConfig = networkConfig.find(n => n.key === activeNetwork);
   const totalPrice = selectedService ? (selectedService.price / 1000) * quantity : 0;
+  const minPrice = categoryServices.length > 0 ? Math.min(...categoryServices.map(s => s.price)) : 0;
 
   const handleOrder = async () => {
     if (!user) {
@@ -173,9 +154,7 @@ const Catalog = () => {
 
     setOrdering(true);
     try {
-      // Generate idempotency key to prevent double orders
       const idempotencyKey = `${user.id}_${selectedService.id}_${Date.now()}`;
-
       const { data, error } = await supabase.functions.invoke("create-order", {
         body: {
           service_id: selectedService.id,
@@ -197,7 +176,6 @@ const Catalog = () => {
         });
       }
 
-      // Reset form
       setLink("");
       setConsentOffer(false);
       setConsentPD(false);
@@ -207,6 +185,11 @@ const Catalog = () => {
     } finally {
       setOrdering(false);
     }
+  };
+
+  const selectService = (service: CatalogService) => {
+    setSelectedService(service);
+    setQuantity(Math.max(service.min_quantity, 10));
   };
 
   if (loading) {
@@ -220,52 +203,49 @@ const Catalog = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* Pre-fill banner */}
       {prefillLink && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-primary/10 border-b border-primary/20 px-4 py-3"
+          className="bg-primary/10 border-b border-primary/20 px-4 py-2"
         >
-          <div className="max-w-6xl mx-auto flex items-center gap-3 text-sm">
-            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
-              <Link2 className="w-4 h-4 text-primary" />
+          <div className="max-w-7xl mx-auto flex items-center gap-3 text-sm">
+            <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+              <Link2 className="w-3.5 h-3.5 text-primary" />
             </div>
             <div className="min-w-0">
-              <p className="font-medium text-foreground">Ссылка подставлена автоматически</p>
-              <p className="text-xs text-muted-foreground truncate">Выберите подходящую услугу — ссылка <span className="text-primary font-medium">{prefillLink}</span> уже в форме заказа</p>
+              <p className="text-xs text-muted-foreground truncate">Ссылка <span className="text-primary font-medium">{prefillLink}</span> подставлена автоматически</p>
             </div>
           </div>
         </motion.div>
       )}
+
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="border-b border-border/60 bg-card/50">
-        <div className="max-w-6xl mx-auto px-4 py-4">
+      <div className="border-b border-border/60 bg-card/50 shrink-0">
+        <div className="max-w-7xl mx-auto px-4 py-2.5">
           <div className="flex items-center justify-between">
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
+            <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="w-4 h-4" /> На главную
             </Link>
-            <div className="relative w-64">
+            <div className="relative w-56">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Поиск услуг..."
-                className="pl-9 h-9 text-sm bg-muted/40 border-border/40"
+                className="pl-9 h-8 text-sm bg-muted/40 border-border/40"
               />
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Platform Icons */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.15 }} className="border-b border-border/40 bg-muted/20">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex flex-wrap gap-2 justify-center items-center">
+      <div className="border-b border-border/40 bg-muted/20 shrink-0">
+        <div className="max-w-7xl mx-auto px-4 py-2.5">
+          <div className="flex flex-wrap gap-1.5 justify-center items-center">
             {availableNetworks.map((net) => {
               const isActive = activeNetwork === net.key;
               return (
@@ -274,32 +254,33 @@ const Catalog = () => {
                   onClick={() => handleNetworkChange(net.key)}
                   className={`relative transition-all duration-200 ${
                     isActive
-                      ? `inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl ${net.bg} text-white shadow-lg ${net.shadow} scale-105`
-                      : "w-11 h-11 rounded-2xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border hover:shadow-sm hover:scale-105"
+                      ? `inline-flex items-center gap-1.5 px-4 py-2 rounded-xl ${net.bg} text-white shadow-lg ${net.shadow} scale-105`
+                      : "w-10 h-10 rounded-xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border hover:shadow-sm hover:scale-105"
                   }`}
                   title={net.label}
                 >
-                  <PlatformIcon platform={net.icon} className={isActive ? "w-5 h-5" : "w-5 h-5"} />
-                  {isActive && <span className="text-sm font-semibold">{net.label}</span>}
+                  <PlatformIcon platform={net.icon} className="w-4 h-4" />
+                  {isActive && <span className="text-xs font-semibold">{net.label}</span>}
                 </button>
               );
             })}
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Main Content */}
-      <div className="flex-1">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex gap-6 min-h-[500px]">
+      {/* Main Content — fills remaining height */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 py-3 h-full">
+          <div className="flex gap-4 h-full">
+
             {/* Left Sidebar — Categories */}
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="w-64 shrink-0 hidden md:block">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-2">
+            <div className="w-48 shrink-0 hidden md:flex flex-col overflow-y-auto">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
                 Категории
               </p>
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {categories.length === 0 && (
-                  <p className="text-sm text-muted-foreground/60 px-2">Нет категорий</p>
+                  <p className="text-xs text-muted-foreground/60 px-2">Нет категорий</p>
                 )}
                 {categories.map((cat) => {
                   const count = services.filter(
@@ -309,32 +290,32 @@ const Catalog = () => {
                     <button
                       key={cat}
                       onClick={() => handleCategoryChange(cat)}
-                      className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
+                      className={`w-full flex items-center justify-between gap-1 px-2.5 py-2 rounded-lg text-xs font-medium transition-all text-left ${
                         activeCategory === cat
-                          ? `bg-card ${activeNetConfig?.color || 'text-primary'} border-2 ${activeNetConfig?.border || 'border-primary/20'} shadow-sm`
+                          ? `bg-card ${activeNetConfig?.color || 'text-primary'} border ${activeNetConfig?.border || 'border-primary/20'} shadow-sm`
                           : "text-foreground/80 hover:bg-muted/60 border border-transparent"
                       }`}
                     >
                       <span className="truncate">{cat}</span>
-                      <span className={`text-[11px] shrink-0 ${activeCategory === cat ? "opacity-70" : "text-muted-foreground/50"}`}>
+                      <span className={`text-[10px] shrink-0 ${activeCategory === cat ? "opacity-70" : "text-muted-foreground/50"}`}>
                         {count}
                       </span>
                     </button>
                   );
                 })}
               </div>
-            </motion.div>
+            </div>
 
-            {/* Right Content — Services & Order */}
-            <div className="flex-1 min-w-0">
+            {/* Center — Service List */}
+            <div className="flex-1 min-w-0 flex flex-col min-h-0">
               {/* Mobile category selector */}
-              <div className="md:hidden mb-4">
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+              <div className="md:hidden mb-2 shrink-0">
+                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                   {categories.map((cat) => (
                     <button
                       key={cat}
                       onClick={() => handleCategoryChange(cat)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors border ${
                         activeCategory === cat
                           ? `${activeNetConfig?.bg || 'bg-primary'} text-white border-transparent`
                           : "bg-muted text-muted-foreground border-transparent"
@@ -346,233 +327,368 @@ const Catalog = () => {
                 </div>
               </div>
 
-              {/* Service Cards Grid */}
-              {categoryServices.length > 0 ? (
-                <div className="relative mb-4">
-                  <h2 className="text-lg font-bold text-foreground mb-3">
-                    {activeCategory}
-                  </h2>
-
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={activeCategory}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.3, ease: 'easeOut' }}
-                      className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"
-                    >
-                      {categoryServices.map((service, i) => {
-                        const isSelected = selectedService?.id === service.id;
-                        const pricePerUnit = service.price / 1000;
-                        const minPrice = Math.min(...categoryServices.map(s => s.price));
-                        const isPopular = service.price === minPrice && categoryServices.length > 1;
-                        return (
-                          <motion.button
-                            key={service.id}
-                            initial={{ opacity: 0, y: 15 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3, delay: i * 0.04 }}
-                            onClick={() => {
-                              setSelectedService(service);
-                              setQuantity(Math.max(service.min_quantity, 10));
-                            }}
-                            whileHover={{ y: -2 }}
-                            whileTap={{ scale: 0.98 }}
-                            className={`p-4 rounded-2xl text-left transition-all relative overflow-hidden flex flex-col min-h-[200px] ${
-                              isSelected
-                                ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/10'}`
-                                : isPopular
-                                  ? `bg-gradient-to-br from-primary/5 to-accent/10 border-2 border-primary/30 hover:border-primary/50 hover:shadow-md`
-                                  : "bg-card border border-border/60 hover:border-border hover:shadow-md"
-                            }`}
-                          >
-                            {isPopular && !isSelected && (
-                              <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center gap-1">
-                                <Sparkles className="w-3 h-3" /> Хит
-                              </div>
-                            )}
-                            {isSelected && (
-                              <div className={`absolute top-2.5 right-2.5 w-5 h-5 rounded-full ${activeNetConfig?.bg || 'bg-primary'} flex items-center justify-center`}>
-                                <Check className="w-3 h-3 text-white" />
-                              </div>
-                            )}
-                            <h3 className="font-semibold text-sm text-foreground mb-1.5 pr-6 line-clamp-2">
-                              {service.name}
-                            </h3>
-                            {service.description && (
-                              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                                {service.description}
-                              </p>
-                            )}
-                            {/* Requirements */}
-                            <div className="flex flex-wrap gap-1.5 mb-3">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium ${activeNetConfig?.color || 'text-primary'} bg-primary/10`}>
-                                от {service.min_quantity.toLocaleString()}
-                              </span>
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium ${activeNetConfig?.color || 'text-primary'} bg-primary/10`}>
-                                до {service.max_quantity.toLocaleString()}
-                              </span>
-                            </div>
-                            <div className="mt-auto">
-                              <span
-                                className={`inline-block px-3 py-1.5 rounded-full text-xs font-bold ${
-                                  isSelected
-                                    ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
-                                    : isPopular
-                                      ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
-                                      : "bg-muted text-foreground"
-                                }`}
-                              >
-                                {pricePerUnit.toFixed(2)} ₽/1 шт
-                              </span>
-                            </div>
-                          </motion.button>
-                        );
-                      })}
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center py-20 text-muted-foreground">
-                  <Package className="w-8 h-8 mr-2 opacity-40" />
-                  <span>Нет услуг в этой категории</span>
-                </div>
-              )}
-
-            </div>
-          </div>
-
-          {/* Order Form — full width, centered */}
-          {selectedService && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="max-w-3xl mx-auto rounded-2xl border border-border/60 bg-card p-5 space-y-4 mb-6"
-            >
-              {/* Link & Email */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                    Ссылка на ваш контент 👇
-                  </label>
-                  <div className="relative">
-                    <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
-                    <Input
-                      value={link}
-                      onChange={(e) => setLink(e.target.value)}
-                      placeholder="https://instagram.com/..."
-                      className={`pl-10 bg-muted/30 border-2 ${activeNetConfig?.border || 'border-border/40'} focus:ring-0`}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                    Электронная почта
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
-                    <Input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@email.com"
-                      className="pl-10 bg-muted/30 border-border/40"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Quantity & Submit */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Количество</label>
-                    <span className="text-[10px] text-muted-foreground/60">
-                      {selectedService.min_quantity.toLocaleString()} – {selectedService.max_quantity.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center border border-border/60 rounded-xl bg-muted/20 overflow-hidden">
-                    <button
-                      onClick={() => setQuantity(Math.max(selectedService.min_quantity, quantity - 10))}
-                      className="px-4 py-2.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </button>
-                    <input
-                      type="number"
-                      value={quantity}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value) || selectedService.min_quantity;
-                        setQuantity(Math.min(Math.max(v, selectedService.min_quantity), selectedService.max_quantity));
-                      }}
-                      className="flex-1 text-center bg-transparent text-foreground font-semibold text-lg outline-none py-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    <button
-                      onClick={() => setQuantity(Math.min(selectedService.max_quantity, quantity + 10))}
-                      className="px-4 py-2.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
+              {/* Header row */}
+              <div className="flex items-center justify-between mb-2 shrink-0">
+                <h2 className="text-sm font-bold text-foreground">{activeCategory}</h2>
                 <button
-                  onClick={handleOrder}
-                  disabled={!link.trim() || !consentOffer || !consentPD || ordering}
-                  className={`w-full sm:w-auto px-8 py-3 rounded-xl ${activeNetConfig?.bg || 'bg-gradient-to-r from-primary to-secondary'} text-white font-bold text-base shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/20'} hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3`}
+                  onClick={() => setCompareMode(!compareMode)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
+                    compareMode
+                      ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
+                      : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
                 >
-                  {ordering ? (
-                    <span className="flex items-center gap-2">
-                      <span className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
-                      Оформляем...
-                    </span>
-                  ) : (
-                    <>
-                      <span className="text-lg font-bold">{totalPrice.toFixed(2)} ₽</span>
-                      <span className="border-l border-primary-foreground/30 pl-3">Оформить заказ</span>
-                    </>
-                  )}
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  Сравнить
                 </button>
               </div>
 
-              {/* Consents */}
-              <div className="space-y-2 pt-1">
-                <label className="flex items-start gap-2 cursor-pointer group" onClick={() => setConsentOffer(!consentOffer)}>
-                  <span className={`mt-0.5 w-4 h-4 rounded shrink-0 flex items-center justify-center border transition-colors ${
-                    consentOffer
-                      ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent`
-                      : 'border-border bg-background'
-                  }`}>
-                    {consentOffer && <Check className="w-3 h-3 text-white" />}
-                  </span>
-                  <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-                    Нажимая кнопку, вы принимаете условия{" "}
-                    <Link to="/page/offer" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Оферты</Link>
-                  </span>
-                </label>
-                <label className="flex items-start gap-2 cursor-pointer group" onClick={() => setConsentPD(!consentPD)}>
-                  <span className={`mt-0.5 w-4 h-4 rounded shrink-0 flex items-center justify-center border transition-colors ${
-                    consentPD
-                      ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent`
-                      : 'border-border bg-background'
-                  }`}>
-                    {consentPD && <Check className="w-3 h-3 text-white" />}
-                  </span>
-                  <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-                    Я даю согласие на обработку персональных данных в соответствии с{" "}
-                    <Link to="/page/privacy-policy" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Политикой конфиденциальности</Link>
-                    {" "}и соглашаюсь с{" "}
-                    <Link to="/page/terms" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Правилами сервиса</Link>
-                  </span>
-                </label>
+              {/* Service list — scrollable */}
+              <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+                {categoryServices.length > 0 ? (
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={`${activeCategory}-${compareMode}`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      {compareMode ? (
+                        /* ─── Compare Table ─── */
+                        <div className="rounded-xl border border-border/60 overflow-hidden">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="bg-muted/40 border-b border-border/40">
+                                <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Услуга</th>
+                                <th className="text-right px-3 py-2 font-semibold text-muted-foreground w-20">Цена/шт</th>
+                                <th className="text-right px-3 py-2 font-semibold text-muted-foreground w-16 hidden sm:table-cell">Мин</th>
+                                <th className="text-right px-3 py-2 font-semibold text-muted-foreground w-16 hidden sm:table-cell">Макс</th>
+                                <th className="text-left px-3 py-2 font-semibold text-muted-foreground hidden lg:table-cell">Описание</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {categoryServices.map((service) => {
+                                const isSelected = selectedService?.id === service.id;
+                                const isPopular = service.price === minPrice && categoryServices.length > 1;
+                                const pricePerUnit = service.price / 1000;
+                                return (
+                                  <tr
+                                    key={service.id}
+                                    onClick={() => selectService(service)}
+                                    className={`cursor-pointer transition-colors border-b border-border/20 last:border-0 ${
+                                      isSelected
+                                        ? `bg-primary/5 ${activeNetConfig?.color || 'text-primary'}`
+                                        : isPopular
+                                          ? 'bg-primary/[0.03] hover:bg-primary/5'
+                                          : 'hover:bg-muted/40'
+                                    }`}
+                                  >
+                                    <td className="px-3 py-2.5 font-medium text-foreground">
+                                      <div className="flex items-center gap-1.5">
+                                        {isSelected && (
+                                          <span className={`w-4 h-4 rounded-full ${activeNetConfig?.bg || 'bg-primary'} flex items-center justify-center shrink-0`}>
+                                            <Check className="w-2.5 h-2.5 text-white" />
+                                          </span>
+                                        )}
+                                        {isPopular && !isSelected && (
+                                          <Sparkles className={`w-3.5 h-3.5 shrink-0 ${activeNetConfig?.color || 'text-primary'}`} />
+                                        )}
+                                        <span className="line-clamp-1">{service.name}</span>
+                                      </div>
+                                    </td>
+                                    <td className="px-3 py-2.5 text-right font-bold whitespace-nowrap">
+                                      <span className={isPopular ? (activeNetConfig?.color || 'text-primary') : ''}>
+                                        {pricePerUnit.toFixed(2)} ₽
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-2.5 text-right text-muted-foreground hidden sm:table-cell">{service.min_quantity.toLocaleString()}</td>
+                                    <td className="px-3 py-2.5 text-right text-muted-foreground hidden sm:table-cell">{service.max_quantity.toLocaleString()}</td>
+                                    <td className="px-3 py-2.5 text-muted-foreground hidden lg:table-cell">
+                                      <span className="line-clamp-1">{service.description || '—'}</span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        /* ─── Compact Row List ─── */
+                        <div className="space-y-1.5">
+                          {categoryServices.map((service, i) => {
+                            const isSelected = selectedService?.id === service.id;
+                            const pricePerUnit = service.price / 1000;
+                            const isPopular = service.price === minPrice && categoryServices.length > 1;
+                            return (
+                              <motion.button
+                                key={service.id}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.2, delay: i * 0.03 }}
+                                onClick={() => selectService(service)}
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${
+                                  isSelected
+                                    ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-md ${activeNetConfig?.shadow || 'shadow-primary/10'}`
+                                    : isPopular
+                                      ? 'bg-primary/[0.03] border border-primary/20 hover:border-primary/40 hover:shadow-sm'
+                                      : 'bg-card border border-border/50 hover:border-border hover:shadow-sm'
+                                }`}
+                              >
+                                {/* Selection indicator */}
+                                <div className={`w-5 h-5 rounded-full shrink-0 flex items-center justify-center transition-colors ${
+                                  isSelected
+                                    ? `${activeNetConfig?.bg || 'bg-primary'}`
+                                    : 'border border-border/60 bg-muted/30'
+                                }`}>
+                                  {isSelected && <Check className="w-3 h-3 text-white" />}
+                                </div>
+
+                                {/* Info */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    {isPopular && !isSelected && (
+                                      <Sparkles className={`w-3 h-3 shrink-0 ${activeNetConfig?.color || 'text-primary'}`} />
+                                    )}
+                                    <span className="text-sm font-medium text-foreground line-clamp-1">{service.name}</span>
+                                  </div>
+                                  {service.description && (
+                                    <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{service.description}</p>
+                                  )}
+                                </div>
+
+                                {/* Meta */}
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className="text-[10px] text-muted-foreground/60 hidden sm:inline">
+                                    {service.min_quantity.toLocaleString()}–{service.max_quantity.toLocaleString()}
+                                  </span>
+                                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                                    isSelected
+                                      ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
+                                      : isPopular
+                                        ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
+                                        : 'bg-muted text-foreground'
+                                  }`}>
+                                    {pricePerUnit.toFixed(2)} ₽
+                                  </span>
+                                </div>
+                              </motion.button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
+                ) : (
+                  <div className="flex items-center justify-center py-12 text-muted-foreground">
+                    <Package className="w-6 h-6 mr-2 opacity-40" />
+                    <span className="text-sm">Нет услуг в этой категории</span>
+                  </div>
+                )}
               </div>
-            </motion.div>
-          )}
+            </div>
+
+            {/* Right Panel — Order Form (sticky, always visible) */}
+            <div className="w-80 shrink-0 hidden md:block">
+              <div className="sticky top-0 h-full">
+                {selectedService ? (
+                  <motion.div
+                    key={selectedService.id}
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className={`rounded-2xl border-2 ${activeNetConfig?.border || 'border-border/60'} bg-card p-4 space-y-3 h-full flex flex-col`}
+                  >
+                    {/* Selected service info */}
+                    <div className="shrink-0">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Выбрано</p>
+                      <h3 className="text-sm font-bold text-foreground line-clamp-2">{selectedService.name}</h3>
+                      <p className={`text-lg font-bold mt-1 ${activeNetConfig?.color || 'text-primary'}`}>
+                        {(selectedService.price / 1000).toFixed(2)} ₽ <span className="text-xs font-normal text-muted-foreground">/ шт</span>
+                      </p>
+                    </div>
+
+                    {/* Link */}
+                    <div className="shrink-0">
+                      <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Ссылка на контент</label>
+                      <div className="relative">
+                        <Link2 className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
+                        <Input
+                          value={link}
+                          onChange={(e) => setLink(e.target.value)}
+                          placeholder="https://..."
+                          className={`pl-8 h-9 text-sm bg-muted/30 border ${activeNetConfig?.border || 'border-border/40'} focus:ring-0`}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Email */}
+                    <div className="shrink-0">
+                      <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Email</label>
+                      <div className="relative">
+                        <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
+                        <Input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="you@email.com"
+                          className="pl-8 h-9 text-sm bg-muted/30 border-border/40"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Quantity */}
+                    <div className="shrink-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-medium text-muted-foreground">Количество</label>
+                        <span className="text-[10px] text-muted-foreground/60">
+                          {selectedService.min_quantity.toLocaleString()} – {selectedService.max_quantity.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center border border-border/60 rounded-lg bg-muted/20 overflow-hidden">
+                        <button
+                          onClick={() => setQuantity(Math.max(selectedService.min_quantity, quantity - 10))}
+                          className="px-3 py-2 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </button>
+                        <input
+                          type="number"
+                          value={quantity}
+                          onChange={(e) => {
+                            const v = parseInt(e.target.value) || selectedService.min_quantity;
+                            setQuantity(Math.min(Math.max(v, selectedService.min_quantity), selectedService.max_quantity));
+                          }}
+                          className="flex-1 text-center bg-transparent text-foreground font-semibold text-sm outline-none py-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <button
+                          onClick={() => setQuantity(Math.min(selectedService.max_quantity, quantity + 10))}
+                          className="px-3 py-2 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Spacer */}
+                    <div className="flex-1" />
+
+                    {/* Consents */}
+                    <div className="space-y-1.5 shrink-0">
+                      <label className="flex items-start gap-1.5 cursor-pointer group" onClick={() => setConsentOffer(!consentOffer)}>
+                        <span className={`mt-0.5 w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${
+                          consentOffer
+                            ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent`
+                            : 'border-border bg-background'
+                        }`}>
+                          {consentOffer && <Check className="w-2.5 h-2.5 text-white" />}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors leading-tight">
+                          Принимаю условия{" "}
+                          <Link to="/page/offer" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Оферты</Link>
+                        </span>
+                      </label>
+                      <label className="flex items-start gap-1.5 cursor-pointer group" onClick={() => setConsentPD(!consentPD)}>
+                        <span className={`mt-0.5 w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${
+                          consentPD
+                            ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent`
+                            : 'border-border bg-background'
+                        }`}>
+                          {consentPD && <Check className="w-2.5 h-2.5 text-white" />}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors leading-tight">
+                          Согласен с{" "}
+                          <Link to="/page/privacy-policy" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Политикой</Link>
+                          {" "}и{" "}
+                          <Link to="/page/terms" className={`${activeNetConfig?.color || 'text-primary'} hover:underline`}>Правилами</Link>
+                        </span>
+                      </label>
+                    </div>
+
+                    {/* Submit */}
+                    <button
+                      onClick={handleOrder}
+                      disabled={!link.trim() || !consentOffer || !consentPD || ordering}
+                      className={`w-full py-3 rounded-xl ${activeNetConfig?.bg || 'bg-gradient-to-r from-primary to-secondary'} text-white font-bold text-sm shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/20'} hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shrink-0`}
+                    >
+                      {ordering ? (
+                        <span className="flex items-center gap-2">
+                          <span className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
+                          Оформляем...
+                        </span>
+                      ) : (
+                        <>
+                          <span className="font-bold">{totalPrice.toFixed(2)} ₽</span>
+                          <span className="border-l border-white/30 pl-2">Оформить</span>
+                        </>
+                      )}
+                    </button>
+                  </motion.div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-border/40 bg-muted/10 flex items-center justify-center h-full">
+                    <p className="text-xs text-muted-foreground/50">Выберите услугу</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <Footer />
+      {/* Mobile Order Form — bottom sticky */}
+      {selectedService && (
+        <div className="md:hidden border-t border-border/60 bg-card p-3 shrink-0">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="relative flex-1">
+              <Link2 className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
+              <Input
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+                placeholder="Ссылка на контент"
+                className={`pl-8 h-9 text-sm bg-muted/30 border ${activeNetConfig?.border || 'border-border/40'}`}
+              />
+            </div>
+            <div className="flex items-center border border-border/60 rounded-lg bg-muted/20 overflow-hidden">
+              <button onClick={() => setQuantity(Math.max(selectedService.min_quantity, quantity - 10))} className="px-2 py-2">
+                <Minus className="w-3.5 h-3.5 text-muted-foreground" />
+              </button>
+              <input
+                type="number"
+                value={quantity}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value) || selectedService.min_quantity;
+                  setQuantity(Math.min(Math.max(v, selectedService.min_quantity), selectedService.max_quantity));
+                }}
+                className="w-14 text-center bg-transparent text-foreground font-semibold text-sm outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <button onClick={() => setQuantity(Math.min(selectedService.max_quantity, quantity + 10))} className="px-2 py-2">
+                <Plus className="w-3.5 h-3.5 text-muted-foreground" />
+              </button>
+            </div>
+          </div>
+          <div className="flex gap-2 mb-2">
+            <label className="flex items-center gap-1 cursor-pointer" onClick={() => setConsentOffer(!consentOffer)}>
+              <span className={`w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${consentOffer ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent` : 'border-border bg-background'}`}>
+                {consentOffer && <Check className="w-2.5 h-2.5 text-white" />}
+              </span>
+              <span className="text-[10px] text-muted-foreground">Оферта</span>
+            </label>
+            <label className="flex items-center gap-1 cursor-pointer" onClick={() => setConsentPD(!consentPD)}>
+              <span className={`w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${consentPD ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent` : 'border-border bg-background'}`}>
+                {consentPD && <Check className="w-2.5 h-2.5 text-white" />}
+              </span>
+              <span className="text-[10px] text-muted-foreground">Политика</span>
+            </label>
+          </div>
+          <button
+            onClick={handleOrder}
+            disabled={!link.trim() || !consentOffer || !consentPD || ordering}
+            className={`w-full py-2.5 rounded-xl ${activeNetConfig?.bg || 'bg-primary'} text-white font-bold text-sm disabled:opacity-40 flex items-center justify-center gap-2`}
+          >
+            {ordering ? 'Оформляем...' : `${totalPrice.toFixed(2)} ₽ — Оформить`}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
