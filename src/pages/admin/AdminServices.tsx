@@ -684,7 +684,7 @@ const AdminServices = () => {
                               <Badge variant="outline" className="text-[10px] px-1.5">{svc.network}</Badge>
                             </TableCell>
                             <TableCell className="px-2 text-muted-foreground">{svc.category}</TableCell>
-                            <TableCell className="px-2 text-right font-mono">{Number(svc.price).toFixed(2)}</TableCell>
+                            <TableCell className="px-2 text-right font-mono">{fmtPrice(Number(svc.price))}</TableCell>
                             <TableCell className="px-2">
                               {isOrphan ? (
                                 <Badge variant="destructive" className="text-[9px] px-1">
