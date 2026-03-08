@@ -231,7 +231,7 @@ const AdminPromocodes = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((p) => (
+              {pagination.paginated.map((p) => (
                 <TableRow key={p.id} className="text-[11px]">
                   <TableCell className="px-2 font-mono font-bold">
                     <div className="flex items-center gap-1">
