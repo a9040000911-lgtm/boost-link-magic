@@ -196,16 +196,23 @@ const AdminServices = () => {
 
   const createFromProvider = async (ps: ProviderService) => {
     const ladderMarkup = getMarkupForRate(ps.rate, markupLadder);
-    const price = ps.our_price ?? ps.rate * (1 + (ps.markup_percent ?? ladderMarkup) / 100);
+    let effectiveMarkup = ps.markup_percent ?? ladderMarkup;
+    if (effectiveMarkup < minMarkup) {
+      effectiveMarkup = minMarkup;
+      toast.info(`Наценка повышена до минимальных ${minMarkup}%`);
+    }
+    const price = ps.our_price ?? ps.rate * (1 + effectiveMarkup / 100);
+    const minAllowedPrice = ps.rate * (1 + minMarkup / 100);
+    const finalPrice = Math.max(price, minAllowedPrice);
     const { data, error } = await supabase.from("services").insert({
       name: ps.name, description: ps.description, category: ps.category,
-      network: ps.network, min_quantity: ps.min_quantity, max_quantity: ps.max_quantity, price,
+      network: ps.network, min_quantity: ps.min_quantity, max_quantity: ps.max_quantity, price: finalPrice,
     }).select().single();
     if (error) { toast.error(error.message); return; }
     await supabase.from("service_provider_mappings").insert({
       service_id: data.id, provider_service_id: ps.id, priority: 1,
     });
-    await logAuditAction("create_service", "service", data.id, { from_provider: ps.provider });
+    await logAuditAction("create_service", "service", data.id, { from_provider: ps.provider, markup: effectiveMarkup });
     toast.success("Услуга создана и привязана");
     await loadAll();
   };

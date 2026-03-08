@@ -69,6 +69,7 @@ const SETTINGS_META: SettingMeta[] = [
   { key: "min_order_amount", label: "Минимальная сумма заказа", hint: "Заказы дешевле этой суммы не будут приняты", type: "number", suffix: "₽", group: "orders" },
   { key: "default_markup_percent", label: "Наценка по умолчанию", hint: "Процент наценки, который добавляется к закупочной цене провайдера при создании новой услуги", type: "number", suffix: "%", group: "orders" },
   { key: "markup_ladder", label: "Лестница наценок (JSON)", hint: "Автоматические ступени наценки от закупочной цены. Формат: [{\"maxRate\":20,\"markup\":80},{\"maxRate\":50,\"markup\":60},{\"maxRate\":150,\"markup\":40},{\"maxRate\":500,\"markup\":30},{\"maxRate\":99999,\"markup\":20}]", type: "textarea", group: "orders" },
+  { key: "min_markup_percent", label: "Минимальная наценка", hint: "Защита от продажи ниже себестоимости. Нельзя установить наценку ниже этого % (200% = цена продажи ≥ 3× закупки)", type: "number", suffix: "%", group: "orders" },
 
   // Finance
   { key: "min_deposit_amount", label: "Мин. сумма пополнения", hint: "Минимальная сумма, на которую пользователь может пополнить баланс", type: "number", suffix: "₽", group: "finance" },
