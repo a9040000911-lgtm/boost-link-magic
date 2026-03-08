@@ -22,6 +22,7 @@ interface Order {
   progress: number;
   project_id: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
