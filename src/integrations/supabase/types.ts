@@ -282,6 +282,99 @@ export type Database = {
         }
         Relationships: []
       }
+      promocode_usages: {
+        Row: {
+          discount_amount: number
+          id: string
+          order_id: string | null
+          promocode_id: string
+          used_at: string
+          user_id: string
+        }
+        Insert: {
+          discount_amount?: number
+          id?: string
+          order_id?: string | null
+          promocode_id: string
+          used_at?: string
+          user_id: string
+        }
+        Update: {
+          discount_amount?: number
+          id?: string
+          order_id?: string | null
+          promocode_id?: string
+          used_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promocode_usages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promocode_usages_promocode_id_fkey"
+            columns: ["promocode_id"]
+            isOneToOne: false
+            referencedRelation: "promocodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promocodes: {
+        Row: {
+          applies_to: string
+          applies_to_id: string | null
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          min_order_amount: number | null
+          starts_at: string | null
+          updated_at: string
+          used_count: number
+        }
+        Insert: {
+          applies_to?: string
+          applies_to_id?: string | null
+          code: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          min_order_amount?: number | null
+          starts_at?: string | null
+          updated_at?: string
+          used_count?: number
+        }
+        Update: {
+          applies_to?: string
+          applies_to_id?: string | null
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          min_order_amount?: number | null
+          starts_at?: string | null
+          updated_at?: string
+          used_count?: number
+        }
+        Relationships: []
+      }
       provider_services: {
         Row: {
           can_cancel: boolean
