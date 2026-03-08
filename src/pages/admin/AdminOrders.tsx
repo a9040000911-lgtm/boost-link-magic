@@ -95,17 +95,38 @@ const AdminOrders = () => {
   useEffect(() => {
     if (orders.length === 0) return;
     const userIds = [...new Set(orders.map((o) => o.user_id))];
+
+    // Fetch display names
     supabase
       .from("profiles")
       .select("id, display_name")
       .in("id", userIds)
       .then(({ data }) => {
-        const map: Record<string, { name: string }> = {};
+        const map: Record<string, { name: string; email?: string }> = {};
         data?.forEach((p) => {
           map[p.id] = { name: p.display_name || p.id.slice(0, 8) };
         });
-        setProfilesMap(map);
+        setProfilesMap((prev) => {
+          const merged = { ...prev };
+          Object.entries(map).forEach(([id, val]) => { merged[id] = { ...merged[id], ...val }; });
+          return merged;
+        });
       });
+
+    // Fetch emails
+    supabase.functions.invoke("admin-user-management", {
+      body: { action: "list_users_auth", user_id: "bulk", user_ids: userIds },
+    }).then(({ data }) => {
+      if (data && typeof data === "object" && !data.error) {
+        setProfilesMap((prev) => {
+          const merged = { ...prev };
+          Object.entries(data).forEach(([id, info]: [string, any]) => {
+            merged[id] = { ...merged[id], name: merged[id]?.name || id.slice(0, 8), email: info?.email };
+          });
+          return merged;
+        });
+      }
+    }).catch(() => {});
   }, [orders]);
 
   const platforms = useMemo(() => [...new Set(orders.map((o) => o.platform).filter(Boolean))].sort(), [orders]);
@@ -271,7 +292,7 @@ const AdminOrders = () => {
                         className="text-primary hover:underline font-medium text-sm"
                         onClick={() => navigate(`/admin/users/${o.user_id}`)}
                       >
-                        {profile?.name || o.user_id.slice(0, 8)}
+                        {profile?.email || profile?.name || o.user_id.slice(0, 8)}
                       </button>
                     </TableCell>
                     <TableCell className="px-3 py-3">

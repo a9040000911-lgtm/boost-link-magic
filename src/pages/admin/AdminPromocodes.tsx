@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Search, Tag, RefreshCw, Plus, Copy, Trash2, BarChart3, Edit } from "lucide-react";
 import { toast } from "sonner";
+import { useTableControls } from "@/hooks/useTableControls";
+import { TablePagination } from "@/components/admin/TablePagination";
 
 interface Promocode {
   id: string;
@@ -70,6 +72,8 @@ const AdminPromocodes = () => {
     const s = search.toLowerCase();
     return codes.filter((c) => c.code.toLowerCase().includes(s));
   }, [codes, search]);
+
+  const pagination = useTableControls({ data: filtered, pageSize: 50 });
 
   const generateCode = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -227,7 +231,7 @@ const AdminPromocodes = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((p) => (
+              {pagination.paginated.map((p) => (
                 <TableRow key={p.id} className="text-[11px]">
                   <TableCell className="px-2 font-mono font-bold">
                     <div className="flex items-center gap-1">
@@ -275,6 +279,8 @@ const AdminPromocodes = () => {
           </Table>
         )}
       </div>
+
+      <TablePagination {...pagination} />
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
