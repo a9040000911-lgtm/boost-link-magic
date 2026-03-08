@@ -33,6 +33,7 @@ const statusMap: Record<string, { label: string; variant: "default" | "secondary
 
 const DashboardOrders = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
