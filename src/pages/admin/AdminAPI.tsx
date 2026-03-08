@@ -111,6 +111,10 @@ export default function AdminAPI() {
             <Activity className="h-3.5 w-3.5" />
             Инструменты
           </TabsTrigger>
+          <TabsTrigger value="keys" className="text-xs gap-1.5">
+            <Key className="h-3.5 w-3.5" />
+            Gemini ключи
+          </TabsTrigger>
           <TabsTrigger value="logs" className="text-xs gap-1.5">
             <ScrollText className="h-3.5 w-3.5" />
             Лог агента
