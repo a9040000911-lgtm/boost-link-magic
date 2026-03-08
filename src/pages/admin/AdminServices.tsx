@@ -327,16 +327,24 @@ const AdminServices = () => {
   const applyLadderToSelected = async () => {
     const ids = [...selectedIds];
     let updated = 0;
+    let skipped = 0;
     for (const id of ids) {
       const ps = providerServices.find((p) => p.id === id);
       if (!ps) continue;
-      const markup = getMarkupForRate(ps.rate, markupLadder);
+      let markup = getMarkupForRate(ps.rate, markupLadder);
+      if (markup < minMarkup) {
+        markup = minMarkup; // Enforce minimum
+        skipped++;
+      }
       const ourPrice = ps.rate * (1 + markup / 100);
       await supabase.from("provider_services").update({ markup_percent: markup, our_price: ourPrice }).eq("id", id);
       updated++;
     }
-    toast.success(`Лестница наценок применена к ${updated} услугам`);
-    await logAuditAction("ladder_markup", "provider_services", undefined, { count: updated });
+    const msg = skipped > 0
+      ? `Лестница применена к ${updated} услугам (${skipped} повышены до мин. ${minMarkup}%)`
+      : `Лестница наценок применена к ${updated} услугам`;
+    toast.success(msg);
+    await logAuditAction("ladder_markup", "provider_services", undefined, { count: updated, skipped_to_min: skipped });
     setSelectedIds(new Set());
     await loadAll();
   };
