@@ -890,6 +890,33 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_cleanup_rules: {
+        Row: {
+          created_at: string
+          field: string
+          id: string
+          is_enabled: boolean
+          match_value: string
+          replace_value: string
+        }
+        Insert: {
+          created_at?: string
+          field?: string
+          id?: string
+          is_enabled?: boolean
+          match_value: string
+          replace_value: string
+        }
+        Update: {
+          created_at?: string
+          field?: string
+          id?: string
+          is_enabled?: boolean
+          match_value?: string
+          replace_value?: string
+        }
+        Relationships: []
+      }
       provider_services: {
         Row: {
           can_cancel: boolean

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { logAuditAction } from "@/lib/audit";
+import { CleanupRulesDialog } from "@/components/admin/CleanupRulesDialog";
 
 interface MarkupTier {
   maxRate: number;
@@ -499,6 +500,7 @@ const AdminServices = () => {
             <RefreshCw className={`h-3 w-3 mr-1 ${syncing ? "animate-spin" : ""}`} />
             {syncing ? "Синхр..." : "Синхр. провайдеров"}
           </Button>
+          <CleanupRulesDialog />
           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={loadAll}>
             <RefreshCw className="h-3 w-3" />
           </Button>

@@ -69,6 +69,22 @@ serve(async (req) => {
       });
     }
 
+    // Load cleanup rules
+    const { data: cleanupRules } = await adminClient
+      .from('provider_cleanup_rules')
+      .select('*')
+      .eq('is_enabled', true);
+
+    const applyCleanup = (field: string, value: string): string => {
+      if (!cleanupRules || !value) return value;
+      for (const rule of cleanupRules) {
+        if (rule.field === field && value.includes(rule.match_value)) {
+          value = value.replace(rule.match_value, rule.replace_value).trim();
+        }
+      }
+      return value;
+    };
+
     const results: Record<string, { total: number; inserted: number; updated: number }> = {};
 
     for (const prov of dbProviders) {
@@ -101,10 +117,14 @@ serve(async (req) => {
           .eq('provider_service_id', svc.service)
           .single();
 
+        const rawCategory = svc.category || 'Uncategorized';
+        const rawNetwork = svc.network || svc.category?.split(' ')[0] || 'Other';
+        const rawName = svc.name || '';
+
         const serviceData = {
-          name: svc.name,
-          category: svc.category || 'Uncategorized',
-          network: svc.network || svc.category?.split(' ')[0] || 'Other',
+          name: applyCleanup('name', rawName),
+          category: applyCleanup('category', rawCategory),
+          network: applyCleanup('network', rawNetwork),
           description: svc.description || null,
           type: svc.type || 'Default',
           rate: parseFloat(svc.rate),
