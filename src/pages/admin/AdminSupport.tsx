@@ -383,6 +383,25 @@ const AdminSupport = () => {
     setAiSuggestions([]);
   };
 
+  const transcribeAudio = async (audioUrl: string, msgId: string) => {
+    setTranscribing(prev => new Set(prev).add(msgId));
+    try {
+      const { data, error } = await supabase.functions.invoke("support-ai-suggest", {
+        body: { action: "transcribe", audio_url: audioUrl },
+      });
+      if (error) throw error;
+      if (data?.error) { toast({ title: "Ошибка", description: data.error, variant: "destructive" }); return; }
+      if (data?.transcript) {
+        setTranscriptions(prev => ({ ...prev, [msgId]: data.transcript }));
+        toast({ title: "Расшифровка готова", description: `Провайдер: ${data.provider}` });
+      }
+    } catch (e: any) {
+      toast({ title: "Ошибка расшифровки", description: e.message || "Неизвестная ошибка", variant: "destructive" });
+    } finally {
+      setTranscribing(prev => { const n = new Set(prev); n.delete(msgId); return n; });
+    }
+  };
+
   const clientGroups = useMemo((): ClientGroup[] => {
     const groupMap: Record<string, Ticket[]> = {};
     tickets.forEach(t => {
