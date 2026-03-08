@@ -23,6 +23,7 @@ interface CatalogService {
   network: string;
   speed: string;
   guarantee: string;
+  warning_text: string | null;
 }
 
 /* ─── Speed & Guarantee display helpers ─── */
