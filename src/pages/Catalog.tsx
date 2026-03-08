@@ -170,12 +170,17 @@ const TariffExplainer = ({ onClose, netConfig }: { onClose: () => void; netConfi
     </div>
   </motion.div>
 );
-/* Smart price formatter — shows enough decimals so the value isn't "0.00" */
-const fmtPrice = (perUnit: number) => {
-  if (perUnit === 0) return "0.00";
-  if (perUnit >= 0.01) return perUnit.toFixed(2);
-  if (perUnit >= 0.001) return perUnit.toFixed(3);
-  return perUnit.toFixed(4);
+/* Smart price formatter — always rounds UP, never rounds to zero.
+   price < 1 → 3 decimal places (ceil), price >= 1 → 2 decimal places (ceil) */
+const fmtPrice = (v: number): string => {
+  if (v <= 0) return "0.00";
+  if (v >= 1) {
+    const ceiled = Math.ceil(v * 100) / 100;
+    return ceiled.toFixed(2);
+  }
+  // price < 1: 3 decimals, ceil, minimum 0.001
+  const ceiled = Math.ceil(v * 1000) / 1000;
+  return Math.max(ceiled, 0.001).toFixed(3);
 };
 
 const Catalog = () => {
