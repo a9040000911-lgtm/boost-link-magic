@@ -169,27 +169,12 @@ const Index = () => {
                     transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
                   />
 
-                  {/* Confetti-like sparkles */}
-                  <motion.div
-                    className="absolute top-4 left-6 text-amber-400"
-                    animate={{ y: [0, -8, 0], rotate: [0, 15, -15, 0], opacity: [0.6, 1, 0.6] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                  >
-                    <Sparkles className="w-4 h-4" />
-                  </motion.div>
-                  <motion.div
-                    className="absolute top-8 right-8 text-pink-400"
-                    animate={{ y: [0, -6, 0], rotate: [0, -20, 20, 0], opacity: [0.5, 1, 0.5] }}
-                    transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+                  {/* Floating sparkles */}
+                  <motion.div className="absolute top-3 right-4 text-amber-400 pointer-events-none"
+                    animate={{ y: [0, -5, 0], opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 3, repeat: Infinity }}
                   >
                     <Sparkles className="w-3 h-3" />
-                  </motion.div>
-                  <motion.div
-                    className="absolute bottom-16 right-6 text-violet-400"
-                    animate={{ y: [0, -5, 0], rotate: [0, 10, -10, 0], opacity: [0.4, 0.9, 0.4] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
-                  >
-                    <Zap className="w-3.5 h-3.5" />
                   </motion.div>
 
                   {/* Success icon */}
