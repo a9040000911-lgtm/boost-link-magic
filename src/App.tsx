@@ -40,6 +40,7 @@ import DynamicPage from "./pages/DynamicPage";
 import Catalog from "./pages/Catalog";
 import LicenseGate from "./components/LicenseGate";
 import AdminLicenses from "./pages/admin/AdminLicenses";
+import AdminBots from "./pages/admin/AdminBots";
 
 const queryClient = new QueryClient();
 
