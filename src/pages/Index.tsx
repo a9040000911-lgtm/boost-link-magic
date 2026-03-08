@@ -114,11 +114,11 @@ const Index = () => {
   const showUnrecognizedBanner = unrecognizedUrls.length > 0;
 
   return (
-    <div className={`flex flex-col ${isActive ? 'h-screen overflow-hidden bg-gradient-to-b from-background via-muted/60 to-background' : 'min-h-screen bg-background'}`}>
+    <div className={`flex flex-col ${isActive ? 'h-screen overflow-hidden' : 'min-h-screen bg-background'}`}>
       {/* Hero — compact when flow/summary is active */}
       <div
-        className={`flex flex-col items-center justify-center px-4 relative overflow-hidden shrink-0 transition-all duration-500 ${
-          isActive ? 'pt-6 pb-6' : 'pt-24 pb-32 hero-gradient'
+        className={`flex flex-col items-center justify-center px-4 relative overflow-hidden shrink-0 transition-all duration-500 hero-gradient ${
+          isActive ? 'pt-6 pb-6' : 'pt-24 pb-32'
         }`}
       >
         {!isActive && (
