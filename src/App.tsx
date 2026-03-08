@@ -12,6 +12,7 @@ import DashboardOverview from "./pages/dashboard/DashboardOverview";
 import DashboardOrders from "./pages/dashboard/DashboardOrders";
 import DashboardProjects from "./pages/dashboard/DashboardProjects";
 import DashboardSettings from "./pages/dashboard/DashboardSettings";
+import DashboardProjectDetail from "./pages/dashboard/DashboardProjectDetail";
 import CookieConsent from "./components/CookieConsent";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route index element={<DashboardOverview />} />
             <Route path="orders" element={<DashboardOrders />} />
             <Route path="projects" element={<DashboardProjects />} />
+            <Route path="projects/:projectId" element={<DashboardProjectDetail />} />
             <Route path="settings" element={<DashboardSettings />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
