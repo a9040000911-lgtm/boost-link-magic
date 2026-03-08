@@ -786,7 +786,7 @@ const AdminSupport = () => {
           <>
             {/* Quick-switch tabs */}
             {openTabs.length > 1 && (
-              <div className="flex items-center border-b bg-muted/30 shrink-0 overflow-x-auto">
+              <div className="flex items-center border-b bg-muted/30 shrink-0 overflow-x-auto scrollbar-none">
                 {openTabs.map((tabUserId, idx) => {
                   const isActive = tabUserId === selectedUserId;
                   const name = profilesMap[tabUserId] || tabUserId.slice(0, 8);
