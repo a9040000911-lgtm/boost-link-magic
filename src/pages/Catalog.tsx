@@ -678,7 +678,7 @@ const Catalog = () => {
                                       ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
                                       : 'bg-muted text-foreground'
                                   }`}>
-                                    {pricePerUnit.toFixed(2)} ₽ / шт
+                                    {fmtPrice(pricePerUnit)} ₽ / шт
                                   </span>
                                 </div>
                               </motion.button>
