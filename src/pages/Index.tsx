@@ -57,7 +57,7 @@ const Index = () => {
   const isActive = showFlow || showSummary;
 
   return (
-    <div className={`flex flex-col ${isActive ? 'h-screen overflow-hidden' : 'min-h-screen overflow-y-auto'}`}>
+    <div className={`flex flex-col ${isActive ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
       {/* Hero — compact when flow/summary is active */}
       <div
         className={`hero-gradient flex flex-col items-center justify-center px-4 relative overflow-hidden shrink-0 transition-all duration-500 ${
@@ -130,7 +130,7 @@ const Index = () => {
       </div>
 
       {/* Content — fills remaining viewport */}
-      <div className="flex-1 min-h-0 bg-background px-4 relative z-10 overflow-hidden">
+      <div className="flex-1 min-h-0 hero-gradient px-4 relative z-10 overflow-hidden">
         <div className="h-full max-w-5xl mx-auto">
           <AnimatePresence mode="wait">
             {showFlow && (
