@@ -6,11 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const PROVIDERS: Record<string, { url: string; keyEnv: string; label: string }> = {
-  vexboost: { url: 'https://vexboost.ru/api/v2', keyEnv: 'VEXBOOST_API_KEY', label: 'VexBoost' },
-  smmpanelus: { url: 'https://smmpanelus.com/api/v2', keyEnv: 'SMMPANELUS_API_KEY', label: 'SMMPanelUS' },
-};
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -18,17 +13,11 @@ serve(async (req) => {
 
   try {
     const { action, provider: providerKey, ...params } = await req.json();
-    
-    const provider = PROVIDERS[providerKey];
-    if (!provider) {
-      return new Response(JSON.stringify({ error: `Unknown provider: ${providerKey}` }), {
+
+    if (!providerKey) {
+      return new Response(JSON.stringify({ error: 'Provider key is required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
-    }
-
-    const apiKey = Deno.env.get(provider.keyEnv);
-    if (!apiKey) {
-      throw new Error(`${provider.keyEnv} is not configured`);
     }
 
     // Auth check
@@ -53,6 +42,29 @@ serve(async (req) => {
       });
     }
 
+    // Fetch provider from DB
+    const adminClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    const { data: provider, error: provErr } = await adminClient
+      .from('providers')
+      .select('*')
+      .eq('key', providerKey)
+      .single();
+
+    if (provErr || !provider) {
+      return new Response(JSON.stringify({ error: `Unknown provider: ${providerKey}` }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const apiKey = Deno.env.get(provider.api_key_env);
+    if (!apiKey) {
+      throw new Error(`${provider.api_key_env} is not configured`);
+    }
+
     let body: Record<string, string> = { key: apiKey, action };
 
     if (action === 'add') {
@@ -61,7 +73,7 @@ serve(async (req) => {
       body = { ...body, order: params.order };
     }
 
-    const response = await fetch(provider.url, {
+    const response = await fetch(provider.api_url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

@@ -6,11 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const PROVIDERS: Record<string, { url: string; keyEnv: string }> = {
-  vexboost: { url: 'https://vexboost.ru/api/v2', keyEnv: 'VEXBOOST_API_KEY' },
-  smmpanelus: { url: 'https://smmpanelus.com/api/v2', keyEnv: 'SMMPANELUS_API_KEY' },
-};
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -61,24 +56,29 @@ serve(async (req) => {
       });
     }
 
-    // Determine which providers to sync
-    const providersToSync = providerKey && providerKey !== 'all' 
-      ? [providerKey] 
-      : Object.keys(PROVIDERS);
+    // Fetch providers from DB
+    let providersQuery = adminClient.from('providers').select('*').eq('is_enabled', true);
+    if (providerKey && providerKey !== 'all') {
+      providersQuery = adminClient.from('providers').select('*').eq('key', providerKey);
+    }
+
+    const { data: dbProviders } = await providersQuery;
+    if (!dbProviders || dbProviders.length === 0) {
+      return new Response(JSON.stringify({ error: 'No providers found' }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     const results: Record<string, { total: number; inserted: number; updated: number }> = {};
 
-    for (const pKey of providersToSync) {
-      const prov = PROVIDERS[pKey];
-      if (!prov) continue;
-
-      const apiKey = Deno.env.get(prov.keyEnv);
+    for (const prov of dbProviders) {
+      const apiKey = Deno.env.get(prov.api_key_env);
       if (!apiKey) {
-        results[pKey] = { total: 0, inserted: 0, updated: 0 };
+        results[prov.key] = { total: 0, inserted: 0, updated: 0 };
         continue;
       }
 
-      const response = await fetch(prov.url, {
+      const response = await fetch(prov.api_url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: apiKey, action: 'services' }),
@@ -86,7 +86,7 @@ serve(async (req) => {
 
       const services = await response.json();
       if (!Array.isArray(services)) {
-        results[pKey] = { total: 0, inserted: 0, updated: 0 };
+        results[prov.key] = { total: 0, inserted: 0, updated: 0 };
         continue;
       }
 
@@ -97,7 +97,7 @@ serve(async (req) => {
         const { data: existing } = await adminClient
           .from('provider_services')
           .select('id, our_price, is_enabled, markup_percent')
-          .eq('provider', pKey)
+          .eq('provider', prov.key)
           .eq('provider_service_id', svc.service)
           .single();
 
@@ -126,7 +126,7 @@ serve(async (req) => {
             .from('provider_services')
             .insert({
               ...serviceData,
-              provider: pKey,
+              provider: prov.key,
               provider_service_id: svc.service,
               is_enabled: false,
               markup_percent: 30,
@@ -135,7 +135,7 @@ serve(async (req) => {
         }
       }
 
-      results[pKey] = { total: services.length, inserted, updated };
+      results[prov.key] = { total: services.length, inserted, updated };
     }
 
     return new Response(JSON.stringify({ success: true, results }), {
