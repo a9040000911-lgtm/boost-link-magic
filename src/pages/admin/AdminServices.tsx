@@ -189,6 +189,9 @@ const AdminServices = () => {
     if (minQ !== editService.min_quantity) updates.min_quantity = minQ;
     if (maxQ !== editService.max_quantity) updates.max_quantity = maxQ;
     if (price !== editService.price) updates.price = price;
+    if (editForm.speed !== editService.speed) updates.speed = editForm.speed;
+    if (editForm.guarantee !== editService.guarantee) updates.guarantee = editForm.guarantee;
+    if ((editForm.warning_text || null) !== editService.warning_text) updates.warning_text = editForm.warning_text || null;
 
     if (Object.keys(updates).length === 0) { toast.info("Нет изменений"); return; }
     updates.updated_at = new Date().toISOString();
