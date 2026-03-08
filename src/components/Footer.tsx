@@ -23,7 +23,7 @@ const Footer = () => {
               href={s.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              className="w-9 h-9 rounded-full bg-background/10 flex items-center justify-center text-background/60 hover:text-background hover:bg-background/20 transition-colors"
               aria-label={s.name}
             >
               <s.icon className="w-4 h-4" />
