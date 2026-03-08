@@ -82,15 +82,15 @@
     box-shadow: 0 8px 32px -8px hsl(0 0% 0% / 0.08), 0 2px 8px -2px hsl(0 0% 0% / 0.04);
   }
   .card-gradient-pink {
-    background: linear-gradient(135deg, hsl(335 90% 60%), hsl(350 95% 65%), hsl(15 95% 65%));
+    background: linear-gradient(135deg, hsl(335 95% 55%), hsl(350 100% 58%), hsl(15 100% 58%));
   }
   .card-gradient-violet {
-    background: linear-gradient(135deg, hsl(260 75% 58%), hsl(280 80% 62%), hsl(300 70% 65%));
+    background: linear-gradient(135deg, hsl(260 85% 52%), hsl(280 90% 55%), hsl(300 80% 58%));
   }
   .card-gradient-blue {
-    background: linear-gradient(135deg, hsl(200 90% 52%), hsl(215 85% 58%), hsl(240 75% 62%));
+    background: linear-gradient(135deg, hsl(200 95% 45%), hsl(215 90% 50%), hsl(240 85% 55%));
   }
   .card-gradient-amber {
-    background: linear-gradient(135deg, hsl(35 95% 55%), hsl(20 90% 58%), hsl(350 80% 60%));
+    background: linear-gradient(135deg, hsl(35 100% 50%), hsl(20 95% 52%), hsl(350 85% 55%));
   }
 }
