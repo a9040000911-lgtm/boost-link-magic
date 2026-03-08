@@ -14,6 +14,7 @@ import { MessageSquare, Send, Search, User, Clock, ChevronLeft, Paperclip, Mail,
 import { ImageViewer } from "@/components/support/ImageViewer";
 import { AudioPlayer } from "@/components/support/AudioPlayer";
 import { VideoPlayer } from "@/components/support/VideoPlayer";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { toast } from "@/hooks/use-toast";
 
 interface ResponseTemplate {
