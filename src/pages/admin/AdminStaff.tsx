@@ -22,6 +22,7 @@ interface StaffMember {
   balance: number;
   created_at: string;
   permissions: string[];
+  telegram_chat_id: string | null;
 }
 
 const AdminStaff = () => {
