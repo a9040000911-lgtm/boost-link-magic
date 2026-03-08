@@ -67,6 +67,8 @@ export type Database = {
       }
       bug_reports: {
         Row: {
+          attachment_name: string | null
+          attachment_url: string | null
           created_at: string
           description: string
           id: string
@@ -77,6 +79,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attachment_name?: string | null
+          attachment_url?: string | null
           created_at?: string
           description: string
           id?: string
@@ -87,6 +91,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attachment_name?: string | null
+          attachment_url?: string | null
           created_at?: string
           description?: string
           id?: string
@@ -602,6 +608,8 @@ export type Database = {
       }
       reviews: {
         Row: {
+          attachment_name: string | null
+          attachment_url: string | null
           created_at: string
           id: string
           is_approved: boolean
@@ -611,6 +619,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attachment_name?: string | null
+          attachment_url?: string | null
           created_at?: string
           id?: string
           is_approved?: boolean
@@ -620,6 +630,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attachment_name?: string | null
+          attachment_url?: string | null
           created_at?: string
           id?: string
           is_approved?: boolean
