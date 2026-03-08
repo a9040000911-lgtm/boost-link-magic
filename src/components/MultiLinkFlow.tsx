@@ -125,23 +125,35 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
           </div>
         </div>
 
-        <motion.div
-          key={currentIndex}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-3 flex items-center gap-3 rounded-xl bg-card border-2 border-primary/30 shadow-md shadow-primary/10"
-        >
-          <span className="px-2.5 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
-            {platformNames[current.platform]}
-          </span>
-          <span className="text-sm text-foreground font-medium truncate flex-1 flex items-center gap-1.5">
-            <ExternalLink className="w-3.5 h-3.5 shrink-0 text-primary" />
-            {current.url}
-          </span>
-          <span className="text-xs text-muted-foreground shrink-0">
-            {currentIndex + 1} из {orders.length}
-          </span>
-        </motion.div>
+        {(() => {
+          const platformColors: Record<string, { border: string; bg: string; text: string; shadow: string }> = {
+            instagram: { border: 'border-pink-400/50', bg: 'bg-gradient-to-r from-pink-500 via-rose-500 to-orange-400', text: 'text-pink-600', shadow: 'shadow-pink-500/20' },
+            youtube: { border: 'border-red-400/50', bg: 'bg-red-500', text: 'text-red-600', shadow: 'shadow-red-500/20' },
+            tiktok: { border: 'border-slate-600/50', bg: 'bg-gradient-to-r from-slate-800 to-slate-700', text: 'text-slate-700', shadow: 'shadow-slate-500/20' },
+            telegram: { border: 'border-sky-400/50', bg: 'bg-sky-500', text: 'text-sky-600', shadow: 'shadow-sky-500/20' },
+            vk: { border: 'border-blue-400/50', bg: 'bg-blue-600', text: 'text-blue-600', shadow: 'shadow-blue-500/20' },
+          };
+          const colors = platformColors[current.platform] || platformColors.telegram;
+          return (
+            <motion.div
+              key={currentIndex}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`p-3 flex items-center gap-3 rounded-xl bg-card border-2 ${colors.border} shadow-md ${colors.shadow}`}
+            >
+              <span className={`px-2.5 py-0.5 rounded-full ${colors.bg} text-white text-xs font-semibold`}>
+                {platformNames[current.platform]}
+              </span>
+              <span className={`text-sm text-foreground font-medium truncate flex-1 flex items-center gap-1.5`}>
+                <ExternalLink className={`w-3.5 h-3.5 shrink-0 ${colors.text}`} />
+                {current.url}
+              </span>
+              <span className="text-xs text-muted-foreground shrink-0">
+                {currentIndex + 1} из {orders.length}
+              </span>
+            </motion.div>
+          );
+        })()}
       </div>
 
       {/* Steps — fills remaining space */}
