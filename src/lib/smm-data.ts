@@ -3,9 +3,10 @@ export type Platform = 'instagram' | 'youtube' | 'tiktok' | 'telegram' | 'vk';
 export interface Category {
   id: string;
   name: string;
-  icon: string;
+  icon: string; // lucide icon name
   description: string;
   serviceCount: number;
+  highlight: string;
 }
 
 export interface Service {
@@ -46,33 +47,33 @@ export const platformColors: Record<Platform, string> = {
 
 export const categoriesByPlatform: Record<Platform, Category[]> = {
   instagram: [
-    { id: 'ig-likes', name: 'Лайки', icon: '❤️', description: 'Увеличьте вовлечённость постов', serviceCount: 8 },
-    { id: 'ig-followers', name: 'Подписчики', icon: '👥', description: 'Органический рост аудитории', serviceCount: 12 },
-    { id: 'ig-views', name: 'Просмотры', icon: '👁', description: 'Просмотры Reels и Stories', serviceCount: 6 },
-    { id: 'ig-comments', name: 'Комментарии', icon: '💬', description: 'Живые комментарии к постам', serviceCount: 4 },
+    { id: 'ig-likes', name: 'Лайки', icon: 'heart', description: 'Увеличьте вовлечённость ваших публикаций с помощью живых лайков от реальных пользователей', serviceCount: 8, highlight: 'Топ продаж' },
+    { id: 'ig-followers', name: 'Подписчики', icon: 'users', description: 'Органический рост аудитории вашего аккаунта. Качественные профили с аватарками', serviceCount: 12, highlight: 'Популярное' },
+    { id: 'ig-views', name: 'Просмотры', icon: 'eye', description: 'Просмотры на Reels, Stories и IGTV. Быстрый старт и высокое удержание', serviceCount: 6, highlight: 'Быстрый старт' },
+    { id: 'ig-comments', name: 'Комментарии', icon: 'message-circle', description: 'Живые тематические комментарии от реальных аккаунтов с аватарками', serviceCount: 4, highlight: 'Premium' },
   ],
   youtube: [
-    { id: 'yt-views', name: 'Просмотры', icon: '▶️', description: 'Просмотры видео с удержанием', serviceCount: 10 },
-    { id: 'yt-subs', name: 'Подписчики', icon: '🔔', description: 'Рост базы подписчиков', serviceCount: 6 },
-    { id: 'yt-likes', name: 'Лайки', icon: '👍', description: 'Лайки на видео', serviceCount: 5 },
-    { id: 'yt-comments', name: 'Комментарии', icon: '💬', description: 'Комментарии под видео', serviceCount: 3 },
+    { id: 'yt-views', name: 'Просмотры', icon: 'play', description: 'Просмотры видео с высоким удержанием. Безопасно для монетизации', serviceCount: 10, highlight: 'Топ продаж' },
+    { id: 'yt-subs', name: 'Подписчики', icon: 'bell', description: 'Рост базы подписчиков канала. Качественные аккаунты', serviceCount: 6, highlight: 'Популярное' },
+    { id: 'yt-likes', name: 'Лайки', icon: 'thumbs-up', description: 'Лайки на видео для продвижения в рекомендациях', serviceCount: 5, highlight: 'Быстрый старт' },
+    { id: 'yt-comments', name: 'Комментарии', icon: 'message-circle', description: 'Тематические комментарии под видео', serviceCount: 3, highlight: 'Premium' },
   ],
   tiktok: [
-    { id: 'tt-views', name: 'Просмотры', icon: '👁', description: 'Просмотры видео', serviceCount: 7 },
-    { id: 'tt-likes', name: 'Лайки', icon: '❤️', description: 'Сердечки на видео', serviceCount: 5 },
-    { id: 'tt-followers', name: 'Подписчики', icon: '👥', description: 'Рост аудитории', serviceCount: 8 },
-    { id: 'tt-shares', name: 'Репосты', icon: '🔄', description: 'Поделиться видео', serviceCount: 3 },
+    { id: 'tt-views', name: 'Просмотры', icon: 'eye', description: 'Просмотры видео для попадания в рекомендации', serviceCount: 7, highlight: 'Топ продаж' },
+    { id: 'tt-likes', name: 'Лайки', icon: 'heart', description: 'Сердечки на видео от активных пользователей', serviceCount: 5, highlight: 'Популярное' },
+    { id: 'tt-followers', name: 'Подписчики', icon: 'users', description: 'Рост аудитории TikTok аккаунта', serviceCount: 8, highlight: 'Быстрый старт' },
+    { id: 'tt-shares', name: 'Репосты', icon: 'share-2', description: 'Поделиться видео для вирусного охвата', serviceCount: 3, highlight: 'Premium' },
   ],
   telegram: [
-    { id: 'tg-members', name: 'Участники', icon: '👥', description: 'Подписчики канала/группы', serviceCount: 9 },
-    { id: 'tg-views', name: 'Просмотры', icon: '👁', description: 'Просмотры постов', serviceCount: 5 },
-    { id: 'tg-reactions', name: 'Реакции', icon: '🔥', description: 'Реакции к постам', serviceCount: 4 },
+    { id: 'tg-members', name: 'Участники', icon: 'users', description: 'Подписчики канала или группы. Реальные профили', serviceCount: 9, highlight: 'Топ продаж' },
+    { id: 'tg-views', name: 'Просмотры', icon: 'eye', description: 'Просмотры постов в канале', serviceCount: 5, highlight: 'Популярное' },
+    { id: 'tg-reactions', name: 'Реакции', icon: 'flame', description: 'Реакции к постам: 🔥 ❤️ 👍 и другие', serviceCount: 4, highlight: 'Premium' },
   ],
   vk: [
-    { id: 'vk-likes', name: 'Лайки', icon: '❤️', description: 'Лайки на записи', serviceCount: 6 },
-    { id: 'vk-friends', name: 'Друзья', icon: '👥', description: 'Добавление друзей', serviceCount: 4 },
-    { id: 'vk-subs', name: 'Подписчики', icon: '📢', description: 'Подписчики сообщества', serviceCount: 7 },
-    { id: 'vk-reposts', name: 'Репосты', icon: '🔄', description: 'Репосты записей', serviceCount: 3 },
+    { id: 'vk-likes', name: 'Лайки', icon: 'heart', description: 'Лайки на записи и фото', serviceCount: 6, highlight: 'Топ продаж' },
+    { id: 'vk-friends', name: 'Друзья', icon: 'user-plus', description: 'Добавление друзей в профиль', serviceCount: 4, highlight: 'Популярное' },
+    { id: 'vk-subs', name: 'Подписчики', icon: 'megaphone', description: 'Подписчики сообщества ВКонтакте', serviceCount: 7, highlight: 'Быстрый старт' },
+    { id: 'vk-reposts', name: 'Репосты', icon: 'share-2', description: 'Репосты записей на стены пользователей', serviceCount: 3, highlight: 'Premium' },
   ],
 };
 
@@ -97,7 +98,6 @@ export const servicesByCategory: Record<string, Service[]> = {
   ],
 };
 
-// Default services for categories without specific data
 export function getServicesForCategory(categoryId: string): Service[] {
   return servicesByCategory[categoryId] || [
     { id: 'def1', name: 'Стандарт', description: 'Базовый пакет услуг', price: '1₽', minOrder: 100, maxOrder: 50000, speed: '1000/час' },
