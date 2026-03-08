@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CategoryCards from '@/components/CategoryCards';
+import PlatformIcon from '@/components/PlatformIcon';
 import ServiceCarousel from '@/components/ServiceCarousel';
 import {
   detectPlatform,
