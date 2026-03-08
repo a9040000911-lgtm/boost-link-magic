@@ -72,14 +72,14 @@ async function callAI({ provider, model, systemPrompt, userPrompt, endpoint, api
     case "gemini": {
       url = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
       actualModel = model || "gemini-2.5-flash";
-      // Rotate keys from DB
+      // Rotate keys + models from DB
       if (sb) {
         const rotated = await getRotatedKey(sb);
         if (rotated) {
           apiKey = rotated.api_key;
           rotatedKeyId = rotated.id;
+          if (rotated.model) actualModel = rotated.model;
         } else {
-          // Fallback to env
           apiKey = Deno.env.get(apiKeyEnv || "GEMINI_API_KEY") || "";
         }
       } else {
