@@ -94,3 +94,8 @@
     background: linear-gradient(135deg, hsl(35 100% 50%), hsl(20 95% 52%), hsl(350 85% 55%));
   }
 }
+
+@keyframes shimmer {
+  0%, 100% { filter: hue-rotate(0deg) brightness(1); }
+  50% { filter: hue-rotate(30deg) brightness(1.15); }
+}
