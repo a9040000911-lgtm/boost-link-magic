@@ -444,6 +444,7 @@ const AdminServices = () => {
     await loadAll();
   };
 
+  const getMappingsForService = (serviceId: string) =>
     mappings.filter((m) => m.service_id === serviceId).sort((a, b) => a.priority - b.priority);
 
   const getProviderService = (psId: string) => providerServices.find((ps) => ps.id === psId);
