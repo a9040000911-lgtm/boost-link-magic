@@ -157,7 +157,7 @@ const MarketingSection = () => {
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="px-8 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-primary-foreground font-semibold text-sm shadow-lg shadow-primary/40 hover:shadow-xl hover:shadow-primary/50 transition-all"
             >
-              Попробовать бесплатно ↑
+              Начать продвижение ↑
             </motion.button>
           </motion.div>
         </motion.div>
