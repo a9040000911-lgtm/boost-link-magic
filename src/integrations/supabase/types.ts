@@ -650,6 +650,7 @@ export type Database = {
           discount: number
           display_name: string | null
           id: string
+          telegram_chat_id: string | null
           updated_at: string
         }
         Insert: {
@@ -660,6 +661,7 @@ export type Database = {
           discount?: number
           display_name?: string | null
           id: string
+          telegram_chat_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -670,6 +672,7 @@ export type Database = {
           discount?: number
           display_name?: string | null
           id?: string
+          telegram_chat_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1037,6 +1040,36 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_2fa_codes: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          ip_address: string | null
+          used: boolean
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          used?: boolean
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          used?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       staff_permissions: {
         Row: {
           created_at: string
@@ -1389,6 +1422,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_expired_2fa_codes: { Args: never; Returns: undefined }
       cleanup_idempotency_keys: { Args: never; Returns: undefined }
       credit_balance: {
         Args: { p_amount: number; p_user_id: string }
