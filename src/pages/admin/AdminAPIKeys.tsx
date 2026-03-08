@@ -5,17 +5,28 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, RefreshCw, Eye, EyeOff, Key } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 
+const GEMINI_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.5-pro",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro",
+];
+
 interface AIKey {
   id: string;
   provider: string;
   label: string;
   api_key: string;
+  model: string;
   is_enabled: boolean;
   usage_count: number;
   error_count: number;
@@ -29,6 +40,7 @@ export default function AdminAPIKeys() {
   const [loading, setLoading] = useState(true);
   const [newLabel, setNewLabel] = useState("");
   const [newKey, setNewKey] = useState("");
+  const [newModel, setNewModel] = useState("gemini-2.5-flash");
   const [adding, setAdding] = useState(false);
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
 
@@ -52,6 +64,7 @@ export default function AdminAPIKeys() {
       provider: "gemini",
       label: newLabel.trim() || `Ключ #${keys.length + 1}`,
       api_key: newKey.trim(),
+      model: newModel,
     } as any);
     if (error) { toast.error(error.message); }
     else { toast.success("Ключ добавлен"); setNewLabel(""); setNewKey(""); }
@@ -61,6 +74,11 @@ export default function AdminAPIKeys() {
 
   async function toggleKey(id: string, current: boolean) {
     await supabase.from("ai_api_keys" as any).update({ is_enabled: !current } as any).eq("id", id);
+    loadKeys();
+  }
+
+  async function updateModel(id: string, model: string) {
+    await supabase.from("ai_api_keys" as any).update({ model } as any).eq("id", id);
     loadKeys();
   }
 
@@ -92,6 +110,7 @@ export default function AdminAPIKeys() {
 
   const totalUsage = keys.reduce((s, k) => s + k.usage_count, 0);
   const activeCount = keys.filter(k => k.is_enabled).length;
+  const uniqueModels = [...new Set(keys.map(k => k.model))];
 
   return (
     <div className="space-y-4">
@@ -102,7 +121,7 @@ export default function AdminAPIKeys() {
             Gemini API ключи — ротация
           </CardTitle>
           <CardDescription className="text-xs">
-            {activeCount} активных из {keys.length} · {totalUsage} запросов всего · стратегия: наименее используемый
+            {activeCount} активных из {keys.length} · {uniqueModels.length} моделей · {totalUsage} запросов · стратегия: наименее используемый
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -110,9 +129,22 @@ export default function AdminAPIKeys() {
           <div className="flex gap-2 items-end flex-wrap">
             <div className="space-y-1">
               <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Метка</label>
-              <Input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="Проект #1" className="w-36 h-8 text-xs" />
+              <Input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="Проект #1" className="w-32 h-8 text-xs" />
             </div>
-            <div className="space-y-1 flex-1 min-w-[200px]">
+            <div className="space-y-1">
+              <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Модель</label>
+              <Select value={newModel} onValueChange={setNewModel}>
+                <SelectTrigger className="w-44 h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {GEMINI_MODELS.map(m => (
+                    <SelectItem key={m} value={m} className="text-xs">{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1 flex-1 min-w-[180px]">
               <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">API ключ</label>
               <Input value={newKey} onChange={e => setNewKey(e.target.value)} placeholder="AIza..." className="font-mono h-8 text-xs" type="password" />
             </div>
@@ -126,12 +158,13 @@ export default function AdminAPIKeys() {
           {loading ? (
             <div className="flex justify-center py-6"><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" /></div>
           ) : keys.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-4">Нет ключей. Добавьте хотя бы один Gemini API ключ.</p>
+            <p className="text-xs text-muted-foreground text-center py-4">Нет ключей. Добавьте хотя бы один Gemini API ключ с моделью.</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-xs">Метка</TableHead>
+                  <TableHead className="text-xs">Модель</TableHead>
                   <TableHead className="text-xs">Ключ</TableHead>
                   <TableHead className="text-xs text-center">Запросы</TableHead>
                   <TableHead className="text-xs text-center">Ошибки</TableHead>
@@ -144,6 +177,18 @@ export default function AdminAPIKeys() {
                 {keys.map(k => (
                   <TableRow key={k.id}>
                     <TableCell className="text-xs font-medium">{k.label}</TableCell>
+                    <TableCell>
+                      <Select value={k.model} onValueChange={(v) => updateModel(k.id, v)}>
+                        <SelectTrigger className="h-7 w-40 text-[11px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {GEMINI_MODELS.map(m => (
+                            <SelectItem key={m} value={m} className="text-xs">{m}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <code className="text-[11px] text-muted-foreground">
