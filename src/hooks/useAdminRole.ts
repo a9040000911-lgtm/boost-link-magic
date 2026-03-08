@@ -24,12 +24,14 @@ export function useAdminRole() {
     let isMounted = true;
     setLoading(true);
 
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .in("role", ["admin", "ceo", "moderator", "investor"])
-      .then(({ data, error }) => {
+    const loadRole = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .in("role", ["admin", "ceo", "moderator", "investor"]);
+
         if (!isMounted) return;
 
         if (error) {
@@ -52,12 +54,14 @@ export function useAdminRole() {
         }
 
         setLoading(false);
-      })
-      .catch(() => {
+      } catch {
         if (!isMounted) return;
         setRole(null);
         setLoading(false);
-      });
+      }
+    };
+
+    loadRole();
 
     return () => {
       isMounted = false;
