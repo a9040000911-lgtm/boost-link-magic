@@ -495,11 +495,20 @@ const Catalog = () => {
 
                     <button
                       onClick={handleOrder}
-                      disabled={!link.trim() || !consentOffer || !consentPD}
+                      disabled={!link.trim() || !consentOffer || !consentPD || ordering}
                       className={`w-full sm:w-auto px-8 py-3 rounded-xl ${activeNetConfig?.bg || 'bg-gradient-to-r from-primary to-secondary'} text-white font-bold text-base shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/20'} hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3`}
                     >
-                      <span className="text-lg font-bold">{totalPrice.toFixed(2)} ₽</span>
-                      <span className="border-l border-primary-foreground/30 pl-3">Оформить заказ</span>
+                      {ordering ? (
+                        <span className="flex items-center gap-2">
+                          <span className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
+                          Оформляем...
+                        </span>
+                      ) : (
+                        <>
+                          <span className="text-lg font-bold">{totalPrice.toFixed(2)} ₽</span>
+                          <span className="border-l border-primary-foreground/30 pl-3">Оформить заказ</span>
+                        </>
+                      )}
                     </button>
                   </div>
 
