@@ -365,7 +365,6 @@ const Catalog = () => {
                     ref={carouselRef}
                     className="flex gap-3 overflow-x-auto pb-3 pt-1 px-1 scrollbar-none snap-x snap-mandatory"
                   >
-                  >
                     {categoryServices.map((service) => {
                       const isSelected = selectedService?.id === service.id;
                       const pricePerUnit = service.price / 1000;
