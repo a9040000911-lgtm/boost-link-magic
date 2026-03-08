@@ -262,6 +262,18 @@ const AdminServices = () => {
     if (editForm.guarantee !== editService.guarantee) updates.guarantee = editForm.guarantee;
     if ((editForm.warning_text || null) !== editService.warning_text) updates.warning_text = editForm.warning_text || null;
 
+    // Enforce minimum markup on price changes
+    if (updates.price !== undefined) {
+      const cheapest = getCheapestRate(editService.id);
+      if (cheapest && cheapest > 0) {
+        const minAllowedPrice = cheapest * (1 + minMarkup / 100);
+        if (updates.price < minAllowedPrice) {
+          toast.error(`Минимальная цена для этой услуги: ${minAllowedPrice.toFixed(2)} (наценка ${minMarkup}% от ${cheapest.toFixed(2)})`);
+          return;
+        }
+      }
+    }
+
     if (Object.keys(updates).length === 0) { toast.info("Нет изменений"); return; }
     updates.updated_at = new Date().toISOString();
 
@@ -270,7 +282,6 @@ const AdminServices = () => {
     await logAuditAction("update_service", "service", editService.id, updates);
     toast.success("Сохранено");
     await loadAll();
-    // Update editService reference
     setEditService(prev => prev ? { ...prev, ...updates } : null);
   };
 
