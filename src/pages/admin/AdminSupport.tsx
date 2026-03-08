@@ -106,14 +106,27 @@ function getAttachmentCategory(type: string | null | undefined): "image" | "audi
   return "file";
 }
 
-function MessageAttachment({ msg, onImageClick }: { msg: Message; onImageClick: (url: string) => void }) {
+function MessageAttachment({ msg, onImageClick, onTranscribe }: { msg: Message; onImageClick: (url: string) => void; onTranscribe?: (url: string, msgId: string) => void }) {
   if (!msg.attachment_url) return null;
   const category = getAttachmentCategory(msg.attachment_type);
   switch (category) {
     case "image":
       return <div className="mt-1"><img src={msg.attachment_url} alt={msg.attachment_name || "Image"} className="max-w-[220px] max-h-[160px] rounded cursor-pointer hover:opacity-80 transition-opacity object-cover" onClick={() => onImageClick(msg.attachment_url!)} /></div>;
     case "audio":
-      return <div className="mt-1"><AudioPlayer src={msg.attachment_url} name={msg.attachment_name || "Голосовое сообщение"} /></div>;
+      return (
+        <div className="mt-1 space-y-1">
+          <AudioPlayer src={msg.attachment_url} name={msg.attachment_name || "Голосовое сообщение"} />
+          {onTranscribe && (
+            <button
+              onClick={() => onTranscribe(msg.attachment_url!, msg.id)}
+              className="flex items-center gap-1 text-[10px] text-primary hover:underline"
+            >
+              <Mic className="h-2.5 w-2.5" />
+              Расшифровать
+            </button>
+          )}
+        </div>
+      );
     case "video":
       return <div className="mt-1"><VideoPlayer src={msg.attachment_url} name={msg.attachment_name || "Видео"} /></div>;
     default:
