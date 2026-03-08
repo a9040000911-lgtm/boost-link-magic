@@ -1,53 +1,18 @@
 import { motion } from 'framer-motion';
-import { Shield, Zap, Clock, Brain, Sparkles, MousePointerClick } from 'lucide-react';
+import { Shield, Zap, Clock, Brain, Sparkles, MousePointerClick, type LucideIcon } from 'lucide-react';
+import { useSiteContent } from '@/hooks/useSiteContent';
 
-const stats = [
-  { value: '5K+', label: 'Заказов выполнено' },
-  { value: '1K+', label: 'Активных клиентов' },
-  { value: '99.5%', label: 'Успешных заказов' },
-  { value: '24/7', label: 'Поддержка' },
-];
-
-const features = [
-  {
-    icon: Brain,
-    title: 'Умный подбор услуг',
-    description: 'Вставьте ссылку — система сама определит платформу и подберёт подходящие услуги',
-    gradient: 'card-gradient-amber',
-  },
-  {
-    icon: Shield,
-    title: 'Минимум ошибок',
-    description: 'Автоматическая валидация ссылок и параметров заказа до оформления — меньше отмен и проблем',
-    gradient: 'card-gradient-blue',
-  },
-  {
-    icon: Clock,
-    title: 'Гарантия и возврат',
-    description: '30 дней гарантии на все услуги. Возврат средств, если результат не соответствует',
-    gradient: 'card-gradient-violet',
-  },
-  {
-    icon: MousePointerClick,
-    title: 'Удобный интерфейс',
-    description: 'Продуманный сервис: от вставки ссылки до результата за пару кликов, без лишних шагов',
-    gradient: 'card-gradient-pink',
-  },
-  {
-    icon: Sparkles,
-    title: 'Новый подход',
-    description: 'Современная платформа, созданная с нуля — быстрая, понятная и без устаревших решений',
-    gradient: 'card-gradient-blue',
-  },
-  {
-    icon: Zap,
-    title: 'Быстрый старт',
-    description: 'Заказы начинают выполняться в течение нескольких минут после оплаты',
-    gradient: 'card-gradient-amber',
-  },
-];
+const ICON_MAP: Record<string, LucideIcon> = {
+  Brain, Shield, Clock, MousePointerClick, Sparkles, Zap,
+};
 
 const MarketingSection = () => {
+  const { content, loading } = useSiteContent();
+
+  if (loading || !content) return null;
+
+  const { stats, features, featuresTitle, featuresSubtitle, ctaTitle, ctaText, ctaButton } = content;
+
   return (
     <section className="py-20 px-4 bg-background">
       <div className="max-w-5xl mx-auto">
@@ -89,17 +54,17 @@ const MarketingSection = () => {
           className="text-center mb-12"
         >
           <h2 className="text-2xl md:text-4xl font-bold text-foreground mb-3">
-            Почему выбирают <span className="gradient-text">нас</span>
+            {featuresTitle}
           </h2>
           <p className="text-muted-foreground max-w-lg mx-auto">
-            Современный сервис продвижения, продуманный до мелочей. Умный подбор услуг, удобный интерфейс и минимум ошибок
+            {featuresSubtitle}
           </p>
         </motion.div>
 
         {/* Features grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {features.map((feature, i) => {
-            const Icon = feature.icon;
+            const Icon = ICON_MAP[feature.icon] || Sparkles;
             return (
               <motion.div
                 key={feature.title}
@@ -111,7 +76,6 @@ const MarketingSection = () => {
                 className={`${feature.gradient} rounded-2xl p-6 relative overflow-hidden cursor-default`}
                 style={{ boxShadow: '0 8px 30px -8px rgba(0,0,0,0.2)' }}
               >
-                {/* Shimmer */}
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12"
                   animate={{ x: ['-200%', '300%'] }}
@@ -146,10 +110,10 @@ const MarketingSection = () => {
             transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
           >
             <h3 className="text-xl md:text-2xl font-bold text-foreground mb-3">
-              Начните продвижение прямо сейчас
+              {ctaTitle}
             </h3>
             <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">
-              Вставьте ссылку на ваш профиль или пост выше — мы автоматически определим платформу и предложим лучшие услуги
+              {ctaText}
             </p>
             <motion.button
               whileHover={{ scale: 1.06 }}
@@ -157,7 +121,7 @@ const MarketingSection = () => {
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="px-8 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-primary-foreground font-semibold text-sm shadow-lg shadow-primary/40 hover:shadow-xl hover:shadow-primary/50 transition-all"
             >
-              Начать продвижение ↑
+              {ctaButton}
             </motion.button>
           </motion.div>
         </motion.div>

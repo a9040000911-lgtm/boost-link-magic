@@ -1,44 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, Quote } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
-const testimonials = [
-  {
-    name: 'Алексей К.',
-    role: 'Блогер, Instagram',
-    text: 'За неделю набрал 5000 подписчиков. Качество отличное — живые профили, без ботов. Рекомендую!',
-    rating: 5,
-    avatar: 'А',
-  },
-  {
-    name: 'Мария С.',
-    role: 'SMM-менеджер',
-    text: 'Использую для клиентов уже 3 месяца. Быстрая доставка, адекватные цены и поддержка на высоте.',
-    rating: 5,
-    avatar: 'М',
-  },
-  {
-    name: 'Дмитрий В.',
-    role: 'Владелец Telegram-канала',
-    text: 'Канал вырос с 200 до 10 000 подписчиков за месяц. Охваты выросли в 5 раз. Супер сервис!',
-    rating: 5,
-    avatar: 'Д',
-  },
-  {
-    name: 'Екатерина Л.',
-    role: 'TikTok-креатор',
-    text: 'Просмотры на видео стабильно растут. Заказываю регулярно — всё приходит вовремя и без сбоев.',
-    rating: 4,
-    avatar: 'Е',
-  },
-  {
-    name: 'Игорь П.',
-    role: 'Предприниматель',
-    text: 'Продвигал группу ВК для бизнеса. Результат превзошёл ожидания — заявки пошли уже через 3 дня.',
-    rating: 5,
-    avatar: 'И',
-  },
-];
+interface Review {
+  id: string;
+  name: string;
+  rating: number;
+  message: string;
+}
 
 const avatarGradients = [
   'from-pink-500 to-rose-400',
@@ -49,16 +19,34 @@ const avatarGradients = [
 ];
 
 const TestimonialsSection = () => {
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [current, setCurrent] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % testimonials.length);
-    }, 5000);
-    return () => clearInterval(timer);
+    supabase
+      .from('reviews')
+      .select('id, name, rating, message')
+      .eq('is_approved', true)
+      .order('created_at', { ascending: false })
+      .limit(10)
+      .then(({ data }) => {
+        setReviews(data || []);
+        setLoading(false);
+      });
   }, []);
 
-  const t = testimonials[current];
+  useEffect(() => {
+    if (reviews.length <= 1) return;
+    const timer = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % reviews.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [reviews.length]);
+
+  if (loading || reviews.length === 0) return null;
+
+  const t = reviews[current];
 
   return (
     <motion.section
@@ -91,18 +79,17 @@ const TestimonialsSection = () => {
               <Quote className="w-8 h-8 text-primary/20 absolute top-4 left-4" />
 
               <p className="text-foreground text-lg leading-relaxed mb-6 relative z-10">
-                "{t.text}"
+                "{t.message}"
               </p>
 
               <div className="flex items-center justify-center gap-3">
                 <div
                   className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatarGradients[current % avatarGradients.length]} flex items-center justify-center text-white font-bold text-sm`}
                 >
-                  {t.avatar}
+                  {(t.name || 'A')[0].toUpperCase()}
                 </div>
                 <div className="text-left">
-                  <p className="text-sm font-semibold text-foreground">{t.name}</p>
-                  <p className="text-xs text-muted-foreground">{t.role}</p>
+                  <p className="text-sm font-semibold text-foreground">{t.name || 'Пользователь'}</p>
                 </div>
                 <div className="flex gap-0.5 ml-3">
                   {Array.from({ length: t.rating }).map((_, i) => (
@@ -114,20 +101,21 @@ const TestimonialsSection = () => {
           </AnimatePresence>
         </div>
 
-        {/* Dots */}
-        <div className="flex justify-center gap-2 mt-6">
-          {testimonials.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrent(i)}
-              className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-                i === current
-                  ? 'w-6 bg-gradient-to-r from-primary to-secondary'
-                  : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
-              }`}
-            />
-          ))}
-        </div>
+        {reviews.length > 1 && (
+          <div className="flex justify-center gap-2 mt-6">
+            {reviews.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrent(i)}
+                className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                  i === current
+                    ? 'w-6 bg-gradient-to-r from-primary to-secondary'
+                    : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                }`}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </motion.section>
   );
