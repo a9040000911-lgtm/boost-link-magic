@@ -146,7 +146,8 @@ const AdminAnalytics = () => {
         monthly[key].orders++;
         if (o.status !== "canceled" && o.status !== "refunded") {
           monthly[key].revenue += Number(o.price);
-          monthly[key].cost += Number(o.price) * 0.7;
+          const cost = o.cost_price != null ? Number(o.cost_price) : Number(o.price) * 0.7;
+          monthly[key].cost += cost;
         }
       }
     });
