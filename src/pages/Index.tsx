@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import HeroInput from '@/components/HeroInput';
 import MultiLinkFlow from '@/components/MultiLinkFlow';
 import type { LinkOrder } from '@/components/MultiLinkFlow';
@@ -7,7 +8,8 @@ import MarketingSection from '@/components/MarketingSection';
 import TestimonialsSection from '@/components/TestimonialsSection';
 import Footer from '@/components/Footer';
 import { detectPlatform } from '@/lib/smm-data';
-import { Sparkles, Check, ExternalLink, Mail, PartyPopper, Zap } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Sparkles, Check, ExternalLink, Mail, PartyPopper, Zap, AlertTriangle, BookOpen, ArrowRight } from 'lucide-react';
 
 const Index = () => {
   const [urls, setUrls] = useState<string[]>([]);
