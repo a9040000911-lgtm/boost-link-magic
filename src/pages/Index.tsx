@@ -56,8 +56,8 @@ const Index = () => {
     setCompletedOrders(null);
 
     setTimeout(() => {
-      const valid = inputUrls.filter((u) => detectPlatformWithDb(u, dbPatterns) !== null);
-      const invalid = inputUrls.filter((u) => detectPlatformWithDb(u, dbPatterns) === null);
+      const valid = inputUrls.filter((u) => detectPlatformWithDb(u, dbPatterns, dbPlatforms) !== null);
+      const invalid = inputUrls.filter((u) => detectPlatformWithDb(u, dbPatterns, dbPlatforms) === null);
 
       if (valid.length === 0 && invalid.length > 0) {
         // All unrecognized
