@@ -1,4 +1,5 @@
 import { useState, useEffect, ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Shield, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,9 @@ const LICENSE_STORAGE_KEY = "app_license_key";
 const LICENSE_CACHE_KEY = "app_license_cache";
 const CACHE_TTL = 1000 * 60 * 60; // 1 hour
 
+// Routes that bypass license check
+const BYPASS_PREFIXES = ["/admin", "/auth", "/reset-password"];
+
 interface LicenseCache {
   valid: boolean;
   plan: string;
@@ -20,14 +24,20 @@ interface LicenseCache {
 }
 
 export default function LicenseGate({ children }: LicenseGateProps) {
+  const location = useLocation();
   const [status, setStatus] = useState<"loading" | "valid" | "invalid" | "input">("loading");
   const [error, setError] = useState("");
   const [keyInput, setKeyInput] = useState("");
   const [checking, setChecking] = useState(false);
 
+  const isBypassed = BYPASS_PREFIXES.some((p) => location.pathname.startsWith(p));
+
   useEffect(() => {
+    if (isBypassed) return;
     checkLicense();
-  }, []);
+  }, [isBypassed]);
+
+  if (isBypassed) return <>{children}</>;
 
   async function checkLicense() {
     const storedKey = localStorage.getItem(LICENSE_STORAGE_KEY);
