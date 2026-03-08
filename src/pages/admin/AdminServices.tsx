@@ -306,6 +306,10 @@ const AdminServices = () => {
   const applyBulkMarkup = async () => {
     const markup = parseFloat(bulkMarkup);
     if (isNaN(markup) || markup < 0) { toast.error("Введите корректный %"); return; }
+    if (markup < minMarkup) {
+      toast.error(`Минимальная наценка: ${minMarkup}%. Нельзя установить ниже.`);
+      return;
+    }
     const ids = [...selectedIds];
     for (const id of ids) {
       const ps = providerServices.find((p) => p.id === id);
