@@ -657,6 +657,33 @@ const AdminServices = () => {
             <>
               {/* === CATALOG TABLE (compact) === */}
               <TabsContent value="catalog" className="mt-0">
+                {/* Bulk action bar */}
+                {selectedIds.size > 0 && activeTab === "catalog" && (
+                  <div className="flex items-center gap-2 p-2 bg-primary/5 border-b border-primary/20 sticky top-0 z-10">
+                    <Badge variant="default" className="text-[10px]">{selectedIds.size} выбрано</Badge>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        placeholder="% наценки"
+                        value={bulkMarkup}
+                        onChange={(e) => setBulkMarkup(e.target.value)}
+                        className="h-7 w-[90px] text-xs"
+                      />
+                      <Button size="sm" className="h-7 text-xs" onClick={applyBulkMarkup} disabled={!bulkMarkup}>
+                        <Percent className="h-3 w-3 mr-1" />Применить
+                      </Button>
+                    </div>
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={applyLadderToSelected}>
+                      <Layers className="h-3 w-3 mr-1" />Лестница
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+                      Сбросить
+                    </Button>
+                    <span className="text-[9px] text-muted-foreground ml-auto">
+                      Мин. наценка: {minMarkup}% · Лестница: {markupLadder.map(t => `≤${t.maxRate === Infinity ? '∞' : t.maxRate}₽→${t.markup}%`).join(', ')}
+                    </span>
+                  </div>
+                )}
                 {filteredServices.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground text-sm">
                     <Package className="h-8 w-8 mx-auto mb-2 opacity-40" /><p>Нет услуг</p>
@@ -665,12 +692,20 @@ const AdminServices = () => {
                   <Table>
                     <TableHeader>
                       <TableRow className="text-[11px]">
+                        <TableHead className="px-2 w-8">
+                          <Checkbox
+                            checked={selectedIds.size === filteredServices.length && filteredServices.length > 0}
+                            onCheckedChange={toggleSelectAll}
+                            className="scale-[0.75]"
+                          />
+                        </TableHead>
                         <TableHead className="w-10 px-2">Вкл</TableHead>
                         <TableHead className="px-2">Название</TableHead>
-                        <TableHead className="px-2 w-[100px]">Сеть</TableHead>
-                        <TableHead className="px-2 w-[120px]">Категория</TableHead>
+                        <TableHead className="px-2 w-[80px]">Сеть</TableHead>
+                        <TableHead className="px-2 w-[80px] text-right">Закупка</TableHead>
+                        <TableHead className="px-2 w-[60px] text-right">Нац.%</TableHead>
                         <TableHead className="px-2 w-[90px] text-right">{priceLabel}</TableHead>
-                        <TableHead className="px-2 w-[140px]">Провайдеры</TableHead>
+                        <TableHead className="px-2 w-[100px]">Провайдеры</TableHead>
                         <TableHead className="px-2 w-10"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -679,13 +714,25 @@ const AdminServices = () => {
                         const svcMappings = getMappingsForService(svc.id);
                         const activeCount = svcMappings.filter(m => m.is_active).length;
                         const isOrphan = svc.is_enabled && activeCount === 0;
+                        const cheapestRate = getCheapestRate(svc.id);
+                        const markupPct = cheapestRate && cheapestRate > 0
+                          ? Math.round(((svc.price / cheapestRate) - 1) * 100)
+                          : null;
+                        const isBelowMin = markupPct !== null && markupPct < minMarkup;
 
                         return (
                           <TableRow
                             key={svc.id}
-                            className={`text-xs cursor-pointer hover:bg-muted/50 ${!svc.is_enabled ? "opacity-40" : ""} ${isOrphan ? "bg-destructive/5" : ""}`}
+                            className={`text-xs cursor-pointer hover:bg-muted/50 ${selectedIds.has(svc.id) ? "bg-primary/5" : ""} ${!svc.is_enabled ? "opacity-40" : ""} ${isOrphan ? "bg-destructive/5" : ""} ${isBelowMin ? "bg-destructive/10" : ""}`}
                             onClick={() => openEditDialog(svc)}
                           >
+                            <TableCell className="px-2" onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={selectedIds.has(svc.id)}
+                                onCheckedChange={() => toggleSelect(svc.id)}
+                                className="scale-[0.75]"
+                              />
+                            </TableCell>
                             <TableCell className="px-2" onClick={(e) => e.stopPropagation()}>
                               <Switch checked={svc.is_enabled} onCheckedChange={(v) => toggleServiceEnabled(svc.id, v)} className="scale-[0.65]" />
                             </TableCell>
@@ -693,8 +740,23 @@ const AdminServices = () => {
                             <TableCell className="px-2">
                               <Badge variant="outline" className="text-[10px] px-1.5">{svc.network}</Badge>
                             </TableCell>
-                            <TableCell className="px-2 text-muted-foreground">{svc.category}</TableCell>
-                            <TableCell className="px-2 text-right font-mono">{fmtPrice(Number(svc.price))}</TableCell>
+                            <TableCell className="px-2 text-right font-mono text-muted-foreground">
+                              {cheapestRate ? fmtPrice(cheapestRate) : <span className="text-[10px]">—</span>}
+                            </TableCell>
+                            <TableCell className="px-2 text-right">
+                              {markupPct !== null ? (
+                                <Badge
+                                  variant={isBelowMin ? "destructive" : "default"}
+                                  className="text-[9px] px-1"
+                                >
+                                  {isBelowMin && <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />}
+                                  {markupPct}%
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground text-[10px]">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="px-2 text-right font-mono font-medium">{fmtPrice(Number(svc.price))}</TableCell>
                             <TableCell className="px-2">
                               {isOrphan ? (
                                 <Badge variant="destructive" className="text-[9px] px-1">
