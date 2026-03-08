@@ -22,7 +22,9 @@ export type AuditAction =
   | "update_user_password"
   | "ban_user"
   | "login_admin"
-  | "update_telegram_2fa";
+  | "update_telegram_2fa"
+  | "bulk_markup"
+  | "ladder_markup";
 
 export async function logAuditAction(
   action: AuditAction,

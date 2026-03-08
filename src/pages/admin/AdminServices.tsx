@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,10 +15,30 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   RefreshCw, Search, Package, Plus, Link2, Trash2, ArrowUp, ArrowDown,
-  Zap, ShieldCheck, AlertTriangle, Settings2, ChevronRight
+  Zap, ShieldCheck, AlertTriangle, Settings2, ChevronRight, Percent, Layers
 } from "lucide-react";
 import { toast } from "sonner";
 import { logAuditAction } from "@/lib/audit";
+
+interface MarkupTier {
+  maxRate: number;
+  markup: number;
+}
+
+const DEFAULT_MARKUP_LADDER: MarkupTier[] = [
+  { maxRate: 20, markup: 80 },
+  { maxRate: 50, markup: 60 },
+  { maxRate: 150, markup: 40 },
+  { maxRate: 500, markup: 30 },
+  { maxRate: Infinity, markup: 20 },
+];
+
+const getMarkupForRate = (rate: number, ladder: MarkupTier[]): number => {
+  for (const tier of ladder) {
+    if (rate <= tier.maxRate) return tier.markup;
+  }
+  return 30;
+};
 
 interface ProviderService {
   id: string;
@@ -94,6 +115,12 @@ const AdminServices = () => {
   const [mappingProviderFilter, setMappingProviderFilter] = useState("all");
   const [mappingSearch, setMappingSearch] = useState("");
 
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkMarkup, setBulkMarkup] = useState("");
+  const [showBulkBar, setShowBulkBar] = useState(false);
+  const [markupLadder, setMarkupLadder] = useState<MarkupTier[]>(DEFAULT_MARKUP_LADDER);
+
   useEffect(() => {
     if (!user) return;
     loadAll();
@@ -101,16 +128,21 @@ const AdminServices = () => {
 
   const loadAll = async () => {
     setLoading(true);
-    const [psRes, sRes, mRes, pRes] = await Promise.all([
+    const [psRes, sRes, mRes, pRes, ladderRes] = await Promise.all([
       supabase.from("provider_services").select("*").order("provider").order("network"),
       supabase.from("services").select("*").order("network").order("category").order("name"),
       supabase.from("service_provider_mappings").select("*").order("priority"),
       supabase.from("providers").select("*").eq("is_enabled", true),
+      supabase.from("app_settings").select("value").eq("key", "markup_ladder").single(),
     ]);
     setProviderServices((psRes.data as ProviderService[]) || []);
     setServices((sRes.data as Service[]) || []);
     setMappings((mRes.data as Mapping[]) || []);
     setProviders(pRes.data || []);
+    if (ladderRes.data?.value) {
+      try { setMarkupLadder(JSON.parse(ladderRes.data.value)); } catch {}
+    }
+    setSelectedIds(new Set());
     setLoading(false);
   };
 
@@ -156,7 +188,8 @@ const AdminServices = () => {
   };
 
   const createFromProvider = async (ps: ProviderService) => {
-    const price = ps.our_price ?? ps.rate * (1 + (ps.markup_percent ?? 30) / 100);
+    const ladderMarkup = getMarkupForRate(ps.rate, markupLadder);
+    const price = ps.our_price ?? ps.rate * (1 + (ps.markup_percent ?? ladderMarkup) / 100);
     const { data, error } = await supabase.from("services").insert({
       name: ps.name, description: ps.description, category: ps.category,
       network: ps.network, min_quantity: ps.min_quantity, max_quantity: ps.max_quantity, price,
@@ -244,6 +277,57 @@ const AdminServices = () => {
     await supabase.from("service_provider_mappings").delete().eq("id", id);
     setMappings((prev) => prev.filter((m) => m.id !== id));
     toast.success("Привязка удалена");
+  };
+
+  // === Bulk actions ===
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredProviderServices.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredProviderServices.map((s) => s.id)));
+    }
+  };
+
+  const applyBulkMarkup = async () => {
+    const markup = parseFloat(bulkMarkup);
+    if (isNaN(markup) || markup < 0) { toast.error("Введите корректный %"); return; }
+    const ids = [...selectedIds];
+    for (const id of ids) {
+      const ps = providerServices.find((p) => p.id === id);
+      if (!ps) continue;
+      const ourPrice = ps.rate * (1 + markup / 100);
+      await supabase.from("provider_services").update({ markup_percent: markup, our_price: ourPrice }).eq("id", id);
+    }
+    toast.success(`Наценка ${markup}% применена к ${ids.length} услугам`);
+    await logAuditAction("bulk_markup", "provider_services", undefined, { count: ids.length, markup });
+    setSelectedIds(new Set());
+    setBulkMarkup("");
+    await loadAll();
+  };
+
+  const applyLadderToSelected = async () => {
+    const ids = [...selectedIds];
+    let updated = 0;
+    for (const id of ids) {
+      const ps = providerServices.find((p) => p.id === id);
+      if (!ps) continue;
+      const markup = getMarkupForRate(ps.rate, markupLadder);
+      const ourPrice = ps.rate * (1 + markup / 100);
+      await supabase.from("provider_services").update({ markup_percent: markup, our_price: ourPrice }).eq("id", id);
+      updated++;
+    }
+    toast.success(`Лестница наценок применена к ${updated} услугам`);
+    await logAuditAction("ladder_markup", "provider_services", undefined, { count: updated });
+    setSelectedIds(new Set());
+    await loadAll();
   };
 
   const getMappingsForService = (serviceId: string) =>
@@ -542,6 +626,33 @@ const AdminServices = () => {
 
               {/* === PROVIDER SERVICES TABLE === */}
               <TabsContent value="providers" className="mt-0">
+                {/* Bulk action bar */}
+                {selectedIds.size > 0 && (
+                  <div className="flex items-center gap-2 p-2 bg-primary/5 border-b border-primary/20 sticky top-0 z-10">
+                    <Badge variant="default" className="text-[10px]">{selectedIds.size} выбрано</Badge>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        placeholder="% наценки"
+                        value={bulkMarkup}
+                        onChange={(e) => setBulkMarkup(e.target.value)}
+                        className="h-7 w-[90px] text-xs"
+                      />
+                      <Button size="sm" className="h-7 text-xs" onClick={applyBulkMarkup} disabled={!bulkMarkup}>
+                        <Percent className="h-3 w-3 mr-1" />Применить
+                      </Button>
+                    </div>
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={applyLadderToSelected}>
+                      <Layers className="h-3 w-3 mr-1" />Лестница
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+                      Сбросить
+                    </Button>
+                    <span className="text-[9px] text-muted-foreground ml-auto">
+                      Лестница: {markupLadder.map(t => `≤${t.maxRate === Infinity ? '∞' : t.maxRate}₽→${t.markup}%`).join(', ')}
+                    </span>
+                  </div>
+                )}
                 {filteredProviderServices.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground text-sm">
                     <Package className="h-8 w-8 mx-auto mb-2 opacity-40" /><p>Синхронизируйте провайдеров</p>
@@ -550,11 +661,20 @@ const AdminServices = () => {
                   <Table>
                     <TableHeader>
                       <TableRow className="text-[11px]">
+                        <TableHead className="px-2 w-8">
+                          <Checkbox
+                            checked={selectedIds.size === filteredProviderServices.length && filteredProviderServices.length > 0}
+                            onCheckedChange={toggleSelectAll}
+                            className="scale-[0.75]"
+                          />
+                        </TableHead>
                         <TableHead className="px-2">Пров.</TableHead>
                         <TableHead className="px-2">SID</TableHead>
                         <TableHead className="px-2">Услуга</TableHead>
                         <TableHead className="px-2 w-[90px]">Сеть</TableHead>
-                        <TableHead className="px-2 w-[80px] text-right">Цена</TableHead>
+                        <TableHead className="px-2 w-[80px] text-right">Закупка</TableHead>
+                        <TableHead className="px-2 w-[60px] text-right">Нац.%</TableHead>
+                        <TableHead className="px-2 w-[80px] text-right">Наша цена</TableHead>
                         <TableHead className="px-2 w-[80px]">Привязки</TableHead>
                         <TableHead className="px-2 w-[80px]"></TableHead>
                       </TableRow>
@@ -562,15 +682,31 @@ const AdminServices = () => {
                     <TableBody>
                       {filteredProviderServices.map((svc) => {
                         const svcMappings = mappings.filter((m) => m.provider_service_id === svc.id);
+                        const effectiveMarkup = svc.markup_percent ?? 30;
+                        const ourPrice = svc.our_price ?? svc.rate * (1 + effectiveMarkup / 100);
+                        const ladderMarkup = getMarkupForRate(svc.rate, markupLadder);
                         return (
-                          <TableRow key={svc.id} className="text-xs">
+                          <TableRow key={svc.id} className={`text-xs ${selectedIds.has(svc.id) ? "bg-primary/5" : ""}`}>
+                            <TableCell className="px-2">
+                              <Checkbox
+                                checked={selectedIds.has(svc.id)}
+                                onCheckedChange={() => toggleSelect(svc.id)}
+                                className="scale-[0.75]"
+                              />
+                            </TableCell>
                             <TableCell className="px-2"><Badge variant="secondary" className="text-[10px]">{svc.provider}</Badge></TableCell>
                             <TableCell className="px-2 text-muted-foreground font-mono">{svc.provider_service_id}</TableCell>
                             <TableCell className="px-2">
-                              <div className="truncate max-w-[280px] font-medium">{svc.name}</div>
+                              <div className="truncate max-w-[240px] font-medium">{svc.name}</div>
                             </TableCell>
                             <TableCell className="px-2"><Badge variant="outline" className="text-[10px]">{svc.network}</Badge></TableCell>
                             <TableCell className="px-2 text-right font-mono">{Number(svc.rate).toFixed(2)}₽</TableCell>
+                            <TableCell className="px-2 text-right">
+                              <Badge variant={effectiveMarkup >= ladderMarkup ? "default" : "secondary"} className="text-[9px] px-1">
+                                {effectiveMarkup}%
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="px-2 text-right font-mono font-medium">{ourPrice.toFixed(2)}₽</TableCell>
                             <TableCell className="px-2">
                               {svcMappings.length > 0 ? (
                                 <Badge variant="outline" className="text-[9px]">{svcMappings.length}</Badge>
