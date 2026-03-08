@@ -182,6 +182,15 @@ const AdminSupport = () => {
     if (!user) return;
     loadTickets();
     loadBans();
+    // Load settings
+    supabase.from("app_settings").select("key, value").in("key", ["ticket_auto_close_hours", "ticket_reopen_window_hours"]).then(({ data }) => {
+      if (data) {
+        for (const r of data as any[]) {
+          if (r.key === "ticket_auto_close_hours") AUTO_CLOSE_HOURS = parseInt(r.value) || 24;
+          if (r.key === "ticket_reopen_window_hours") REOPEN_HOURS = parseInt(r.value) || 48;
+        }
+      }
+    });
   }, [user]);
 
   useEffect(() => {
