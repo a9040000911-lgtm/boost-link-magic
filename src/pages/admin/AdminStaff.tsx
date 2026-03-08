@@ -556,10 +556,10 @@ const AdminStaff = () => {
                 </>
               )}
 
-              {editRole === "admin" && (
+              {(editRole === "admin" || editRole === "ceo") && (
                 <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-                  <p className="text-xs text-destructive font-medium">⚠️ Администратор имеет полный доступ</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">Все права включены автоматически. Для ограниченного доступа используйте роль «Модератор».</p>
+                  <p className="text-xs text-destructive font-medium">⚠️ {ROLE_LABELS[editRole]} имеет полный доступ</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Все права включены автоматически. Для ограниченного доступа используйте роль «Модератор» или «Инвестор».</p>
                 </div>
               )}
 
