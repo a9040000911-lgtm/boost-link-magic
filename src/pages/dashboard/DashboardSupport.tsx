@@ -80,6 +80,7 @@ const DashboardSupport = () => {
   // New ticket form
   const [selectedTopicId, setSelectedTopicId] = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState("");
+  const [contactIdentifier, setContactIdentifier] = useState("");
   const [newMessage, setNewMessage] = useState("");
   const [newPriority, setNewPriority] = useState("normal");
   const [creating, setCreating] = useState(false);
@@ -191,8 +192,8 @@ const DashboardSupport = () => {
     if (!user || !selectedTopicId) return;
     const topic = topics.find(t => t.id === selectedTopicId);
     if (!topic) return;
-    if (topic.requires_order_id && !selectedOrderId) {
-      toast.error("Выберите заказ");
+    if (topic.requires_order_id && !selectedOrderId && !contactIdentifier.trim()) {
+      toast.error("Укажите заказ или ID/ссылку/email");
       return;
     }
     if (!newMessage.trim()) {
@@ -201,7 +202,12 @@ const DashboardSupport = () => {
     }
     setCreating(true);
 
-    const subject = `${topic.icon} ${topic.name}${selectedOrderId ? ` [#${selectedOrderId.slice(0, 8)}]` : ""}`;
+    const idPart = selectedOrderId
+      ? ` [#${selectedOrderId.slice(0, 8)}]`
+      : contactIdentifier.trim()
+        ? ` [${contactIdentifier.trim().slice(0, 40)}]`
+        : "";
+    const subject = `${topic.icon} ${topic.name}${idPart}`;
 
     const { data: ticket, error: tErr } = await supabase
       .from("support_tickets")
@@ -222,16 +228,25 @@ const DashboardSupport = () => {
       return;
     }
 
+    // Build first message with context
+    const contextLines: string[] = [];
+    if (contactIdentifier.trim()) contextLines.push(`📎 ID/Ссылка/Email: ${contactIdentifier.trim()}`);
+    if (selectedOrderId) contextLines.push(`📦 Заказ: #${selectedOrderId.slice(0, 8)}`);
+    const fullMessage = contextLines.length
+      ? `${contextLines.join("\n")}\n\n${newMessage.trim()}`
+      : newMessage.trim();
+
     await supabase.from("support_messages").insert({
       ticket_id: ticket.id,
       user_id: user.id,
-      message: newMessage.trim(),
+      message: fullMessage,
       is_admin: false,
     });
 
     toast.success("Обращение создано!");
     setSelectedTopicId("");
     setSelectedOrderId("");
+    setContactIdentifier("");
     setNewMessage("");
     setNewPriority("normal");
     setCreating(false);
@@ -452,6 +467,20 @@ const DashboardSupport = () => {
             </div>
           )}
 
+          {/* Identifier field — always shown for context */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">
+              ID заказа, email или ссылка {selectedTopic?.requires_order_id ? "*" : "(необязательно)"}
+            </label>
+            <Input
+              value={contactIdentifier}
+              onChange={(e) => setContactIdentifier(e.target.value)}
+              placeholder="Например: #a1b2c3d4, user@mail.ru или https://instagram.com/..."
+              className="text-sm"
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">Укажите данные, чтобы мы быстрее нашли ваш заказ</p>
+          </div>
+
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Сообщение *</label>
             <Textarea
@@ -478,7 +507,7 @@ const DashboardSupport = () => {
           </div>
           <Button
             onClick={handleCreate}
-            disabled={creating || !selectedTopicId || !newMessage.trim() || (selectedTopic?.requires_order_id && !selectedOrderId)}
+            disabled={creating || !selectedTopicId || !newMessage.trim() || (selectedTopic?.requires_order_id && !selectedOrderId && !contactIdentifier.trim())}
             className="w-full bg-gradient-to-r from-primary to-secondary text-primary-foreground"
           >
             <Send className="w-4 h-4 mr-2" /> {creating ? "Создание..." : "Отправить обращение"}
