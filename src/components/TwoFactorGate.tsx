@@ -12,6 +12,7 @@ interface TwoFactorGateProps {
 }
 
 const SESSION_KEY = "2fa_verified";
+const STATE_KEY = "2fa_state";
 
 export function TwoFactorGate({ children, userId }: TwoFactorGateProps) {
   const [verified, setVerified] = useState(false);
@@ -30,8 +31,44 @@ export function TwoFactorGate({ children, userId }: TwoFactorGateProps) {
     if (stored === userId) {
       setVerified(true);
     }
+
+    // Restore state if verification is in progress
+    const savedState = sessionStorage.getItem(STATE_KEY);
+    if (savedState) {
+      try {
+        const parsed = JSON.parse(savedState);
+        if (parsed.userId === userId) {
+          setCodeSent(parsed.codeSent);
+          setChannels(parsed.channels);
+          setEmailHint(parsed.emailHint);
+
+          // Restore cooldown if it hasn't expired
+          const passed = Math.floor((Date.now() - parsed.timestamp) / 1000);
+          const remaining = Math.max(0, parsed.cooldown - passed);
+          if (remaining > 0) setCooldown(remaining);
+        }
+      } catch (e) {
+        console.error("Error restoring 2FA state:", e);
+      }
+    }
     setChecking(false);
   }, [userId]);
+
+  // Persist state when it changes
+  useEffect(() => {
+    if (codeSent) {
+      sessionStorage.setItem(STATE_KEY, JSON.stringify({
+        userId,
+        codeSent,
+        channels,
+        emailHint,
+        cooldown,
+        timestamp: Date.now()
+      }));
+    } else {
+      sessionStorage.removeItem(STATE_KEY);
+    }
+  }, [codeSent, channels, emailHint, cooldown, userId]);
 
   // Cooldown timer
   useEffect(() => {
@@ -44,8 +81,31 @@ export function TwoFactorGate({ children, userId }: TwoFactorGateProps) {
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-2fa-code");
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+
+      // Handle Supabase function error (like status 429)
+      if (error) {
+        const msg = error.message || "";
+        // Supabase might return error message directly or inside JSON
+        if (msg.includes("Подождите") || msg.includes("уже отправлен") || msg.includes("429")) {
+          setCooldown(30);
+          setCodeSent(true);
+          setChannels({ telegram: false, email: true });
+          setSending(false);
+          return;
+        }
+        throw error;
+      }
+
+      if (data?.error) {
+        if (data.error.includes("Подождите") || data.error.includes("уже отправлен")) {
+          setCooldown(30);
+          setCodeSent(true);
+          setChannels({ telegram: false, email: true });
+          setSending(false);
+          return;
+        }
+        throw new Error(data.error);
+      }
 
       setCodeSent(true);
       setChannels(data.channels || {});
@@ -53,15 +113,7 @@ export function TwoFactorGate({ children, userId }: TwoFactorGateProps) {
       setCooldown(60);
       toast.success("Код отправлен!");
     } catch (e: any) {
-      const msg = e.message || "";
-      if (msg.includes("Подождите") || msg.includes("429")) {
-        // Code was already sent recently — just show the input
-        setCooldown(30);
-        setCodeSent(true);
-        setChannels({ telegram: false, email: true });
-        setSending(false);
-        return;
-      }
+      console.error("2FA Error:", e);
       toast.error(e.message || "Ошибка отправки кода");
     }
     setSending(false);
@@ -79,6 +131,7 @@ export function TwoFactorGate({ children, userId }: TwoFactorGateProps) {
 
       if (data?.verified) {
         sessionStorage.setItem(SESSION_KEY, userId);
+        sessionStorage.removeItem(STATE_KEY); // Clean up state
         setVerified(true);
         toast.success("Вход подтверждён!");
       }

@@ -867,9 +867,12 @@ export type Database = {
           balance: number
           bio: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_original_email: string | null
           discount: number
           display_name: string | null
           id: string
+          is_deleted: boolean
           telegram_chat_id: string | null
           updated_at: string
         }
@@ -878,9 +881,12 @@ export type Database = {
           balance?: number
           bio?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_original_email?: string | null
           discount?: number
           display_name?: string | null
           id: string
+          is_deleted?: boolean
           telegram_chat_id?: string | null
           updated_at?: string
         }
@@ -889,9 +895,12 @@ export type Database = {
           balance?: number
           bio?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_original_email?: string | null
           discount?: number
           display_name?: string | null
           id?: string
+          is_deleted?: boolean
           telegram_chat_id?: string | null
           updated_at?: string
         }
@@ -1954,6 +1963,10 @@ export type Database = {
       }
       increment_ai_key_error: { Args: { key_id: string }; Returns: undefined }
       increment_ai_key_usage: { Args: { key_id: string }; Returns: undefined }
+      soft_delete_user: {
+        Args: { p_masked_email?: string; p_user_id: string }
+        Returns: undefined
+      }
       update_own_profile: {
         Args: {
           p_avatar_url?: string

@@ -93,6 +93,31 @@ serve(async (req) => {
         return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
+      case "soft_delete": {
+        const { data: userData, error: getErr } = await adminClient.auth.admin.getUserById(user_id);
+        if (getErr) throw getErr;
+
+        const originalEmail = userData?.user?.email ?? null;
+        const maskedEmail = `deleted_${user_id.slice(0, 8)}@deleted.local`;
+
+        const { error: softErr } = await adminClient.rpc("soft_delete_user", {
+          p_user_id: user_id,
+          p_masked_email: originalEmail,
+        });
+        if (softErr) throw softErr;
+
+        const { error: updErr } = await adminClient.auth.admin.updateUserById(user_id, {
+          email: maskedEmail,
+          email_confirm: true,
+          ban_duration: "876000h",
+        });
+        if (updErr) throw updErr;
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       case "delete_mfa_factors": {
         const { data: userData } = await adminClient.auth.admin.getUserById(user_id);
         if (userData?.user?.factors) {

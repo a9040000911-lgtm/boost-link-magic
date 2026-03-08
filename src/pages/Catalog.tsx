@@ -170,12 +170,17 @@ const TariffExplainer = ({ onClose, netConfig }: { onClose: () => void; netConfi
     </div>
   </motion.div>
 );
-/* Smart price formatter — shows enough decimals so the value isn't "0.00" */
-const fmtPrice = (perUnit: number) => {
-  if (perUnit === 0) return "0.00";
-  if (perUnit >= 0.01) return perUnit.toFixed(2);
-  if (perUnit >= 0.001) return perUnit.toFixed(3);
-  return perUnit.toFixed(4);
+/* Smart price formatter — always rounds UP, never rounds to zero.
+   price < 1 → 3 decimal places (ceil), price >= 1 → 2 decimal places (ceil) */
+const fmtPrice = (v: number): string => {
+  if (v <= 0) return "0.00";
+  if (v >= 1) {
+    const ceiled = Math.ceil(v * 100) / 100;
+    return ceiled.toFixed(2);
+  }
+  // price < 1: 3 decimals, ceil, minimum 0.001
+  const ceiled = Math.ceil(v * 1000) / 1000;
+  return Math.max(ceiled, 0.001).toFixed(3);
 };
 
 const Catalog = () => {
@@ -190,6 +195,8 @@ const Catalog = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedService, setSelectedService] = useState<CatalogService | null>(null);
   const [compareMode, setCompareMode] = useState(false);
+  const [compareServices, setCompareServices] = useState<CatalogService[]>([]);
+  const [showCompareModal, setShowCompareModal] = useState(false);
   const [showExplainer, setShowExplainer] = useState(false);
   const [warningAccepted, setWarningAccepted] = useState<Record<string, boolean>>({});
   const [showWarning, setShowWarning] = useState(false);
@@ -217,7 +224,7 @@ const Catalog = () => {
         .from("app_settings")
         .select("key, value")
         .in("key", ["show_offer_checkbox", "show_policy_checkbox", "offer_default_checked", "policy_default_checked"]);
-      
+
       if (data) {
         const settings: Record<string, boolean> = {};
         data.forEach((r: any) => {
@@ -336,7 +343,7 @@ const Catalog = () => {
       if (data?.deduplicated) {
         toast({ title: "Заказ уже создан", description: "Повторный запрос проигнорирован" });
       } else {
-        toast({ title: "✅ Заказ оформлен!", description: `${selectedService.name} × ${quantity} — ${Number(data.price).toFixed(2)}₽` });
+        toast({ title: "✅ Заказ оформлен!", description: `${selectedService.name} × ${quantity} — ${fmtPrice(Number(data.price))}₽` });
       }
       setLink(""); setConsentOffer(false); setConsentPD(false);
     } catch (e: any) {
@@ -345,12 +352,30 @@ const Catalog = () => {
   };
 
   const selectService = (service: CatalogService) => {
+    if (compareMode) {
+      toggleCompareService(service);
+      return;
+    }
     setSelectedService(service);
     setQuantity(Math.max(service.min_quantity, 10));
     // Show warning if service has one and user hasn't accepted it yet
     if (service.warning_text && !warningAccepted[service.id]) {
       setShowWarning(true);
     }
+  };
+
+  const toggleCompareService = (service: CatalogService) => {
+    setCompareServices(prev => {
+      const isAlreadyIn = prev.some(s => s.id === service.id);
+      if (isAlreadyIn) {
+        return prev.filter(s => s.id !== service.id);
+      }
+      if (prev.length >= 4) {
+        toast({ title: "Лимит сравнения", description: "Можно сравнивать до 4 услуг одновременно", variant: "destructive" });
+        return prev;
+      }
+      return [...prev, service];
+    });
   };
 
   const acceptWarning = () => {
@@ -430,32 +455,31 @@ const Catalog = () => {
       {/* Platform Icons — ultra-smooth animation */}
       <div className="border-b border-border/40 bg-muted/20 shrink-0">
         <div className="max-w-7xl mx-auto px-4 py-2">
-            <div className="flex flex-wrap gap-1.5 justify-center items-center">
-              {availableNetworks.map((net) => {
-                const isActive = activeNetwork === net.key;
-                return (
-                  <button
-                    key={net.key}
-                    onClick={() => handleNetworkChange(net.key)}
-                    className={`relative transition-all duration-300 ease-out ${
-                      isActive
-                        ? `inline-flex items-center gap-2 px-4 py-2.5 rounded-xl ${net.bg} text-white shadow-lg ${net.shadow} scale-105`
-                        : "w-11 h-11 rounded-xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border hover:shadow-sm scale-100"
+          <div className="flex flex-wrap gap-1.5 justify-center items-center">
+            {availableNetworks.map((net) => {
+              const isActive = activeNetwork === net.key;
+              return (
+                <button
+                  key={net.key}
+                  onClick={() => handleNetworkChange(net.key)}
+                  className={`relative transition-all duration-300 ease-out ${isActive
+                    ? `inline-flex items-center gap-2 px-4 py-2.5 rounded-xl ${net.bg} text-white shadow-lg ${net.shadow} scale-105`
+                    : "w-11 h-11 rounded-xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border hover:shadow-sm scale-100"
                     }`}
-                    title={net.label}
-                  >
-                    <div className="flex items-center gap-2">
-                      <PlatformIcon platform={net.icon} className="w-7 h-7" />
-                      {isActive && (
-                        <span className="text-sm font-semibold hidden sm:inline whitespace-nowrap">
-                          {net.label}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                  title={net.label}
+                >
+                  <div className="flex items-center gap-2">
+                    <PlatformIcon platform={net.icon} className="w-7 h-7" />
+                    {isActive && (
+                      <span className="text-sm font-semibold hidden sm:inline whitespace-nowrap">
+                        {net.label}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -475,11 +499,10 @@ const Catalog = () => {
                     <button
                       key={cat}
                       onClick={() => handleCategoryChange(cat)}
-                      className={`w-full flex items-center justify-between gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all text-left ${
-                        activeCategory === cat
-                          ? `bg-card ${activeNetConfig?.color || 'text-primary'} border ${activeNetConfig?.border || 'border-primary/20'} shadow-sm`
-                          : "text-foreground/80 hover:bg-muted/60 border border-transparent"
-                      }`}
+                      className={`w-full flex items-center justify-between gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all text-left ${activeCategory === cat
+                        ? `bg-card ${activeNetConfig?.color || 'text-primary'} border ${activeNetConfig?.border || 'border-primary/20'} shadow-sm`
+                        : "text-foreground/80 hover:bg-muted/60 border border-transparent"
+                        }`}
                     >
                       <span className="truncate">{cat}</span>
                       <span className={`text-xs shrink-0 ${activeCategory === cat ? "opacity-70" : "text-muted-foreground/50"}`}>{count}</span>
@@ -498,11 +521,10 @@ const Catalog = () => {
                     <button
                       key={cat}
                       onClick={() => handleCategoryChange(cat)}
-                      className={`px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors border ${
-                        activeCategory === cat
-                          ? `${activeNetConfig?.bg || 'bg-primary'} text-white border-transparent`
-                          : "bg-muted text-muted-foreground border-transparent"
-                      }`}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors border ${activeCategory === cat
+                        ? `${activeNetConfig?.bg || 'bg-primary'} text-white border-transparent`
+                        : "bg-muted text-muted-foreground border-transparent"
+                        }`}
                     >{cat}</button>
                   ))}
                 </div>
@@ -514,26 +536,44 @@ const Catalog = () => {
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setShowExplainer(!showExplainer)}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
-                      showExplainer
-                        ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
-                        : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
-                    }`}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${showExplainer
+                      ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
+                      : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+                      }`}
                   >
                     <HelpCircle className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Чем отличаются?</span>
                   </button>
                   <button
-                    onClick={() => setCompareMode(!compareMode)}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
-                      compareMode
-                        ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
-                        : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
-                    }`}
+                    onClick={() => {
+                      if (compareServices.length > 0) {
+                        setShowCompareModal(true);
+                      } else {
+                        setCompareMode(!compareMode);
+                      }
+                    }}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${compareMode || compareServices.length > 0
+                      ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
+                      : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+                      }`}
                   >
                     <BarChart3 className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Сравнить</span>
+                    <span className="hidden sm:inline">
+                      {compareServices.length > 0 ? `Сравнить (${compareServices.length})` : "Сравнить"}
+                    </span>
                   </button>
+                  {(compareMode || compareServices.length > 0) && (
+                    <button
+                      onClick={() => {
+                        setCompareMode(false);
+                        setCompareServices([]);
+                      }}
+                      className="p-1.5 rounded-lg bg-muted/60 text-muted-foreground hover:text-destructive transition-colors"
+                      title="Выйти из режима сравнения"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
 
                 {/* Explainer popup */}
@@ -560,7 +600,7 @@ const Catalog = () => {
                             <thead>
                               <tr className="bg-muted/40 border-b border-border/40">
                                 <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Услуга</th>
-                                <th className="text-right px-3 py-2 font-semibold text-muted-foreground w-20">Цена/шт</th>
+                                <th className="text-right px-3 py-2 font-semibold text-muted-foreground w-28">Цена / 1000</th>
                                 <th className="text-center px-2 py-2 font-semibold text-muted-foreground w-20 hidden sm:table-cell">Скорость</th>
                                 <th className="text-center px-2 py-2 font-semibold text-muted-foreground w-20 hidden sm:table-cell">Гарантия</th>
                                 <th className="text-right px-3 py-2 font-semibold text-muted-foreground w-14 hidden lg:table-cell">Мин</th>
@@ -571,31 +611,33 @@ const Catalog = () => {
                               {categoryServices.map((service) => {
                                 const isSelected = selectedService?.id === service.id;
                                 const isPopular = service.price === minPrice && categoryServices.length > 1;
-                                const pricePerUnit = service.price / 1000;
                                 return (
                                   <tr
                                     key={service.id}
                                     onClick={() => selectService(service)}
-                                    className={`cursor-pointer transition-colors border-b border-border/20 last:border-0 ${
-                                      isSelected
-                                        ? `bg-primary/5 ${activeNetConfig?.color || 'text-primary'}`
-                                        : isPopular ? 'bg-primary/[0.03] hover:bg-primary/5' : 'hover:bg-muted/40'
-                                    }`}
+                                    className={`cursor-pointer transition-colors border-b border-border/20 last:border-0 ${isSelected && !compareMode
+                                      ? `bg-primary/5 ${activeNetConfig?.color || 'text-primary'}`
+                                      : isPopular ? 'bg-primary/[0.03] hover:bg-primary/5' : 'hover:bg-muted/40'
+                                      } ${compareServices.some(s => s.id === service.id) ? 'bg-primary/10' : ''}`}
                                   >
                                     <td className="px-3 py-2 font-medium text-foreground">
                                       <div className="flex items-center gap-1.5">
-                                        {isSelected && (
+                                        {compareMode ? (
+                                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${compareServices.some(s => s.id === service.id) ? (activeNetConfig?.bg || 'bg-primary') : 'border-border bg-background'}`}>
+                                            {compareServices.some(s => s.id === service.id) && <Check className="w-2.5 h-2.5 text-white" />}
+                                          </div>
+                                        ) : isSelected && (
                                           <span className={`w-4 h-4 rounded-full ${activeNetConfig?.bg || 'bg-primary'} flex items-center justify-center shrink-0`}>
                                             <Check className="w-2.5 h-2.5 text-white" />
                                           </span>
                                         )}
-                                        {isPopular && !isSelected && <Sparkles className={`w-3.5 h-3.5 shrink-0 ${activeNetConfig?.color || 'text-primary'}`} />}
+                                        {isPopular && !isSelected && !compareMode && <Sparkles className={`w-3.5 h-3.5 shrink-0 ${activeNetConfig?.color || 'text-primary'}`} />}
                                         <span className="line-clamp-1">{service.name}</span>
                                       </div>
                                     </td>
                                     <td className="px-3 py-2 text-right font-bold whitespace-nowrap">
                                       <span className={isPopular ? (activeNetConfig?.color || 'text-primary') : ''}>
-                                        {fmtPrice(pricePerUnit)} ₽
+                                        {fmtPrice(service.price)} ₽
                                       </span>
                                     </td>
                                     <td className="px-2 py-2 text-center hidden sm:table-cell"><SpeedBadge speed={service.speed} /></td>
@@ -613,7 +655,6 @@ const Catalog = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                           {categoryServices.map((service, i) => {
                             const isSelected = selectedService?.id === service.id;
-                            const pricePerUnit = service.price / 1000;
                             const isPopular = service.price === minPrice && categoryServices.length > 1;
                             return (
                               <motion.button
@@ -624,21 +665,24 @@ const Catalog = () => {
                                 onClick={() => selectService(service)}
                                 whileHover={{ y: -2 }}
                                 whileTap={{ scale: 0.98 }}
-                                className={`relative p-5 rounded-2xl text-left transition-all flex flex-col min-h-[220px] ${
-                                  isSelected
-                                    ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/10'}`
-                                    : isPopular
-                                      ? 'bg-gradient-to-br from-primary/5 to-accent/10 border-2 border-primary/30 hover:border-primary/50 hover:shadow-md'
-                                      : 'bg-card border border-border/50 hover:border-border hover:shadow-md'
-                                }`}
+                                className={`relative p-5 rounded-2xl text-left transition-all flex flex-col min-h-[220px] ${isSelected
+                                  ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/10'}`
+                                  : isPopular
+                                    ? 'bg-gradient-to-br from-primary/5 to-accent/10 border-2 border-primary/30 hover:border-primary/50 hover:shadow-md'
+                                    : 'bg-card border border-border/50 hover:border-border hover:shadow-md'
+                                  }`}
                               >
                                 {/* Badges top-right */}
-                                {isPopular && !isSelected && (
+                                {isPopular && !isSelected && !compareMode && (
                                   <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-primary/15 text-primary text-xs font-bold flex items-center gap-1">
                                     <Sparkles className="w-3.5 h-3.5" /> Хит
                                   </div>
                                 )}
-                                {isSelected && (
+                                {compareMode ? (
+                                  <div className={`absolute top-3 right-3 w-6 h-6 rounded border flex items-center justify-center transition-colors ${compareServices.some(s => s.id === service.id) ? (activeNetConfig?.bg || 'bg-primary') : 'border-border bg-card'}`}>
+                                    {compareServices.some(s => s.id === service.id) && <Check className="w-4 h-4 text-white" />}
+                                  </div>
+                                ) : isSelected && (
                                   <div className={`absolute top-3 right-3 w-6 h-6 rounded-full ${activeNetConfig?.bg || 'bg-primary'} flex items-center justify-center`}>
                                     <Check className="w-3.5 h-3.5 text-white" />
                                   </div>
@@ -673,12 +717,11 @@ const Catalog = () => {
 
                                 {/* Price — bottom */}
                                 <div className="mt-auto">
-                                  <span className={`inline-block px-4 py-2 rounded-full text-sm font-bold ${
-                                    isSelected || isPopular
-                                      ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
-                                      : 'bg-muted text-foreground'
-                                  }`}>
-                                    {fmtPrice(pricePerUnit)} ₽ / шт
+                                  <span className={`inline-block px-4 py-2 rounded-full text-sm font-bold ${isSelected || isPopular
+                                    ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
+                                    : 'bg-muted text-foreground'
+                                    }`}>
+                                    {fmtPrice(service.price)} ₽ / 1000 шт
                                   </span>
                                 </div>
                               </motion.button>
@@ -713,7 +756,7 @@ const Catalog = () => {
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Выбрано</p>
                       <h3 className="text-sm font-bold text-foreground line-clamp-2">{selectedService.name}</h3>
                       <p className={`text-lg font-bold mt-1 ${activeNetConfig?.color || 'text-primary'}`}>
-                        {fmtPrice(selectedService.price / 1000)} ₽ <span className="text-xs font-normal text-muted-foreground">/ шт</span>
+                        {fmtPrice(selectedService.price)} ₽ <span className="text-xs font-normal text-muted-foreground">/ 1000 шт</span>
                       </p>
                       {/* Speed & Guarantee */}
                       <div className="flex items-center gap-3 mt-1.5">
@@ -855,7 +898,7 @@ const Catalog = () => {
                   </div>
                 </div>
                 <span className={`text-sm font-bold ${activeNetConfig?.color || 'text-primary'}`}>
-                  {fmtPrice(selectedService.price / 1000)} ₽/шт
+                  {fmtPrice(selectedService.price)} ₽/1000
                 </span>
               </div>
 
@@ -915,6 +958,120 @@ const Catalog = () => {
                 </button>
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Comparison Modal ─── */}
+      <AnimatePresence>
+        {showCompareModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+            onClick={() => setShowCompareModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-card border border-border/60 rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 border-b border-border/40 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl ${activeNetConfig?.bg || 'bg-primary'} flex items-center justify-center text-white`}>
+                    <BarChart3 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">Сравнение услуг</h3>
+                    <p className="text-xs text-muted-foreground">Выбрано {compareServices.length} из 4</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowCompareModal(false)} className="p-2 rounded-full hover:bg-muted text-muted-foreground transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-x-auto p-6 scrollbar-none">
+                <div className="flex gap-4 min-w-[800px] h-full">
+                  {compareServices.map((service) => (
+                    <div key={service.id} className="flex-1 min-w-[200px] flex flex-col rounded-2xl border border-border/40 bg-muted/10 p-5">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${networkConfig.find(n => n.key === service.network)?.bg || 'bg-primary'} text-white`}>
+                          {service.network}
+                        </div>
+                        <button
+                          onClick={() => toggleCompareService(service)}
+                          className="text-muted-foreground hover:text-destructive transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <h4 className="font-bold text-sm mb-2 line-clamp-2 min-h-[40px]">{service.name}</h4>
+
+                      <div className="space-y-4 flex-1">
+                        <div className="p-3 rounded-xl bg-card border border-border/30">
+                          <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Цена за 1000</p>
+                          <p className={`text-xl font-bold ${activeNetConfig?.color || 'text-primary'}`}>{fmtPrice(service.price)} ₽</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-2">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[10px] text-muted-foreground font-medium uppercase">Скорость</span>
+                            <SpeedBadge speed={service.speed} />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[10px] text-muted-foreground font-medium uppercase">Гарантия</span>
+                            <GuaranteeBadge guarantee={service.guarantee} />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-muted-foreground font-medium uppercase">Объем</span>
+                          <p className="text-xs font-medium">{service.min_quantity.toLocaleString()} – {service.max_quantity.toLocaleString()} шт</p>
+                        </div>
+
+                        {service.description && (
+                          <div className="space-y-1">
+                            <span className="text-[10px] text-muted-foreground font-medium uppercase">Описание</span>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-4">{service.description}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setSelectedService(service);
+                          setQuantity(service.min_quantity);
+                          setShowCompareModal(false);
+                          setCompareMode(false);
+                        }}
+                        className={`mt-6 w-full py-2.5 rounded-xl ${activeNetConfig?.bg || 'bg-primary'} text-white text-xs font-bold shadow-md hover:shadow-lg transition-all`}
+                      >
+                        Выбрать
+                      </button>
+                    </div>
+                  ))}
+                  {compareServices.length < 4 && (
+                    <div className="flex-1 min-w-[200px] flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border/30 bg-muted/5 p-5">
+                      <div className="p-3 rounded-full bg-muted/40 mb-3">
+                        <Plus className="w-6 h-6 text-muted-foreground/40" />
+                      </div>
+                      <p className="text-xs text-muted-foreground/60 text-center">Добавьте еще услуги<br />для сравнения</p>
+                      <button
+                        onClick={() => setShowCompareModal(false)}
+                        className="mt-4 text-xs font-bold text-primary hover:underline"
+                      >
+                        В каталог
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
