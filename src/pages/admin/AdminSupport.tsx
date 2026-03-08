@@ -63,8 +63,9 @@ interface SupportBan {
   unban_reason: string | null;
 }
 
-const AUTO_CLOSE_HOURS = 24;
-const REOPEN_HOURS = 48;
+// These will be loaded from app_settings, with fallbacks
+let AUTO_CLOSE_HOURS = 24;
+let REOPEN_HOURS = 48;
 
 const statusColors: Record<string, string> = {
   open: "bg-green-500/20 text-green-600",
@@ -181,6 +182,15 @@ const AdminSupport = () => {
     if (!user) return;
     loadTickets();
     loadBans();
+    // Load settings
+    supabase.from("app_settings").select("key, value").in("key", ["ticket_auto_close_hours", "ticket_reopen_window_hours"]).then(({ data }) => {
+      if (data) {
+        for (const r of data as any[]) {
+          if (r.key === "ticket_auto_close_hours") AUTO_CLOSE_HOURS = parseInt(r.value) || 24;
+          if (r.key === "ticket_reopen_window_hours") REOPEN_HOURS = parseInt(r.value) || 48;
+        }
+      }
+    });
   }, [user]);
 
   useEffect(() => {
