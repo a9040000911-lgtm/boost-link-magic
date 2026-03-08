@@ -381,8 +381,10 @@ const AdminStaff = () => {
                       </TableCell>
                       <TableCell className="px-2">
                         <div className="flex flex-wrap gap-1">
-                          {isAdmin ? (
+                          {isFullAccess ? (
                             <span className="text-[9px] text-muted-foreground italic">Полный доступ</span>
+                          ) : s.role.includes("investor") ? (
+                            <span className="text-[9px] text-muted-foreground italic">Только просмотр</span>
                           ) : (
                             allPerms.map((perm) => {
                               const hasIt = s.permissions.includes(perm);
