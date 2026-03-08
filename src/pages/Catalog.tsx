@@ -484,8 +484,8 @@ const Catalog = () => {
                           </table>
                         </div>
                       ) : (
-                        /* ─── Compact Row List ─── */
-                        <div className="space-y-1.5">
+                        /* ─── Square Cards Grid ─── */
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                           {categoryServices.map((service, i) => {
                             const isSelected = selectedService?.id === service.id;
                             const pricePerUnit = service.price / 1000;
@@ -493,51 +493,67 @@ const Catalog = () => {
                             return (
                               <motion.button
                                 key={service.id}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.2, delay: i * 0.03 }}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.2, delay: i * 0.04 }}
                                 onClick={() => selectService(service)}
-                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-all ${
+                                whileHover={{ y: -2 }}
+                                whileTap={{ scale: 0.98 }}
+                                className={`relative p-4 rounded-2xl text-left transition-all flex flex-col aspect-square ${
                                   isSelected
-                                    ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-md ${activeNetConfig?.shadow || 'shadow-primary/10'}`
+                                    ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/10'}`
                                     : isPopular
-                                      ? 'bg-primary/[0.03] border border-primary/20 hover:border-primary/40 hover:shadow-sm'
-                                      : 'bg-card border border-border/50 hover:border-border hover:shadow-sm'
+                                      ? 'bg-gradient-to-br from-primary/5 to-accent/10 border-2 border-primary/30 hover:border-primary/50 hover:shadow-md'
+                                      : 'bg-card border border-border/50 hover:border-border hover:shadow-md'
                                 }`}
                               >
-                                {/* Selection indicator */}
-                                <div className={`w-5 h-5 rounded-full shrink-0 flex items-center justify-center transition-colors ${
-                                  isSelected ? `${activeNetConfig?.bg || 'bg-primary'}` : 'border border-border/60 bg-muted/30'
-                                }`}>
-                                  {isSelected && <Check className="w-3 h-3 text-white" />}
+                                {/* Badges top-right */}
+                                {isPopular && !isSelected && (
+                                  <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center gap-1">
+                                    <Sparkles className="w-3 h-3" /> Хит
+                                  </div>
+                                )}
+                                {isSelected && (
+                                  <div className={`absolute top-3 right-3 w-5 h-5 rounded-full ${activeNetConfig?.bg || 'bg-primary'} flex items-center justify-center`}>
+                                    <Check className="w-3 h-3 text-white" />
+                                  </div>
+                                )}
+
+                                {/* Title */}
+                                <h3 className="font-bold text-sm text-foreground mb-2 pr-8 line-clamp-2">{service.name}</h3>
+
+                                {/* Description — prominent */}
+                                {service.description && (
+                                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3 mb-3">
+                                    {service.description}
+                                  </p>
+                                )}
+
+                                {/* Speed & Guarantee */}
+                                <div className="flex items-center gap-2 mb-2">
+                                  <SpeedBadge speed={service.speed} />
+                                  <span className="text-muted-foreground/30">·</span>
+                                  <GuaranteeBadge guarantee={service.guarantee} />
                                 </div>
 
-                                {/* Info */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1.5">
-                                    {isPopular && !isSelected && <Sparkles className={`w-3 h-3 shrink-0 ${activeNetConfig?.color || 'text-primary'}`} />}
-                                    <span className="text-sm font-medium text-foreground line-clamp-1">{service.name}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 mt-0.5">
-                                    <SpeedBadge speed={service.speed} compact />
-                                    <GuaranteeBadge guarantee={service.guarantee} compact />
-                                    {service.description && (
-                                      <span className="text-[10px] text-muted-foreground/50 line-clamp-1 hidden sm:inline">· {service.description}</span>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Meta */}
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <span className="text-[10px] text-muted-foreground/60 hidden sm:inline">
-                                    {service.min_quantity.toLocaleString()}–{service.max_quantity.toLocaleString()}
+                                {/* Requirements — prominent */}
+                                <div className="flex flex-wrap gap-1.5 mb-3">
+                                  <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-semibold ${activeNetConfig?.color || 'text-primary'} bg-primary/10`}>
+                                    от {service.min_quantity.toLocaleString()} шт
                                   </span>
-                                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                                  <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-semibold ${activeNetConfig?.color || 'text-primary'} bg-primary/10`}>
+                                    до {service.max_quantity.toLocaleString()} шт
+                                  </span>
+                                </div>
+
+                                {/* Price — bottom */}
+                                <div className="mt-auto">
+                                  <span className={`inline-block px-3 py-1.5 rounded-full text-xs font-bold ${
                                     isSelected || isPopular
                                       ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
                                       : 'bg-muted text-foreground'
                                   }`}>
-                                    {pricePerUnit.toFixed(2)} ₽
+                                    {pricePerUnit.toFixed(2)} ₽ / шт
                                   </span>
                                 </div>
                               </motion.button>
@@ -578,6 +594,21 @@ const Catalog = () => {
                       <div className="flex items-center gap-3 mt-1.5">
                         <SpeedBadge speed={selectedService.speed} />
                         <GuaranteeBadge guarantee={selectedService.guarantee} />
+                      </div>
+                      {/* Description in order form */}
+                      {selectedService.description && (
+                        <p className="text-xs text-muted-foreground leading-relaxed mt-2 p-2 rounded-lg bg-muted/30 border border-border/30">
+                          {selectedService.description}
+                        </p>
+                      )}
+                      {/* Requirements reminder */}
+                      <div className="flex gap-2 mt-2">
+                        <span className={`text-[10px] font-medium ${activeNetConfig?.color || 'text-primary'} bg-primary/10 px-2 py-0.5 rounded-md`}>
+                          от {selectedService.min_quantity.toLocaleString()}
+                        </span>
+                        <span className={`text-[10px] font-medium ${activeNetConfig?.color || 'text-primary'} bg-primary/10 px-2 py-0.5 rounded-md`}>
+                          до {selectedService.max_quantity.toLocaleString()}
+                        </span>
                       </div>
                     </div>
 
