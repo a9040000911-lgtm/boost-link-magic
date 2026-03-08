@@ -595,7 +595,7 @@ const Catalog = () => {
                                     </td>
                                     <td className="px-3 py-2 text-right font-bold whitespace-nowrap">
                                       <span className={isPopular ? (activeNetConfig?.color || 'text-primary') : ''}>
-                                        {pricePerUnit.toFixed(2)} ₽
+                                        {fmtPrice(pricePerUnit)} ₽
                                       </span>
                                     </td>
                                     <td className="px-2 py-2 text-center hidden sm:table-cell"><SpeedBadge speed={service.speed} /></td>
