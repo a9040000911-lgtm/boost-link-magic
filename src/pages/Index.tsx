@@ -9,9 +9,11 @@ import TestimonialsSection from '@/components/TestimonialsSection';
 import Footer from '@/components/Footer';
 import { detectPlatformWithDb, type DbLinkPattern, type DbPlatform } from '@/lib/smm-data';
 import { supabase } from '@/integrations/supabase/client';
+import { useSiteContent } from '@/hooks/useSiteContent';
 import { Sparkles, Check, ExternalLink, Mail, PartyPopper, Zap, AlertTriangle, BookOpen, ArrowRight, X } from 'lucide-react';
 
 const Index = () => {
+  const { content: siteContent } = useSiteContent();
   const navigate = useNavigate();
   const [urls, setUrls] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -143,7 +145,7 @@ const Index = () => {
             className="inline-flex items-center gap-1 text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tight select-none"
             whileHover={{ scale: 1.05 }}
           >
-            {"COOLLIKE".split("").map((letter, i) => (
+            {(siteContent?.heroTitle || "COOLLIKE").split("").map((letter, i) => (
               <motion.span
                 key={i}
                 className="inline-block text-white"
@@ -178,7 +180,7 @@ const Index = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-2xl md:text-3xl font-medium tracking-tight mb-10 text-white text-center relative z-10"
           >
-            Продвигайте свои соцсети
+            {siteContent?.heroSubtitle || 'Продвигайте свои соцсети'}
           </motion.h1>
         )}
 

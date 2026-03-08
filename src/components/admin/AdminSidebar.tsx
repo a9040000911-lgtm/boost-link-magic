@@ -59,6 +59,7 @@ const menuGroups: MenuGroup[] = [
   {
     label: "Контент",
     items: [
+      { title: "Контент сайта", url: "/admin/site-content", icon: FileText },
       { title: "Страницы и SEO", url: "/admin/pages", icon: FileText },
       { title: "FAQ", url: "/admin/faq", icon: HelpCircle },
       { title: "Виджеты", url: "/admin/widgets", icon: Puzzle },

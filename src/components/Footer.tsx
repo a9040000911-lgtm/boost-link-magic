@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { Mail, MessageCircle, Send, Headset, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useSiteContent } from '@/hooks/useSiteContent';
 import { supabase } from '@/integrations/supabase/client';
 
-const SETTINGS_KEYS = ['contact_email', 'contact_work_hours', 'contact_work_days'];
-const DEFAULTS: Record<string, string> = {
+const CONTACT_KEYS = ['contact_email', 'contact_work_hours', 'contact_work_days'];
+const CONTACT_DEFAULTS: Record<string, string> = {
   contact_email: 'support@smmpanel.ru',
   contact_work_hours: '9:00 — 21:00 МСК',
   contact_work_days: 'Пн — Вс',
@@ -23,26 +24,31 @@ const legalLinks = [
 ];
 
 const Footer = () => {
-  const [settings, setSettings] = useState(DEFAULTS);
+  const { content } = useSiteContent();
+  const [contacts, setContacts] = useState(CONTACT_DEFAULTS);
 
   useEffect(() => {
     supabase
       .from('app_settings')
       .select('key, value')
-      .in('key', SETTINGS_KEYS)
+      .in('key', CONTACT_KEYS)
       .then(({ data }) => {
         if (data) {
-          const map = { ...DEFAULTS };
+          const map = { ...CONTACT_DEFAULTS };
           data.forEach((r) => { if (r.value) map[r.key] = r.value; });
-          setSettings(map);
+          setContacts(map);
         }
       });
   }, []);
 
+  const brandName = content?.brandName || 'CoolLike';
+  const brandTagline = content?.brandTagline || 'Продвижение в социальных сетях';
+  const disclaimer = content?.footerDisclaimer || '';
+
   const socials = [
-    { name: 'Telegram', href: 'https://t.me/smmpanel', icon: Send },
-    { name: 'WhatsApp', href: 'https://wa.me/79001234567', icon: MessageCircle },
-    { name: 'Email', href: `mailto:${settings.contact_email}`, icon: Mail },
+    { name: 'Telegram', href: content?.socialTelegram || 'https://t.me/smmpanel', icon: Send },
+    { name: 'WhatsApp', href: content?.socialWhatsapp || 'https://wa.me/79001234567', icon: MessageCircle },
+    { name: 'Email', href: `mailto:${contacts.contact_email}`, icon: Mail },
   ];
 
   return (
@@ -54,14 +60,13 @@ const Footer = () => {
       className="bg-gradient-to-br from-primary/90 via-secondary/80 to-accent/70 border-t border-white/10 py-10 px-4"
     >
       <div className="max-w-5xl mx-auto">
-        {/* Top row */}
         <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-8">
           <div>
-            <p className="text-sm font-semibold text-white">CoolLike</p>
-            <p className="text-xs text-white/60 mt-1">Продвижение в социальных сетях</p>
+            <p className="text-sm font-semibold text-white">{brandName}</p>
+            <p className="text-xs text-white/60 mt-1">{brandTagline}</p>
             <div className="flex items-center gap-2 mt-2 text-xs text-white/50">
               <Clock className="w-3 h-3" />
-              <span>{settings.contact_work_days}, {settings.contact_work_hours}</span>
+              <span>{contacts.contact_work_days}, {contacts.contact_work_hours}</span>
             </div>
             <div className="flex items-center gap-3 mt-3">
               {socials.map((s) => (
@@ -79,7 +84,6 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Legal links grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-1.5">
             {legalLinks.map((link) => (
               <Link
@@ -93,7 +97,6 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Support button */}
         <div className="flex justify-center mb-6">
           <Link
             to="/dashboard/support"
@@ -104,14 +107,15 @@ const Footer = () => {
           </Link>
         </div>
 
-        {/* Bottom */}
         <div className="border-t border-white/10 pt-4 space-y-2">
           <p className="text-xs text-white/40 text-center">
-            © {new Date().getFullYear()} CoolLike. Все права защищены.
+            © {new Date().getFullYear()} {brandName}. Все права защищены.
           </p>
-          <p className="text-[10px] text-white/30 text-center leading-relaxed">
-            Meta Platforms Inc. (Facebook, Instagram) признана экстремистской организацией и запрещена на территории Российской Федерации.
-          </p>
+          {disclaimer && (
+            <p className="text-[10px] text-white/30 text-center leading-relaxed">
+              {disclaimer}
+            </p>
+          )}
         </div>
       </div>
     </motion.footer>

@@ -46,6 +46,7 @@ import AdminInquiries from "./pages/admin/AdminInquiries";
 import AdminPayments from "./pages/admin/AdminPayments";
 import AdminAPI from "./pages/admin/AdminAPI";
 import Contact from "./pages/Contact";
+import AdminSiteContent from "./pages/admin/AdminSiteContent";
 
 const queryClient = new QueryClient();
 
@@ -96,6 +97,7 @@ const App = () => (
               <Route path="inquiries" element={<AdminInquiries />} />
               <Route path="payments" element={<AdminPayments />} />
               <Route path="api" element={<AdminAPI />} />
+              <Route path="site-content" element={<AdminSiteContent />} />
             </Route>
             <Route path="/page/:slug" element={<DynamicPage />} />
             <Route path="*" element={<NotFound />} />
