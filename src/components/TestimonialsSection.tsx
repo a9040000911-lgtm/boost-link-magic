@@ -129,7 +129,7 @@ const TestimonialsSection = () => {
           ))}
         </div>
       </div>
-    </section>
+    </motion.section>
   );
 };
 
