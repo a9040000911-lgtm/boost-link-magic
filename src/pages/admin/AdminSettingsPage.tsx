@@ -68,6 +68,9 @@ const SETTINGS_META: SettingMeta[] = [
   { key: "min_withdraw_amount", label: "Мин. сумма вывода", hint: "Минимальная сумма для запроса вывода средств", type: "number", suffix: "₽", group: "finance" },
   { key: "new_user_bonus", label: "Бонус новому пользователю", hint: "Сумма, которая автоматически начисляется на баланс при регистрации (0 = отключено)", type: "number", suffix: "₽", group: "finance" },
 
+  // License
+  { key: "license_key", label: "Лицензионный ключ", hint: "Введите лицензионный ключ один раз — он будет действовать для всего сайта. Получите ключ при покупке лицензии", type: "text", group: "license" },
+
   // System
   { key: "maintenance_mode", label: "Режим обслуживания", hint: "Когда включено — обычные пользователи видят заглушку «сайт временно недоступен», админы работают как обычно", type: "boolean", group: "system" },
   { key: "telegram_notifications", label: "Telegram уведомления", hint: "Отправлять ли уведомления о новых заказах и тикетах в Telegram-бот", type: "boolean", group: "system" },
@@ -103,6 +106,7 @@ const GROUPS = [
   { id: "support", label: "Поддержка", icon: MessageSquare, description: "Настройки тикетов и общения с клиентами" },
   { id: "orders", label: "Заказы", icon: ShoppingCart, description: "Лимиты и наценки на заказы" },
   { id: "finance", label: "Финансы", icon: Wallet, description: "Пополнения, выводы и бонусы" },
+  { id: "license", label: "Лицензия", icon: Shield, description: "Глобальный лицензионный ключ для всего сайта — вводится один раз" },
   { id: "system", label: "Система", icon: Shield, description: "Технический режим и уведомления" },
   { id: "plan_standard", label: "План Standard", icon: Clock, description: "Лимиты базового плана лицензии" },
   { id: "plan_pro", label: "План Pro", icon: Clock, description: "Лимиты расширенного плана лицензии" },

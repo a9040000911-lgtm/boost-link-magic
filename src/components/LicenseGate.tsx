@@ -1,17 +1,13 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Shield } from "lucide-react";
 import { getPlanLimits, type PlanLimits } from "@/lib/plan-limits";
 
 interface LicenseGateProps {
   children: ReactNode;
 }
 
-const LICENSE_STORAGE_KEY = "app_license_key";
 const LICENSE_CACHE_KEY = "app_license_cache";
 const CACHE_TTL = 1000 * 60 * 60; // 1 hour
 
@@ -41,10 +37,7 @@ export function useLicense() {
 
 export default function LicenseGate({ children }: LicenseGateProps) {
   const location = useLocation();
-  const [status, setStatus] = useState<"loading" | "valid" | "invalid" | "input">("loading");
-  const [error, setError] = useState("");
-  const [keyInput, setKeyInput] = useState("");
-  const [checking, setChecking] = useState(false);
+  const [status, setStatus] = useState<"loading" | "valid" | "invalid">("loading");
   const [plan, setPlan] = useState("standard");
 
   const isBypassed = BYPASS_PREFIXES.some((p) => location.pathname.startsWith(p));
@@ -57,12 +50,7 @@ export default function LicenseGate({ children }: LicenseGateProps) {
   if (isBypassed) return <>{children}</>;
 
   async function checkLicense() {
-    const storedKey = localStorage.getItem(LICENSE_STORAGE_KEY);
-    if (!storedKey) {
-      setStatus("input");
-      return;
-    }
-
+    // Check local cache first
     try {
       const cached = JSON.parse(localStorage.getItem(LICENSE_CACHE_KEY) || "{}") as LicenseCache;
       if (cached.valid && Date.now() - cached.timestamp < CACHE_TTL) {
@@ -72,16 +60,30 @@ export default function LicenseGate({ children }: LicenseGateProps) {
       }
     } catch {}
 
-    await verifyKey(storedKey);
-  }
+    // Read license key from app_settings (set once by admin)
+    const { data: setting } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "license_key")
+      .maybeSingle();
 
-  async function verifyKey(key: string) {
-    setChecking(true);
-    setError("");
+    const storedKey = setting?.value;
+    if (!storedKey) {
+      // No license configured — allow access with standard plan (or block if you prefer)
+      setPlan("standard");
+      setStatus("valid");
+      localStorage.setItem(
+        LICENSE_CACHE_KEY,
+        JSON.stringify({ valid: true, plan: "standard", timestamp: Date.now() })
+      );
+      return;
+    }
+
+    // Verify with edge function
     try {
       const currentDomain = window.location.hostname;
       const { data, error: fnError } = await supabase.functions.invoke("verify-license", {
-        body: { action: "verify", license_key: key, domain: currentDomain },
+        body: { action: "verify", license_key: storedKey, domain: currentDomain },
       });
 
       if (fnError) throw new Error(fnError.message);
@@ -89,32 +91,20 @@ export default function LicenseGate({ children }: LicenseGateProps) {
       if (data?.valid) {
         const licensePlan = data.plan || "standard";
         setPlan(licensePlan);
-        localStorage.setItem(LICENSE_STORAGE_KEY, key);
         localStorage.setItem(
           LICENSE_CACHE_KEY,
           JSON.stringify({ valid: true, plan: licensePlan, timestamp: Date.now() })
         );
         setStatus("valid");
       } else {
-        localStorage.removeItem(LICENSE_STORAGE_KEY);
-        localStorage.removeItem(LICENSE_CACHE_KEY);
-        setError(data?.error || "Недействительная лицензия");
-        setStatus("invalid");
+        // License invalid — still allow access with standard defaults
+        setPlan("standard");
+        setStatus("valid");
       }
-    } catch (err: any) {
-      setError(err.message || "Ошибка проверки лицензии");
-      setStatus("invalid");
-    } finally {
-      setChecking(false);
-    }
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!keyInput.trim()) return;
-    await verifyKey(keyInput.trim());
-    if (status !== "valid") {
-      setStatus("input");
+    } catch {
+      // On error — allow access with standard plan
+      setPlan("standard");
+      setStatus("valid");
     }
   }
 
@@ -129,43 +119,9 @@ export default function LicenseGate({ children }: LicenseGateProps) {
     );
   }
 
-  if (status === "valid") {
-    return (
-      <LicenseContext.Provider value={{ plan, limits: getPlanLimits(plan), isLicensed: true }}>
-        {children}
-      </LicenseContext.Provider>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
-            <AlertTriangle className="h-7 w-7 text-destructive" />
-          </div>
-          <CardTitle className="text-xl">Активация лицензии</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            Для работы приложения необходим действующий лицензионный ключ
-          </p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              value={keyInput}
-              onChange={(e) => setKeyInput(e.target.value)}
-              placeholder="Введите лицензионный ключ"
-              className="font-mono text-sm"
-            />
-            {error && (
-              <p className="text-sm text-destructive">{error}</p>
-            )}
-            <Button type="submit" className="w-full" disabled={checking || !keyInput.trim()}>
-              {checking ? "Проверка…" : "Активировать"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+    <LicenseContext.Provider value={{ plan, limits: getPlanLimits(plan), isLicensed: status === "valid" && plan !== "standard" }}>
+      {children}
+    </LicenseContext.Provider>
   );
 }
