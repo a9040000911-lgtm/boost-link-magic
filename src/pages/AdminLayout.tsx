@@ -1,45 +1,37 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { useAdminRole } from "@/hooks/useAdminRole";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { TwoFactorGate } from "@/components/TwoFactorGate";
+import { ROLE_LABELS } from "@/lib/audit";
+import { Badge } from "@/components/ui/badge";
 
 const AdminLayout = () => {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { role, isStaff, loading: roleLoading } = useAdminRole();
   const navigate = useNavigate();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       navigate("/auth");
       return;
     }
-    if (user) {
-      supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .single()
-        .then(({ data }) => {
-          if (!data) {
-            navigate("/dashboard");
-          } else {
-            setIsAdmin(true);
-          }
-        });
+    if (!authLoading && !roleLoading && !isStaff) {
+      navigate("/dashboard");
     }
-  }, [user, loading, navigate]);
+  }, [user, authLoading, roleLoading, isStaff, navigate]);
 
-  if (loading || isAdmin === null) {
+  if (authLoading || roleLoading || !isStaff) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
+
+  const roleColor = role === "admin" ? "destructive" : role === "ceo" ? "default" : role === "investor" ? "secondary" : "outline";
 
   return (
     <TwoFactorGate userId={user!.id}>
@@ -50,6 +42,11 @@ const AdminLayout = () => {
             <header className="h-12 shrink-0 flex items-center border-b border-border/60 bg-card px-4 gap-4">
               <SidebarTrigger />
               <h2 className="font-semibold text-destructive text-sm">Админ-панель</h2>
+              {role && (
+                <Badge variant={roleColor as any} className="text-[9px] ml-auto">
+                  {ROLE_LABELS[role] || role}
+                </Badge>
+              )}
             </header>
             <main className="flex-1 p-3 overflow-auto">
               <Outlet />

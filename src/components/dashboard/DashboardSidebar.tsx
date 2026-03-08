@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
 import { LayoutDashboard, ShoppingCart, FolderKanban, Settings, LogOut, Wallet, Shield, MessageSquare } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { useAdminRole } from "@/hooks/useAdminRole";
 import {
   Sidebar,
   SidebarContent,
@@ -30,18 +29,7 @@ export function DashboardSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { user, signOut } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .single()
-      .then(({ data }) => setIsAdmin(!!data));
-  }, [user]);
+  const { isStaff } = useAdminRole();
 
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "User";
   const initials = displayName.slice(0, 2).toUpperCase();
@@ -76,7 +64,7 @@ export function DashboardSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {isAdmin && (
+        {isStaff && (
           <SidebarGroup>
             {!collapsed && (
               <SidebarGroupLabel className="text-xs text-muted-foreground px-4 pt-2">
