@@ -35,20 +35,9 @@ serve(async (req) => {
     );
 
     // --- SECURITY: Verify payment with YooKassa API instead of trusting webhook body ---
-    // Get credentials from secrets (preferred) or app_settings fallback
-    let shopId = Deno.env.get('YOOKASSA_SHOP_ID') || '';
-    let secretKey = Deno.env.get('YOOKASSA_SECRET_KEY') || '';
-
-    if (!shopId || !secretKey) {
-      const { data: settings } = await adminClient
-        .from('app_settings')
-        .select('key, value')
-        .in('key', ['yookassa_shop_id', 'yookassa_secret_key']);
-      const map: Record<string, string> = {};
-      (settings || []).forEach((r: any) => { map[r.key] = r.value; });
-      shopId = shopId || map.yookassa_shop_id || '';
-      secretKey = secretKey || map.yookassa_secret_key || '';
-    }
+    // Get credentials from secrets only (never from app_settings)
+    const shopId = Deno.env.get('YOOKASSA_SHOP_ID') || '';
+    const secretKey = Deno.env.get('YOOKASSA_SECRET_KEY') || '';
 
     if (!shopId || !secretKey) {
       console.error('YooKassa credentials not configured');
