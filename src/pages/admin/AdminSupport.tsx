@@ -63,8 +63,9 @@ interface SupportBan {
   unban_reason: string | null;
 }
 
-const AUTO_CLOSE_HOURS = 24;
-const REOPEN_HOURS = 48;
+// These will be loaded from app_settings, with fallbacks
+let AUTO_CLOSE_HOURS = 24;
+let REOPEN_HOURS = 48;
 
 const statusColors: Record<string, string> = {
   open: "bg-green-500/20 text-green-600",
