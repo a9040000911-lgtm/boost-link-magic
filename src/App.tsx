@@ -38,6 +38,8 @@ import CookieConsent from "./components/CookieConsent";
 import SiteWidgets from "./components/SiteWidgets";
 import DynamicPage from "./pages/DynamicPage";
 import Catalog from "./pages/Catalog";
+import LicenseGate from "./components/LicenseGate";
+import AdminLicenses from "./pages/admin/AdminLicenses";
 
 const queryClient = new QueryClient();
 
