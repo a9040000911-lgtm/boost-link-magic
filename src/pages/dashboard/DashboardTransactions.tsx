@@ -3,10 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Wallet, ArrowDownCircle, ArrowUpCircle, RotateCcw, ShoppingCart, Filter, Search } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Wallet, ArrowDownCircle, ArrowUpCircle, RotateCcw, ShoppingCart, Filter, Search, Plus, CreditCard } from "lucide-react";
+import { toast } from "sonner";
 
 interface Transaction {
   id: string;
@@ -89,9 +93,92 @@ const DashboardTransactions = () => {
     { title: "Возвраты", value: `${stats.refunds.toFixed(2)} ₽`, icon: RotateCcw, gradient: "card-gradient-amber" },
   ];
 
+  const [depositAmount, setDepositAmount] = useState("");
+  const [depositLoading, setDepositLoading] = useState(false);
+  const [depositOpen, setDepositOpen] = useState(false);
+
+  const handleDeposit = async () => {
+    const amt = Number(depositAmount);
+    if (!amt || amt < 1) {
+      toast.error("Укажите корректную сумму");
+      return;
+    }
+    setDepositLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: { amount: amt },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.confirmation_url) {
+        window.open(data.confirmation_url, '_blank');
+        toast.success("Перенаправляем на страницу оплаты...");
+        setDepositOpen(false);
+        setDepositAmount("");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Ошибка создания платежа");
+    }
+    setDepositLoading(false);
+  };
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Транзакции</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Транзакции</h1>
+        <Dialog open={depositOpen} onOpenChange={setDepositOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Пополнить баланс
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-primary" />
+                Пополнение баланса
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <div className="space-y-2">
+                <Label>Сумма пополнения (₽)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  placeholder="Введите сумму"
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2">
+                {[100, 500, 1000, 5000].map((amt) => (
+                  <Button
+                    key={amt}
+                    size="sm"
+                    variant={depositAmount === String(amt) ? "default" : "outline"}
+                    onClick={() => setDepositAmount(String(amt))}
+                    className="flex-1 text-xs"
+                  >
+                    {amt} ₽
+                  </Button>
+                ))}
+              </div>
+              <Button
+                className="w-full gap-2"
+                onClick={handleDeposit}
+                disabled={depositLoading || !depositAmount}
+              >
+                <CreditCard className="h-4 w-4" />
+                {depositLoading ? "Создание платежа..." : "Оплатить через ЮKassa"}
+              </Button>
+              <p className="text-[11px] text-muted-foreground text-center">
+                После нажатия вы будете перенаправлены на страницу оплаты ЮKassa
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
