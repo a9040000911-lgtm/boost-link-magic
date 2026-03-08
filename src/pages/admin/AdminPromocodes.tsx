@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Search, Tag, RefreshCw, Plus, Copy, Trash2, BarChart3, Edit } from "lucide-react";
 import { toast } from "sonner";
+import { useTableControls } from "@/hooks/useTableControls";
+import { TablePagination } from "@/components/admin/TablePagination";
 
 interface Promocode {
   id: string;
