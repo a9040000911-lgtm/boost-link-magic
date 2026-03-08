@@ -7,7 +7,7 @@ import MarketingSection from '@/components/MarketingSection';
 import TestimonialsSection from '@/components/TestimonialsSection';
 import Footer from '@/components/Footer';
 import { detectPlatform } from '@/lib/smm-data';
-import { Sparkles, Check, ExternalLink, Mail } from 'lucide-react';
+import { Sparkles, Check, ExternalLink, Mail, PartyPopper, Zap } from 'lucide-react';
 
 const Index = () => {
   const [urls, setUrls] = useState<string[]>([]);
