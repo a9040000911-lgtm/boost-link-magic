@@ -272,35 +272,143 @@ const AdminSettingsPage = () => {
         <div className="flex-1 min-h-0 overflow-auto mt-3">
           {TABS.map(tab => (
             <TabsContent key={tab.id} value={tab.id} className="mt-0 space-y-4">
-              {tab.groupIds.map(groupId => {
-                const group = GROUPS.find(g => g.id === groupId);
-                if (!group) return null;
-                const GroupIcon = group.icon;
-                const groupSettings = SETTINGS_META.filter(s => s.group === groupId);
-                if (groupSettings.length === 0) return null;
-                return (
-                  <Card key={groupId} className="border-border/60">
-                    <CardHeader className="p-4 pb-2">
-                      <CardTitle className="text-sm font-bold flex items-center gap-2">
-                        <GroupIcon className="h-4 w-4 text-primary" />
-                        {group.label}
-                        <span className="text-[11px] font-normal text-muted-foreground ml-1">— {group.description}</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-2 space-y-4">
-                      {groupSettings.map(setting => (
-                        <SettingField
-                          key={setting.key}
-                          setting={setting}
-                          val={values[setting.key] ?? ""}
-                          changed={(values[setting.key] ?? "") !== (original[setting.key] ?? "")}
-                          updateVal={updateVal}
-                        />
+              {tab.id === "markup" ? (
+                /* ===== VISUAL LADDER EDITOR ===== */
+                <Card className="border-border/60">
+                  <CardHeader className="p-4 pb-2">
+                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                      <Percent className="h-4 w-4 text-primary" />
+                      Лестница наценок
+                      <span className="text-[11px] font-normal text-muted-foreground ml-1">— автоматические ступени наценки от закупочной цены</span>
+                      {ladderChanged && <span className="text-[9px] text-primary ml-1">● изменено</span>}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-2 space-y-4">
+                    <p className="text-[11px] text-muted-foreground">
+                      Если закупочная цена услуги попадает в диапазон — применяется соответствующая наценка. Ступени проверяются сверху вниз.
+                    </p>
+
+                    <div className="space-y-2">
+                      {/* Header */}
+                      <div className="grid grid-cols-[1fr_40px_1fr_40px] gap-2 items-center text-[10px] font-bold text-muted-foreground uppercase tracking-wide px-1">
+                        <span>Закупка до (₽/1000)</span>
+                        <span></span>
+                        <span>Наценка (%)</span>
+                        <span></span>
+                      </div>
+
+                      {/* Tiers */}
+                      {ladder.map((tier, idx) => (
+                        <div key={idx} className="grid grid-cols-[1fr_40px_1fr_40px] gap-2 items-center">
+                          <Input
+                            type="number"
+                            value={tier.maxRate >= 99999 ? "" : tier.maxRate}
+                            placeholder="∞"
+                            onChange={e => {
+                              const v = e.target.value;
+                              const newLadder = [...ladder];
+                              newLadder[idx] = { ...tier, maxRate: v === "" ? 99999 : parseFloat(v) || 0 };
+                              setLadder(newLadder);
+                            }}
+                            className="h-9 text-sm font-mono"
+                          />
+                          <div className="flex items-center justify-center">
+                            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              value={tier.markup}
+                              onChange={e => {
+                                const newLadder = [...ladder];
+                                newLadder[idx] = { ...tier, markup: parseFloat(e.target.value) || 0 };
+                                setLadder(newLadder);
+                              }}
+                              className="h-9 text-sm font-mono"
+                            />
+                            <span className="text-sm text-muted-foreground">%</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-9 w-9 p-0"
+                            onClick={() => setLadder(ladder.filter((_, i) => i !== idx))}
+                            disabled={ladder.length <= 1}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </div>
                       ))}
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                    </div>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs"
+                      onClick={() => {
+                        const lastMax = ladder.length > 0 ? ladder[ladder.length - 1].maxRate : 0;
+                        const newMax = lastMax >= 99999 ? 99999 : lastMax + 100;
+                        setLadder([...ladder, { maxRate: newMax, markup: 20 }]);
+                      }}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />Добавить ступень
+                    </Button>
+
+                    {/* Preview */}
+                    <div className="border rounded-md p-3 bg-muted/30 space-y-1.5">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Предпросмотр</p>
+                      {ladder.map((tier, idx) => {
+                        const prevMax = idx > 0 ? ladder[idx - 1].maxRate : 0;
+                        const from = prevMax;
+                        const to = tier.maxRate >= 99999 ? "∞" : tier.maxRate;
+                        return (
+                          <div key={idx} className="flex items-center gap-3 text-xs">
+                            <span className="font-mono text-muted-foreground w-[140px]">
+                              {from === 0 ? "0" : `${from}`} — {to} ₽
+                            </span>
+                            <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                            <span className="font-bold text-primary">{tier.markup}%</span>
+                            <span className="text-muted-foreground text-[10px]">
+                              (пример: {(10 * (1 + tier.markup / 100)).toFixed(1)}₽ за 10₽ закупки)
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                /* ===== STANDARD SETTINGS GROUPS ===== */
+                tab.groupIds.map(groupId => {
+                  const group = GROUPS.find(g => g.id === groupId);
+                  if (!group) return null;
+                  const GroupIcon = group.icon;
+                  const groupSettings = SETTINGS_META.filter(s => s.group === groupId);
+                  if (groupSettings.length === 0) return null;
+                  return (
+                    <Card key={groupId} className="border-border/60">
+                      <CardHeader className="p-4 pb-2">
+                        <CardTitle className="text-sm font-bold flex items-center gap-2">
+                          <GroupIcon className="h-4 w-4 text-primary" />
+                          {group.label}
+                          <span className="text-[11px] font-normal text-muted-foreground ml-1">— {group.description}</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-2 space-y-4">
+                        {groupSettings.map(setting => (
+                          <SettingField
+                            key={setting.key}
+                            setting={setting}
+                            val={values[setting.key] ?? ""}
+                            changed={(values[setting.key] ?? "") !== (original[setting.key] ?? "")}
+                            updateVal={updateVal}
+                          />
+                        ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
             </TabsContent>
           ))}
         </div>
