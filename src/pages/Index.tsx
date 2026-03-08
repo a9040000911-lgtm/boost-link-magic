@@ -147,7 +147,7 @@ const Index = () => {
           className={`relative z-10 ${isActive ? 'mb-2' : 'mb-6'}`}
         >
           <motion.div
-            className={`inline-flex items-center gap-1 font-extrabold tracking-tight select-none ${isActive ? 'text-4xl md:text-5xl' : 'text-6xl md:text-7xl lg:text-8xl'}`}
+            className={`inline-flex items-center gap-1 font-extrabold tracking-tight select-none ${isActive ? 'text-5xl md:text-6xl lg:text-7xl' : 'text-6xl md:text-7xl lg:text-8xl'}`}
             whileHover={{ scale: 1.05 }}
           >
             {(siteContent?.heroTitle || "COOLLIKE").split("").map((letter, i) => (
