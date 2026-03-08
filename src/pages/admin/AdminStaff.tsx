@@ -362,7 +362,7 @@ const AdminStaff = () => {
               </TableHeader>
               <TableBody>
                 {staff.map((s) => {
-                  const isAdmin = s.role.includes("admin");
+                  const isFullAccess = s.role.includes("admin") || s.role.includes("ceo");
                   return (
                     <TableRow key={s.user_id} className="text-[11px]">
                       <TableCell className="px-2">
