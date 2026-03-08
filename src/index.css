@@ -70,12 +70,23 @@
 @layer utilities {
   .hero-gradient {
     background: linear-gradient(
-      180deg,
+      220deg,
       hsl(210 100% 85%) 0%,
-      hsl(270 85% 75%) 30%,
-      hsl(320 90% 62%) 60%,
-      hsl(345 95% 55%) 100%
+      hsl(270 85% 75%) 25%,
+      hsl(320 90% 62%) 50%,
+      hsl(345 95% 55%) 75%,
+      hsl(210 100% 85%) 100%
     );
+    background-size: 300% 300%;
+    animation: hero-bg-shift 12s ease-in-out infinite;
+  }
+
+  @keyframes hero-bg-shift {
+    0% { background-position: 0% 0%; }
+    25% { background-position: 100% 50%; }
+    50% { background-position: 50% 100%; }
+    75% { background-position: 0% 50%; }
+    100% { background-position: 0% 0%; }
   }
   .gradient-text {
     @apply bg-clip-text text-transparent;
