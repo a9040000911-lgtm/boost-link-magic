@@ -155,12 +155,27 @@ const SettingField = ({ setting, val, changed, updateVal }: { setting: SettingMe
   </div>
 );
 
+const DEFAULT_LADDER = [
+  { maxRate: 20, markup: 80 },
+  { maxRate: 50, markup: 60 },
+  { maxRate: 150, markup: 40 },
+  { maxRate: 500, markup: 30 },
+  { maxRate: 99999, markup: 20 },
+];
+
+interface LadderTier {
+  maxRate: number;
+  markup: number;
+}
+
 const AdminSettingsPage = () => {
   const [values, setValues] = useState<Record<string, string>>({});
   const [original, setOriginal] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
+  const [ladder, setLadder] = useState<LadderTier[]>(DEFAULT_LADDER);
+  const [originalLadder, setOriginalLadder] = useState<LadderTier[]>(DEFAULT_LADDER);
 
   useEffect(() => { load(); }, []);
 
@@ -171,6 +186,14 @@ const AdminSettingsPage = () => {
     (data || []).forEach((r: any) => { map[r.key] = r.value; });
     setValues(map);
     setOriginal(map);
+    // Parse ladder
+    try {
+      const parsed = JSON.parse(map["markup_ladder"] || "[]");
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setLadder(parsed);
+        setOriginalLadder(parsed);
+      }
+    } catch {}
     setLoading(false);
   };
 
