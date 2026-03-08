@@ -275,6 +275,7 @@ Deno.serve(async (req) => {
       userPrompt,
       endpoint: s.support_ai_custom_endpoint,
       apiKeyEnv: s.support_ai_custom_key_env,
+      supabase,
     });
 
     // Parse response based on mode

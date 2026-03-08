@@ -1481,6 +1481,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_ai_key_error: { Args: { key_id: string }; Returns: undefined }
+      increment_ai_key_usage: { Args: { key_id: string }; Returns: undefined }
       validate_promocode: { Args: { p_code: string }; Returns: Json }
     }
     Enums: {
