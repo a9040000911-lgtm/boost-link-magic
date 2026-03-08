@@ -199,7 +199,7 @@ const Catalog = () => {
       </motion.div>
 
       {/* Platform Tabs */}
-      <div className="border-b border-border/40 bg-card/30">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.15 }} className="border-b border-border/40 bg-card/30">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex items-center gap-1 overflow-x-auto py-3 scrollbar-none">
             {availableNetworks.map((net) => (
