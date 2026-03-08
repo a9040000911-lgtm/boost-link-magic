@@ -23,6 +23,7 @@ const userMenuItems = [
   { title: "Проекты", url: "/dashboard/projects", icon: FolderKanban },
   { title: "Бонусы", url: "/dashboard/bonuses", icon: Sparkles },
   { title: "Поддержка", url: "/dashboard/support", icon: MessageSquare },
+  { title: "Запрещённые темы", url: "/dashboard/rules", icon: ShieldAlert },
   { title: "Настройки", url: "/dashboard/settings", icon: Settings },
 ];
 
