@@ -41,7 +41,7 @@ const AdminUserDetail = () => {
   const [editPassword, setEditPassword] = useState("");
   const [editDiscount, setEditDiscount] = useState("0");
   const [balanceAmount, setBalanceAmount] = useState("");
-
+  const [balanceReason, setBalanceReason] = useState("");
   // Auth info
   const [authInfo, setAuthInfo] = useState<any>(null);
 
