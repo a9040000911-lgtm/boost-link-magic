@@ -15,7 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   RefreshCw, Search, Package, Plus, Link2, Trash2, ArrowUp, ArrowDown,
-  Zap, ShieldCheck, AlertTriangle, Settings2, ChevronRight, Percent, Layers
+  Zap, ShieldCheck, AlertTriangle, Settings2, ChevronRight, Percent, Layers,
+  DollarSign, Hash
 } from "lucide-react";
 import { toast } from "sonner";
 import { logAuditAction } from "@/lib/audit";
