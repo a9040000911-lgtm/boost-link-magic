@@ -342,7 +342,7 @@ const Catalog = () => {
                             <span
                               className={`inline-block px-3 py-1.5 rounded-full text-xs font-bold ${
                                 isSelected
-                                  ? "bg-primary text-primary-foreground"
+                                  ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
                                   : "bg-muted text-foreground"
                               }`}
                             >
