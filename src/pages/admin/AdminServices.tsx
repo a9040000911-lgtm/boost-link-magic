@@ -137,13 +137,14 @@ const AdminServices = () => {
 
   const loadAll = async () => {
     setLoading(true);
-    const [psRes, sRes, mRes, pRes, ladderRes, minMarkupRes] = await Promise.all([
+    const [psRes, sRes, mRes, pRes, ladderRes, minMarkupRes, rateRes] = await Promise.all([
       supabase.from("provider_services").select("*").order("provider").order("network"),
       supabase.from("services").select("*").order("network").order("category").order("name"),
       supabase.from("service_provider_mappings").select("*").order("priority"),
       supabase.from("providers").select("*").eq("is_enabled", true),
       supabase.from("app_settings").select("value").eq("key", "markup_ladder").single(),
       supabase.from("app_settings").select("value").eq("key", "min_markup_percent").single(),
+      supabase.from("exchange_rates").select("rate").eq("base_currency", "USD").eq("target_currency", "RUB").order("fetched_at", { ascending: false }).limit(1).single(),
     ]);
     setProviderServices((psRes.data as ProviderService[]) || []);
     setServices((sRes.data as Service[]) || []);
@@ -155,9 +156,23 @@ const AdminServices = () => {
     if (minMarkupRes.data?.value) {
       setMinMarkup(Number(minMarkupRes.data.value) || MIN_MARKUP_DEFAULT);
     }
+    if (rateRes.data?.rate) {
+      setUsdRate(Number(rateRes.data.rate));
+    }
     setSelectedIds(new Set());
     setLoading(false);
   };
+
+  // Price formatting helper
+  const fmtPrice = (pricePerK: number): string => {
+    let val = priceMode === "per1" ? pricePerK / 1000 : pricePerK;
+    if (currency === "USD" && usdRate > 0) val = val / usdRate;
+    const sym = currency === "USD" ? "$" : "₽";
+    return currency === "USD" ? `${sym}${val.toFixed(4)}` : `${val.toFixed(2)}${sym}`;
+  };
+
+  const priceLabel = priceMode === "per1" ? "Цена/1шт" : "Цена/1к";
+  const currLabel = currency === "USD" ? "USD" : "RUB";
 
   const handleSync = async (providerKey?: string) => {
     setSyncing(true);
