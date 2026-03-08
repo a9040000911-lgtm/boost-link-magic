@@ -23,15 +23,15 @@ interface CatalogService {
   network: string;
 }
 
-const networkConfig: { key: string; label: string; icon: string }[] = [
-  { key: "Instagram", label: "Instagram", icon: "instagram" },
-  { key: "YouTube", label: "YouTube", icon: "youtube" },
-  { key: "TikTok", label: "TikTok", icon: "tiktok" },
-  { key: "Telegram", label: "Telegram", icon: "telegram" },
-  { key: "VK", label: "ВКонтакте", icon: "vk" },
-  { key: "Twitter", label: "Twitter", icon: "twitter" },
-  { key: "Facebook", label: "Facebook", icon: "facebook" },
-  { key: "Spotify", label: "Spotify", icon: "spotify" },
+const networkConfig: { key: string; label: string; icon: string; color: string; bg: string; border: string; shadow: string }[] = [
+  { key: "Instagram", label: "Instagram", icon: "instagram", color: "text-pink-500", bg: "bg-gradient-to-r from-pink-500 to-purple-500", border: "border-pink-400", shadow: "shadow-pink-500/25" },
+  { key: "YouTube", label: "YouTube", icon: "youtube", color: "text-red-500", bg: "bg-red-500", border: "border-red-400", shadow: "shadow-red-500/25" },
+  { key: "TikTok", label: "TikTok", icon: "tiktok", color: "text-foreground", bg: "bg-foreground", border: "border-foreground/60", shadow: "shadow-foreground/20" },
+  { key: "Telegram", label: "Telegram", icon: "telegram", color: "text-sky-500", bg: "bg-sky-500", border: "border-sky-400", shadow: "shadow-sky-500/25" },
+  { key: "VK", label: "ВКонтакте", icon: "vk", color: "text-blue-500", bg: "bg-blue-500", border: "border-blue-400", shadow: "shadow-blue-500/25" },
+  { key: "Twitter", label: "Twitter", icon: "twitter", color: "text-sky-400", bg: "bg-sky-400", border: "border-sky-300", shadow: "shadow-sky-400/25" },
+  { key: "Facebook", label: "Facebook", icon: "facebook", color: "text-blue-600", bg: "bg-blue-600", border: "border-blue-500", shadow: "shadow-blue-600/25" },
+  { key: "Spotify", label: "Spotify", icon: "spotify", color: "text-green-500", bg: "bg-green-500", border: "border-green-400", shadow: "shadow-green-500/25" },
 ];
 
 const Catalog = () => {
@@ -152,6 +152,7 @@ const Catalog = () => {
     }
   };
 
+  const activeNetConfig = networkConfig.find(n => n.key === activeNetwork);
   const totalPrice = selectedService ? (selectedService.price / 1000) * quantity : 0;
 
   const handleOrder = () => {
@@ -207,7 +208,7 @@ const Catalog = () => {
                 onClick={() => handleNetworkChange(net.key)}
                 className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
                   activeNetwork === net.key
-                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-105"
+                    ? `${net.bg} text-white shadow-lg ${net.shadow} scale-105`
                     : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
@@ -242,12 +243,12 @@ const Catalog = () => {
                       onClick={() => handleCategoryChange(cat)}
                       className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
                         activeCategory === cat
-                          ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
+                          ? `bg-card ${activeNetConfig?.color || 'text-primary'} border-2 ${activeNetConfig?.border || 'border-primary/20'} shadow-sm`
                           : "text-foreground/80 hover:bg-muted/60 border border-transparent"
                       }`}
                     >
                       <span className="truncate">{cat}</span>
-                      <span className={`text-[11px] shrink-0 ${activeCategory === cat ? "text-primary/70" : "text-muted-foreground/50"}`}>
+                      <span className={`text-[11px] shrink-0 ${activeCategory === cat ? "opacity-70" : "text-muted-foreground/50"}`}>
                         {count}
                       </span>
                     </button>
@@ -265,10 +266,10 @@ const Catalog = () => {
                     <button
                       key={cat}
                       onClick={() => handleCategoryChange(cat)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${
                         activeCategory === cat
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground"
+                          ? `${activeNetConfig?.bg || 'bg-primary'} text-white border-transparent`
+                          : "bg-muted text-muted-foreground border-transparent"
                       }`}
                     >
                       {cat}
@@ -320,13 +321,13 @@ const Catalog = () => {
                           whileTap={{ scale: 0.98 }}
                           className={`snap-start shrink-0 w-[220px] p-4 rounded-2xl text-left transition-all relative overflow-hidden ${
                             isSelected
-                              ? "bg-card border-2 border-primary shadow-lg shadow-primary/10"
+                              ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/10'}`
                               : "bg-card border border-border/60 hover:border-border hover:shadow-md"
                           }`}
                         >
                           {isSelected && (
-                            <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                              <Check className="w-3 h-3 text-primary-foreground" />
+                            <div className={`absolute top-2.5 right-2.5 w-5 h-5 rounded-full ${activeNetConfig?.bg || 'bg-primary'} flex items-center justify-center`}>
+                              <Check className="w-3 h-3 text-white" />
                             </div>
                           )}
                           <h3 className="font-semibold text-sm text-foreground mb-2 pr-6 line-clamp-2 min-h-[2.5rem]">
@@ -341,7 +342,7 @@ const Catalog = () => {
                             <span
                               className={`inline-block px-3 py-1.5 rounded-full text-xs font-bold ${
                                 isSelected
-                                  ? "bg-primary text-primary-foreground"
+                                  ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
                                   : "bg-muted text-foreground"
                               }`}
                             >
