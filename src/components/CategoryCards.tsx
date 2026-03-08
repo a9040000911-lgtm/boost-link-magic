@@ -36,8 +36,8 @@ const CategoryCards = ({ categories, onSelect }: CategoryCardsProps) => {
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.5, delay: i * 0.12, type: 'spring', bounce: 0.35 }}
-            whileHover={{ scale: 1.05, y: -6 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.07, rotate: i % 2 === 0 ? 2 : -2, y: -8 }}
+            whileTap={{ scale: 0.96, rotate: 0 }}
             onClick={() => onSelect(cat)}
             className={`relative overflow-hidden rounded-2xl p-7 text-left cursor-pointer group ${gradientClasses[i % gradientClasses.length]}`}
             style={{ boxShadow: '0 10px 40px -10px rgba(0,0,0,0.25)' }}
