@@ -278,6 +278,57 @@ const AdminServices = () => {
     toast.success("Привязка удалена");
   };
 
+  // === Bulk actions ===
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredProviderServices.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredProviderServices.map((s) => s.id)));
+    }
+  };
+
+  const applyBulkMarkup = async () => {
+    const markup = parseFloat(bulkMarkup);
+    if (isNaN(markup) || markup < 0) { toast.error("Введите корректный %"); return; }
+    const ids = [...selectedIds];
+    for (const id of ids) {
+      const ps = providerServices.find((p) => p.id === id);
+      if (!ps) continue;
+      const ourPrice = ps.rate * (1 + markup / 100);
+      await supabase.from("provider_services").update({ markup_percent: markup, our_price: ourPrice }).eq("id", id);
+    }
+    toast.success(`Наценка ${markup}% применена к ${ids.length} услугам`);
+    await logAuditAction("bulk_markup", "provider_services", undefined, { count: ids.length, markup });
+    setSelectedIds(new Set());
+    setBulkMarkup("");
+    await loadAll();
+  };
+
+  const applyLadderToSelected = async () => {
+    const ids = [...selectedIds];
+    let updated = 0;
+    for (const id of ids) {
+      const ps = providerServices.find((p) => p.id === id);
+      if (!ps) continue;
+      const markup = getMarkupForRate(ps.rate, markupLadder);
+      const ourPrice = ps.rate * (1 + markup / 100);
+      await supabase.from("provider_services").update({ markup_percent: markup, our_price: ourPrice }).eq("id", id);
+      updated++;
+    }
+    toast.success(`Лестница наценок применена к ${updated} услугам`);
+    await logAuditAction("ladder_markup", "provider_services", undefined, { count: updated });
+    setSelectedIds(new Set());
+    await loadAll();
+  };
+
   const getMappingsForService = (serviceId: string) =>
     mappings.filter((m) => m.service_id === serviceId).sort((a, b) => a.priority - b.priority);
 
