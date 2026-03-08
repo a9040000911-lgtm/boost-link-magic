@@ -12,6 +12,7 @@ import DashboardOverview from "./pages/dashboard/DashboardOverview";
 import DashboardOrders from "./pages/dashboard/DashboardOrders";
 import DashboardProjects from "./pages/dashboard/DashboardProjects";
 import DashboardSettings from "./pages/dashboard/DashboardSettings";
+import DashboardProjectDetail from "./pages/dashboard/DashboardProjectDetail";
 import CookieConsent from "./components/CookieConsent";
 
 const queryClient = new QueryClient();
