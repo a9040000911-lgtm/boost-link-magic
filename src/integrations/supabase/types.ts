@@ -422,6 +422,9 @@ export type Database = {
       }
       support_messages: {
         Row: {
+          attachment_name: string | null
+          attachment_type: string | null
+          attachment_url: string | null
           created_at: string
           id: string
           is_admin: boolean
@@ -430,6 +433,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attachment_name?: string | null
+          attachment_type?: string | null
+          attachment_url?: string | null
           created_at?: string
           id?: string
           is_admin?: boolean
@@ -438,6 +444,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attachment_name?: string | null
+          attachment_type?: string | null
+          attachment_url?: string | null
           created_at?: string
           id?: string
           is_admin?: boolean
@@ -457,6 +466,7 @@ export type Database = {
       }
       support_tickets: {
         Row: {
+          channel: string
           created_at: string
           id: string
           priority: string
@@ -466,6 +476,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          channel?: string
           created_at?: string
           id?: string
           priority?: string
@@ -475,6 +486,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          channel?: string
           created_at?: string
           id?: string
           priority?: string
