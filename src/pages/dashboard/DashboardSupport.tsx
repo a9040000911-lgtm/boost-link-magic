@@ -459,7 +459,7 @@ const DashboardSupport = () => {
                   ) : (
                     userOrders.map((o) => (
                       <SelectItem key={o.id} value={o.id}>
-                        <span className="truncate">#{o.id.slice(0, 8)} — {o.service_name}</span>
+                        <span className="truncate">#{o.order_number} — {o.service_name}</span>
                       </SelectItem>
                     ))
                   )}
