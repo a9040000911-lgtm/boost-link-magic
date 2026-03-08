@@ -199,7 +199,7 @@ const AdminServices = () => {
   };
 
   const createService = async () => {
-    const { error } = await supabase.from("services").insert({
+    const { data, error } = await supabase.from("services").insert({
       name: newService.name,
       description: newService.description || null,
       category: newService.category || "Uncategorized",
@@ -210,14 +210,26 @@ const AdminServices = () => {
       speed: newService.speed || "medium",
       guarantee: newService.guarantee || "none",
       warning_text: newService.warning_text || null,
-    });
+    }).select().single();
     if (error) { toast.error(error.message); return; }
-    await logAuditAction("create_service", "service", undefined, { name: newService.name });
-    toast.success("Услуга создана");
+
+    // Create provider mappings if selected
+    if (createMappingIds.length > 0 && data) {
+      for (let i = 0; i < createMappingIds.length; i++) {
+        await supabase.from("service_provider_mappings").insert({
+          service_id: data.id, provider_service_id: createMappingIds[i], priority: i + 1,
+        });
+      }
+    }
+
+    await logAuditAction("create_service", "service", data?.id, { name: newService.name, mappings: createMappingIds.length });
+    toast.success(createMappingIds.length > 0 ? `Услуга создана + ${createMappingIds.length} провайдер(ов) привязано` : "Услуга создана");
     setCreateOpen(false);
     setNewService({ name: "", description: "", category: "", network: "", min_quantity: "100", max_quantity: "10000", price: "0", speed: "medium", guarantee: "none", warning_text: "" });
+    setCreateMappingIds([]);
+    setCreateProviderSearch("");
+    setCreateProviderFilter("all");
     await loadAll();
-  };
 
   const createFromProvider = async (ps: ProviderService) => {
     const ladderMarkup = getMarkupForRate(ps.rate, markupLadder);
