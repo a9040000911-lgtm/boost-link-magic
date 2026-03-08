@@ -395,6 +395,8 @@ const SiteWidgets = () => {
                     file={bugFile}
                     preview={bugPreview}
                     onFileChange={(f, p) => { setBugFile(f); setBugPreview(p); }}
+                    onBeforeScreenshot={() => setScreenshotHidden(true)}
+                    onAfterScreenshot={() => setScreenshotHidden(false)}
                   />
                 </div>
                 <div>
