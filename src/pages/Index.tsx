@@ -214,7 +214,7 @@ const Index = () => {
                     {completedOrders.length} {completedOrders.length === 1 ? 'ссылка' : 'ссылок'} настроено
                   </p>
 
-                  <div className="space-y-2 text-left mb-4 max-h-[30vh] overflow-y-auto relative z-10">
+                  <div className="space-y-1.5 text-left mb-3 flex-1 min-h-0 overflow-y-auto relative z-10">
                     {completedOrders.map((order, i) => {
                       const price = parseFloat(order.service?.price?.replace(/[^\d.]/g, '') || '0');
                       const lineTotal = price * order.quantity;
