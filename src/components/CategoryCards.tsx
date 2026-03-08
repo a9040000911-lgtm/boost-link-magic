@@ -27,7 +27,7 @@ const gradientClasses = [
 
 const CategoryCards = ({ categories, onSelect }: CategoryCardsProps) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full max-w-3xl mx-auto">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full max-w-4xl mx-auto">
       {categories.map((cat, i) => {
         const Icon = iconMap[cat.icon] || Heart;
         return (
@@ -39,7 +39,7 @@ const CategoryCards = ({ categories, onSelect }: CategoryCardsProps) => {
             whileHover={{ scale: 1.07, rotate: i % 2 === 0 ? 2 : -2, y: -8, filter: 'brightness(1.2) saturate(1.3)' }}
             whileTap={{ scale: 0.96, rotate: 0 }}
             onClick={() => onSelect(cat)}
-            className={`relative overflow-hidden rounded-2xl p-7 text-left cursor-pointer group transition-[filter] duration-300 ${gradientClasses[i % gradientClasses.length]}`}
+            className={`relative overflow-hidden rounded-2xl p-5 text-left cursor-pointer group transition-[filter] duration-300 ${gradientClasses[i % gradientClasses.length]}`}
             style={{ boxShadow: '0 10px 40px -10px rgba(0,0,0,0.25)' }}
           >
             {/* Animated background blobs */}
@@ -63,29 +63,29 @@ const CategoryCards = ({ categories, onSelect }: CategoryCardsProps) => {
 
             {/* Badge */}
             <motion.div
-              className="flex items-center gap-1.5 mb-5 relative z-10"
+              className="flex items-center gap-1.5 mb-3 relative z-10"
               animate={{ y: [0, -2, 0] }}
               transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-semibold">
-                <Sparkles className="w-3 h-3" />
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-white text-[10px] font-semibold">
+                <Sparkles className="w-2.5 h-2.5" />
                 {cat.highlight}
               </span>
             </motion.div>
 
             {/* Icon */}
             <motion.div
-              className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4 relative z-10"
+              className="w-10 h-10 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 relative z-10"
               animate={{ rotate: [0, 5, -5, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.3 }}
               whileHover={{ rotate: [0, -10, 10, 0], scale: 1.2, transition: { duration: 0.5 } }}
             >
-              <Icon className="w-7 h-7 text-white" strokeWidth={2} />
+              <Icon className="w-5 h-5 text-white" strokeWidth={2} />
             </motion.div>
 
             {/* Content */}
-            <h3 className="text-xl font-bold text-white mb-2 relative z-10">{cat.name}</h3>
-            <p className="text-sm text-white/80 leading-relaxed mb-5 relative z-10 line-clamp-2">{cat.description}</p>
+            <h3 className="text-base font-bold text-white mb-1 relative z-10">{cat.name}</h3>
+            <p className="text-xs text-white/80 leading-relaxed mb-3 relative z-10 line-clamp-2">{cat.description}</p>
 
             {/* CTA footer */}
             <div className="flex items-center justify-between relative z-10">
