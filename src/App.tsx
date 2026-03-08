@@ -14,6 +14,7 @@ import DashboardProjects from "./pages/dashboard/DashboardProjects";
 import DashboardSettings from "./pages/dashboard/DashboardSettings";
 import DashboardProjectDetail from "./pages/dashboard/DashboardProjectDetail";
 import DashboardTransactions from "./pages/dashboard/DashboardTransactions";
+import AdminServices from "./pages/admin/AdminServices";
 import CookieConsent from "./components/CookieConsent";
 
 const queryClient = new QueryClient();
