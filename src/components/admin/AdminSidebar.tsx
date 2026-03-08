@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react";
 import { Package, ShoppingCart, Users, MessageSquare, LogOut, ArrowLeft, BarChart3, Shield, Server, Receipt, FolderOpen, Settings, Tag, FileText, HelpCircle, Puzzle, Link2 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar,
   SidebarContent,
@@ -14,6 +16,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 const adminMenuItems = [
   { title: "Дашборд", url: "/admin", icon: BarChart3, end: true },
@@ -27,7 +30,7 @@ const adminMenuItems = [
   { title: "Страницы и SEO", url: "/admin/pages", icon: FileText },
   { title: "FAQ", url: "/admin/faq", icon: HelpCircle },
   { title: "Виджеты", url: "/admin/widgets", icon: Puzzle },
-  { title: "Ссылки", url: "/admin/links", icon: Link2 },
+  { title: "Ссылки", url: "/admin/links", icon: Link2, badgeKey: "links" as const },
   { title: "Поддержка", url: "/admin/support", icon: MessageSquare },
   { title: "Сотрудники", url: "/admin/staff", icon: Shield },
   { title: "Настройки", url: "/admin/settings", icon: Settings },
@@ -37,9 +40,20 @@ export function AdminSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { user, signOut } = useAuth();
+  const [unresolvedCount, setUnresolvedCount] = useState(0);
 
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Admin";
   const initials = displayName.slice(0, 2).toUpperCase();
+
+  useEffect(() => {
+    supabase
+      .from('unrecognized_links')
+      .select('id', { count: 'exact', head: true })
+      .eq('resolved', false)
+      .then(({ count }) => {
+        setUnresolvedCount(count || 0);
+      });
+  }, []);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border/60">
@@ -62,7 +76,16 @@ export function AdminSidebar() {
                       activeClassName="bg-primary/10 text-primary font-medium"
                     >
                       <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span className="text-sm">{item.title}</span>}
+                      {!collapsed && (
+                        <span className="text-sm flex-1 flex items-center justify-between">
+                          {item.title}
+                          {item.badgeKey === 'links' && unresolvedCount > 0 && (
+                            <Badge variant="destructive" className="text-[9px] px-1.5 py-0 ml-auto">
+                              {unresolvedCount}
+                            </Badge>
+                          )}
+                        </span>
+                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
