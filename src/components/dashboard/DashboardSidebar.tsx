@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingCart, FolderKanban, Settings, LogOut, Wallet, Shield, MessageSquare } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, FolderKanban, Settings, LogOut, Wallet, Shield, MessageSquare, Sparkles } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminRole } from "@/hooks/useAdminRole";
@@ -21,6 +21,7 @@ const userMenuItems = [
   { title: "Заказы", url: "/dashboard/orders", icon: ShoppingCart },
   { title: "Транзакции", url: "/dashboard/transactions", icon: Wallet },
   { title: "Проекты", url: "/dashboard/projects", icon: FolderKanban },
+  { title: "Бонусы", url: "/dashboard/bonuses", icon: Sparkles },
   { title: "Поддержка", url: "/dashboard/support", icon: MessageSquare },
   { title: "Настройки", url: "/dashboard/settings", icon: Settings },
 ];

@@ -49,6 +49,8 @@ import AdminPayments from "./pages/admin/AdminPayments";
 import AdminAPI from "./pages/admin/AdminAPI";
 import Contact from "./pages/Contact";
 import AdminSiteContent from "./pages/admin/AdminSiteContent";
+import AdminMarketing from "./pages/admin/AdminMarketing";
+import DashboardBonuses from "./pages/dashboard/DashboardBonuses";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +77,7 @@ const App = () => (
               <Route path="projects" element={<DashboardProjects />} />
               <Route path="projects/:projectId" element={<DashboardProjectDetail />} />
               <Route path="settings" element={<DashboardSettings />} />
+              <Route path="bonuses" element={<DashboardBonuses />} />
               <Route path="support" element={<DashboardSupport />} />
             </Route>
             <Route path="/admin" element={<AdminLayout />}>
@@ -102,6 +105,7 @@ const App = () => (
               <Route path="payments" element={<AdminPayments />} />
               <Route path="api" element={<AdminAPI />} />
               <Route path="site-content" element={<AdminSiteContent />} />
+              <Route path="marketing" element={<AdminMarketing />} />
             </Route>
             <Route path="/page/:slug" element={<DynamicPage />} />
             <Route path="*" element={<NotFound />} />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Package, ShoppingCart, Users, MessageSquare, LogOut, ArrowLeft, BarChart3, Shield, Server, Receipt, FolderOpen, Settings, Tag, FileText, HelpCircle, Puzzle, Link2, BookOpen, Bot, ChevronDown, CreditCard, TrendingUp, Plug } from "lucide-react";
+import { Package, ShoppingCart, Users, MessageSquare, LogOut, ArrowLeft, BarChart3, Shield, Server, Receipt, FolderOpen, Settings, Tag, FileText, HelpCircle, Puzzle, Link2, BookOpen, Bot, ChevronDown, CreditCard, TrendingUp, Plug, Megaphone } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminRole } from "@/hooks/useAdminRole";
@@ -44,6 +44,7 @@ const menuGroups: MenuGroup[] = [
       { title: "Аналитика", url: "/admin/analytics", icon: TrendingUp },
       { title: "Заказы", url: "/admin/orders", icon: ShoppingCart },
       { title: "Транзакции", url: "/admin/transactions", icon: Receipt },
+      { title: "Маркетинг", url: "/admin/marketing", icon: Megaphone },
       { title: "Пользователи", url: "/admin/users", icon: Users },
     ],
   },
