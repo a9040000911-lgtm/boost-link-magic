@@ -158,29 +158,64 @@ const Index = () => {
                     {completedOrders.length} {completedOrders.length === 1 ? 'ссылка' : 'ссылок'} настроено
                   </p>
 
-                  <div className="space-y-3 text-left mb-8">
-                    {completedOrders.map((order, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.1 }}
-                        className="flex items-center gap-3 p-3 rounded-xl bg-muted/50"
-                      >
-                        <span className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
-                          {i + 1}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                            <ExternalLink className="w-3 h-3 shrink-0" />
-                            {order.url}
+                  <div className="space-y-3 text-left mb-6">
+                    {completedOrders.map((order, i) => {
+                      const price = parseFloat(order.service?.price?.replace(/[^\d.]/g, '') || '0');
+                      const lineTotal = price * order.quantity;
+                      return (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.1 }}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-muted/50"
+                        >
+                          <span className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                            {i + 1}
                           </span>
-                          <span className="text-sm font-medium text-foreground block">
-                            {order.category?.name} → {order.service?.name} ({order.service?.price}/шт)
-                          </span>
-                        </div>
-                      </motion.div>
-                    ))}
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                              <ExternalLink className="w-3 h-3 shrink-0" />
+                              {order.url}
+                            </span>
+                            <span className="text-sm font-medium text-foreground block">
+                              {order.category?.name} → {order.service?.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {order.quantity.toLocaleString()} шт × {order.service?.price} = <span className="font-semibold text-primary">{lineTotal.toFixed(1)}₽</span>
+                            </span>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Grand total */}
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-primary/5 border border-primary/10 mb-6">
+                    <span className="text-sm font-medium text-foreground">Итого</span>
+                    <span className="text-2xl font-bold text-primary">
+                      {completedOrders.reduce((sum, o) => {
+                        const p = parseFloat(o.service?.price?.replace(/[^\d.]/g, '') || '0');
+                        return sum + p * o.quantity;
+                      }, 0).toFixed(1)}₽
+                    </span>
+                  </div>
+
+                  {/* Email input */}
+                  <div className="mb-8">
+                    <label className="text-sm font-medium text-foreground block mb-2 text-left">
+                      Email для регистрации и отслеживания
+                    </label>
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border">
+                      <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="your@email.com"
+                        className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm"
+                      />
+                    </div>
                   </div>
 
                   <div className="flex gap-3 justify-center">
@@ -203,7 +238,8 @@ const Index = () => {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.96 }}
-                      className="px-6 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:shadow-lg hover:shadow-primary/30 transition-shadow"
+                      disabled={!email.includes('@')}
+                      className="px-6 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:shadow-lg hover:shadow-primary/30 transition-shadow disabled:opacity-40"
                     >
                       Оплатить
                     </motion.button>
