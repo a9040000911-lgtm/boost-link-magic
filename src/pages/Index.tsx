@@ -12,27 +12,53 @@ import { supabase } from '@/integrations/supabase/client';
 import { Sparkles, Check, ExternalLink, Mail, PartyPopper, Zap, AlertTriangle, BookOpen, ArrowRight } from 'lucide-react';
 
 const Index = () => {
+  const navigate = useNavigate();
   const [urls, setUrls] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [unrecognizedUrls, setUnrecognizedUrls] = useState<string[]>([]);
   const [completedOrders, setCompletedOrders] = useState<LinkOrder[] | null>(null);
   const [email, setEmail] = useState('');
   const [consentPD, setConsentPD] = useState(false);
   const [consentOffer, setConsentOffer] = useState(false);
+
+  const logUnrecognizedLinks = async (badUrls: string[]) => {
+    // Save to DB
+    const inserts = badUrls.map(url => ({ url, user_agent: navigator.userAgent }));
+    await supabase.from('unrecognized_links' as any).insert(inserts);
+    // Telegram alert
+    try {
+      await supabase.functions.invoke('telegram-bot', {
+        body: {
+          action: 'notify',
+          text: `⚠️ <b>Нераспознанные ссылки</b>\n\n${badUrls.map(u => `• ${u}`).join('\n')}\n\n<i>Проверьте анализатор ссылок</i>`,
+          parse_mode: 'HTML',
+        },
+      });
+    } catch {}
+  };
+
   const handleSubmit = (inputUrls: string[]) => {
     setIsLoading(true);
     setError('');
+    setUnrecognizedUrls([]);
     setCompletedOrders(null);
 
     setTimeout(() => {
       const valid = inputUrls.filter((u) => detectPlatform(u) !== null);
+      const invalid = inputUrls.filter((u) => detectPlatform(u) === null);
+
       if (valid.length === 0) {
-        setError('Ни одна платформа не определена. Поддерживаются: Instagram, YouTube, TikTok, Telegram, VK');
+        setError('Не удалось определить платформу');
+        setUnrecognizedUrls(invalid);
         setUrls([]);
+        logUnrecognizedLinks(invalid);
       } else {
         setUrls(valid);
-        if (valid.length < inputUrls.length) {
-          setError(`${inputUrls.length - valid.length} ссылок не распознано и пропущено`);
+        if (invalid.length > 0) {
+          setError(`${invalid.length} ссылок не распознано`);
+          setUnrecognizedUrls(invalid);
+          logUnrecognizedLinks(invalid);
         }
       }
       setIsLoading(false);
