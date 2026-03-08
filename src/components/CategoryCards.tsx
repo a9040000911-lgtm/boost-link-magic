@@ -83,17 +83,17 @@ const CategoryCards = ({ categories, onSelect, recommendedIds = [] }: CategoryCa
 
             {/* Icon */}
             <motion.div
-              className="w-10 h-10 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 relative z-10"
+              className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4 relative z-10"
               animate={{ rotate: [0, 5, -5, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.3 }}
               whileHover={{ rotate: [0, -10, 10, 0], scale: 1.2, transition: { duration: 0.5 } }}
             >
-              <Icon className="w-5 h-5 text-white" strokeWidth={2} />
+              <Icon className="w-6 h-6 text-white" strokeWidth={2} />
             </motion.div>
 
             {/* Content */}
-            <h3 className="text-base font-bold text-white mb-1 relative z-10">{cat.name}</h3>
-            <p className="text-xs text-white/80 leading-relaxed mb-3 relative z-10 line-clamp-2">{cat.description}</p>
+            <h3 className="text-lg font-bold text-white mb-1.5 relative z-10">{cat.name}</h3>
+            <p className="text-sm text-white/80 leading-relaxed mb-4 relative z-10 line-clamp-2">{cat.description}</p>
 
             {/* CTA footer */}
             <div className="flex items-center justify-between relative z-10">
