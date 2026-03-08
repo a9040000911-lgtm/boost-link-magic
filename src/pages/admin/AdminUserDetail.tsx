@@ -47,6 +47,7 @@ const AdminUserDetail = () => {
   // Inline edit fields
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
+  const [editDiscount, setEditDiscount] = useState("0");
   const [editEmail, setEditEmail] = useState("");
   const [editPassword, setEditPassword] = useState("");
   const [balanceAmount, setBalanceAmount] = useState("");
