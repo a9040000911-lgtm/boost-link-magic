@@ -71,12 +71,12 @@ const CategoryCards = ({ categories, onSelect, recommendedIds = [] }: CategoryCa
 
             {/* Badge */}
             <motion.div
-              className="flex items-center gap-1.5 mb-3 relative z-10"
+              className="flex items-center gap-1.5 mb-4 relative z-10"
               animate={{ y: [0, -2, 0] }}
               transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-white text-[10px] font-semibold">
-                <Sparkles className="w-2.5 h-2.5" />
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-semibold">
+                <Sparkles className="w-3 h-3" />
                 {isRecommended ? '✨ Рекомендуем' : cat.highlight}
               </span>
             </motion.div>
