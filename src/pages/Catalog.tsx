@@ -846,23 +846,29 @@ const Catalog = () => {
 
               {/* Consents + Button */}
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 shrink-0">
-                  <label className="flex items-center gap-1 cursor-pointer" onClick={() => setConsentOffer(!consentOffer)}>
-                    <span className={`w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${consentOffer ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent` : 'border-border bg-background'}`}>
-                      {consentOffer && <Check className="w-2.5 h-2.5 text-white" />}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">Оферта</span>
-                  </label>
-                  <label className="flex items-center gap-1 cursor-pointer" onClick={() => setConsentPD(!consentPD)}>
-                    <span className={`w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${consentPD ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent` : 'border-border bg-background'}`}>
-                      {consentPD && <Check className="w-2.5 h-2.5 text-white" />}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">Политика</span>
-                  </label>
-                </div>
+                {(checkboxSettings.show_offer_checkbox || checkboxSettings.show_policy_checkbox) && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    {checkboxSettings.show_offer_checkbox && (
+                      <label className="flex items-center gap-1 cursor-pointer" onClick={() => setConsentOffer(!consentOffer)}>
+                        <span className={`w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${consentOffer ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent` : 'border-border bg-background'}`}>
+                          {consentOffer && <Check className="w-2.5 h-2.5 text-white" />}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">Оферта</span>
+                      </label>
+                    )}
+                    {checkboxSettings.show_policy_checkbox && (
+                      <label className="flex items-center gap-1 cursor-pointer" onClick={() => setConsentPD(!consentPD)}>
+                        <span className={`w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${consentPD ? `${activeNetConfig?.bg || 'bg-primary'} border-transparent` : 'border-border bg-background'}`}>
+                          {consentPD && <Check className="w-2.5 h-2.5 text-white" />}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">Политика</span>
+                      </label>
+                    )}
+                  </div>
+                )}
                 <button
                   onClick={handleOrder}
-                  disabled={!link.trim() || !consentOffer || !consentPD || ordering}
+                  disabled={!link.trim() || (checkboxSettings.show_offer_checkbox && !consentOffer) || (checkboxSettings.show_policy_checkbox && !consentPD) || ordering}
                   className={`flex-1 py-2.5 rounded-xl ${activeNetConfig?.bg || 'bg-primary'} text-white font-bold text-sm disabled:opacity-40 flex items-center justify-center gap-2`}
                 >
                   {ordering ? 'Оформляем...' : `${totalPrice.toFixed(2)} ₽ — Заказать`}
