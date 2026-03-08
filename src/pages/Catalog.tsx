@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -36,6 +36,7 @@ const networkConfig: { key: string; label: string; icon: string; color: string; 
 
 const Catalog = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [services, setServices] = useState<CatalogService[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,8 +47,9 @@ const Catalog = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedService, setSelectedService] = useState<CatalogService | null>(null);
 
-  // Order form
-  const [link, setLink] = useState("");
+  // Order form — pre-fill link from query param
+  const prefillLink = searchParams.get('link') || '';
+  const [link, setLink] = useState(prefillLink);
   const [email, setEmail] = useState("");
   const [quantity, setQuantity] = useState(10);
   const [consentOffer, setConsentOffer] = useState(false);
@@ -175,6 +177,24 @@ const Catalog = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      {/* Pre-fill banner */}
+      {prefillLink && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-primary/10 border-b border-primary/20 px-4 py-3"
+        >
+          <div className="max-w-6xl mx-auto flex items-center gap-3 text-sm">
+            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+              <Link2 className="w-4 h-4 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-medium text-foreground">Ссылка подставлена автоматически</p>
+              <p className="text-xs text-muted-foreground truncate">Выберите подходящую услугу — ссылка <span className="text-primary font-medium">{prefillLink}</span> уже в форме заказа</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="border-b border-border/60 bg-card/50">
         <div className="max-w-6xl mx-auto px-4 py-4">

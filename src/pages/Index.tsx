@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import HeroInput from '@/components/HeroInput';
 import MultiLinkFlow from '@/components/MultiLinkFlow';
 import type { LinkOrder } from '@/components/MultiLinkFlow';
@@ -7,30 +8,57 @@ import MarketingSection from '@/components/MarketingSection';
 import TestimonialsSection from '@/components/TestimonialsSection';
 import Footer from '@/components/Footer';
 import { detectPlatform } from '@/lib/smm-data';
-import { Sparkles, Check, ExternalLink, Mail, PartyPopper, Zap } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Sparkles, Check, ExternalLink, Mail, PartyPopper, Zap, AlertTriangle, BookOpen, ArrowRight } from 'lucide-react';
 
 const Index = () => {
+  const navigate = useNavigate();
   const [urls, setUrls] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [unrecognizedUrls, setUnrecognizedUrls] = useState<string[]>([]);
   const [completedOrders, setCompletedOrders] = useState<LinkOrder[] | null>(null);
   const [email, setEmail] = useState('');
   const [consentPD, setConsentPD] = useState(false);
   const [consentOffer, setConsentOffer] = useState(false);
+
+  const logUnrecognizedLinks = async (badUrls: string[]) => {
+    // Save to DB
+    const inserts = badUrls.map(url => ({ url, user_agent: navigator.userAgent }));
+    await supabase.from('unrecognized_links' as any).insert(inserts);
+    // Telegram alert
+    try {
+      await supabase.functions.invoke('telegram-bot', {
+        body: {
+          action: 'notify',
+          text: `⚠️ <b>Нераспознанные ссылки</b>\n\n${badUrls.map(u => `• ${u}`).join('\n')}\n\n<i>Проверьте анализатор ссылок</i>`,
+          parse_mode: 'HTML',
+        },
+      });
+    } catch {}
+  };
+
   const handleSubmit = (inputUrls: string[]) => {
     setIsLoading(true);
     setError('');
+    setUnrecognizedUrls([]);
     setCompletedOrders(null);
 
     setTimeout(() => {
       const valid = inputUrls.filter((u) => detectPlatform(u) !== null);
+      const invalid = inputUrls.filter((u) => detectPlatform(u) === null);
+
       if (valid.length === 0) {
-        setError('Ни одна платформа не определена. Поддерживаются: Instagram, YouTube, TikTok, Telegram, VK');
+        setError('Не удалось определить платформу');
+        setUnrecognizedUrls(invalid);
         setUrls([]);
+        logUnrecognizedLinks(invalid);
       } else {
         setUrls(valid);
-        if (valid.length < inputUrls.length) {
-          setError(`${inputUrls.length - valid.length} ссылок не распознано и пропущено`);
+        if (invalid.length > 0) {
+          setError(`${invalid.length} ссылок не распознано`);
+          setUnrecognizedUrls(invalid);
+          logUnrecognizedLinks(invalid);
         }
       }
       setIsLoading(false);
@@ -141,14 +169,56 @@ const Index = () => {
 
         <AnimatePresence>
           {error && (
-            <motion.p
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="text-destructive text-sm mt-4 bg-destructive/10 px-4 py-2 rounded-lg relative z-10"
+              className="relative z-10 w-full max-w-2xl mx-auto mt-4"
             >
-              {error}
-            </motion.p>
+              <div className="rounded-2xl border border-destructive/30 bg-destructive/10 backdrop-blur-xl p-5">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-destructive/20 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-5 h-5 text-destructive" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground mb-1">{error}</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Возможно, формат ссылки новый или платформа пока не поддерживается автоматически. 
+                      Вы можете выбрать услугу вручную в каталоге — ваша ссылка будет подставлена автоматически.
+                    </p>
+                  </div>
+                </div>
+                {unrecognizedUrls.length > 0 && (
+                  <div className="space-y-1 mb-3">
+                    {unrecognizedUrls.map((u, i) => (
+                      <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 text-xs text-muted-foreground truncate">
+                        <ExternalLink className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{u}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      const linkParam = unrecognizedUrls[0] || '';
+                      navigate(`/catalog${linkParam ? `?link=${encodeURIComponent(linkParam)}` : ''}`);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-bold shadow-md hover:opacity-90 transition-opacity"
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    Перейти в каталог
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => { setError(''); setUnrecognizedUrls([]); }}
+                    className="px-4 py-2 rounded-lg bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-colors"
+                  >
+                    Попробовать другую ссылку
+                  </button>
+                </div>
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>

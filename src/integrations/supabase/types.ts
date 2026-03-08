@@ -935,6 +935,36 @@ export type Database = {
           },
         ]
       }
+      unrecognized_links: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          resolved: boolean
+          resolved_at: string | null
+          url: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          url: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          url?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
