@@ -16,6 +16,7 @@ import DashboardProjects from "./pages/dashboard/DashboardProjects";
 import DashboardSettings from "./pages/dashboard/DashboardSettings";
 import DashboardProjectDetail from "./pages/dashboard/DashboardProjectDetail";
 import DashboardTransactions from "./pages/dashboard/DashboardTransactions";
+import DashboardSupport from "./pages/dashboard/DashboardSupport";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminServices from "./pages/admin/AdminServices";
