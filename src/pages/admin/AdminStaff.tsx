@@ -39,7 +39,7 @@ const AdminStaff = () => {
   // Add staff dialog
   const [addOpen, setAddOpen] = useState(false);
   const [addEmail, setAddEmail] = useState("");
-  const [addRole, setAddRole] = useState<"moderator" | "admin">("moderator");
+  const [addRole, setAddRole] = useState<StaffRole>("moderator");
   const [addPermissions, setAddPermissions] = useState<string[]>([]);
   const [addLoading, setAddLoading] = useState(false);
   const [createdCreds, setCreatedCreds] = useState<{ email: string; password: string } | null>(null);
