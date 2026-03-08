@@ -192,16 +192,22 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
               selectedServiceId={current.service?.id ?? null}
             />
 
-            {/* Quantity input */}
+            {/* Quantity input — fixed overlay */}
             <AnimatePresence>
               {current.service && (
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="mt-8 max-w-md mx-auto"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
                 >
-                  <div className="glass-card p-6">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                    className="glass-card p-6 w-full max-w-md mx-4"
+                  >
+                    <p className="text-xs text-muted-foreground mb-1 truncate">{current.service.name}</p>
                     <label className="text-sm font-medium text-foreground block mb-3">
                       Количество
                     </label>
@@ -231,7 +237,7 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
                         <Plus className="w-4 h-4" />
                       </motion.button>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between text-sm mb-5">
                       <span className="text-muted-foreground">
                         от {current.service.minOrder} до {current.service.maxOrder.toLocaleString()}
                       </span>
@@ -244,7 +250,16 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
                         {total.toFixed(1)}₽
                       </motion.span>
                     </div>
-                  </div>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.96 }}
+                      onClick={handleNext}
+                      className="w-full px-6 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:shadow-lg hover:shadow-primary/30 transition-shadow inline-flex items-center justify-center gap-2"
+                    >
+                      {isLastLink ? 'Завершить' : 'Следующая ссылка'}
+                      {isLastLink ? <Check className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                    </motion.button>
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>
