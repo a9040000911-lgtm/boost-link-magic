@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, RefreshCw, Pencil, X, Undo2 } from "lucide-react";
+import { Search, RefreshCw, Pencil, X, Undo2, ExternalLink, Copy } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -67,6 +68,7 @@ const AdminOrders = () => {
   const [refundOrder, setRefundOrder] = useState<Order | null>(null);
   const [refundReason, setRefundReason] = useState("");
   const [refunding, setRefunding] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -314,8 +316,8 @@ const AdminOrders = () => {
                           variant="outline"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() => navigate(`/admin/users/${o.user_id}`)}
-                          title="Пользователь"
+                          onClick={(e) => { e.stopPropagation(); setSelectedOrder(o); }}
+                          title="Подробности"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
@@ -339,6 +341,135 @@ const AdminOrders = () => {
           </Table>
         )}
       </div>
+
+      {/* Order detail dialog */}
+      <Dialog open={!!selectedOrder} onOpenChange={(open) => { if (!open) setSelectedOrder(null); }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          {selectedOrder && (() => {
+            const svc = getServiceInfo(selectedOrder);
+            const ps = getProviderServiceInfo(selectedOrder);
+            const profile = profilesMap[selectedOrder.user_id];
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="text-base">Заказ #{selectedOrder.id.slice(0, 8)}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 text-sm">
+                  {/* Status */}
+                  <div className="flex items-center justify-between">
+                    <span className={`font-semibold text-lg ${statusColors[selectedOrder.status] || "text-muted-foreground"}`}>
+                      {statusLabels[selectedOrder.status] || selectedOrder.status}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{formatDate(selectedOrder.created_at)}</span>
+                  </div>
+
+                  {/* Client */}
+                  <div className="bg-muted/40 rounded-lg p-3 space-y-1">
+                    <p className="text-xs text-muted-foreground font-medium">Клиент</p>
+                    <button
+                      className="text-primary hover:underline font-medium text-sm"
+                      onClick={() => { setSelectedOrder(null); navigate(`/admin/users/${selectedOrder.user_id}`); }}
+                    >
+                      {profile?.name || selectedOrder.user_id.slice(0, 8)}
+                    </button>
+                    <p className="text-[10px] text-muted-foreground font-mono">{selectedOrder.user_id}</p>
+                  </div>
+
+                  {/* Service info */}
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground font-medium">Услуга</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                      <div><span className="text-muted-foreground">Название:</span> <span className="font-medium">{selectedOrder.service_name}</span></div>
+                      <div><span className="text-muted-foreground">Платформа:</span> {selectedOrder.platform ? <Badge variant="outline" className="text-[10px] ml-1">{selectedOrder.platform}</Badge> : "—"}</div>
+                      {svc && <div><span className="text-muted-foreground">Категория:</span> {svc.category}</div>}
+                      {svc && <div><span className="text-muted-foreground">Цена каталога:</span> {Number(svc.price).toFixed(2)}₽/1к</div>}
+                    </div>
+                  </div>
+
+                  {/* Order params */}
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground font-medium">Параметры заказа</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-muted/40 rounded-lg p-2 text-center">
+                        <p className="text-lg font-bold">{selectedOrder.quantity}</p>
+                        <p className="text-[10px] text-muted-foreground">Количество</p>
+                      </div>
+                      <div className="bg-muted/40 rounded-lg p-2 text-center">
+                        <p className="text-lg font-bold">{selectedOrder.progress}/{selectedOrder.quantity}</p>
+                        <p className="text-[10px] text-muted-foreground">Прогресс</p>
+                      </div>
+                      <div className="bg-muted/40 rounded-lg p-2 text-center">
+                        <p className="text-lg font-bold">{Number(selectedOrder.price).toFixed(2)}₽</p>
+                        <p className="text-[10px] text-muted-foreground">Сумма</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Link */}
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground font-medium">Ссылка</p>
+                    <a href={selectedOrder.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs break-all flex items-start gap-1">
+                      {selectedOrder.link}
+                      <ExternalLink className="h-3 w-3 shrink-0 mt-0.5" />
+                    </a>
+                  </div>
+
+                  {/* Provider */}
+                  <div className="space-y-2 border-t pt-3">
+                    <p className="text-xs text-muted-foreground font-medium">Провайдер</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                      <div><span className="text-muted-foreground">Провайдер:</span> {selectedOrder.provider ? <Badge variant="secondary" className="text-[10px] ml-1">{selectedOrder.provider}</Badge> : "—"}</div>
+                      <div><span className="text-muted-foreground">ID у провайдера:</span> <span className="font-mono">{selectedOrder.provider_order_id || "—"}</span></div>
+                      {ps && (
+                        <>
+                          <div><span className="text-muted-foreground">Услуга пров.:</span> {ps.name?.slice(0, 40)}</div>
+                          <div><span className="text-muted-foreground">SID:</span> <span className="font-mono">{ps.provider_service_id}</span></div>
+                          <div><span className="text-muted-foreground">Цена пров.:</span> {Number(ps.rate).toFixed(2)}₽/1к</div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Refund info */}
+                  {selectedOrder.refund_status && (
+                    <div className="border-t pt-3 space-y-1">
+                      <p className="text-xs text-muted-foreground font-medium">Возврат</p>
+                      <div className="bg-destructive/10 rounded-lg p-2 text-xs space-y-0.5">
+                        <p><span className="text-muted-foreground">Статус:</span> <span className="text-destructive font-medium">{selectedOrder.refund_status}</span></p>
+                        {selectedOrder.refunded_amount && <p><span className="text-muted-foreground">Сумма:</span> {Number(selectedOrder.refunded_amount).toFixed(2)}₽</p>}
+                        {selectedOrder.refunded_at && <p><span className="text-muted-foreground">Дата:</span> {formatDate(selectedOrder.refunded_at)}</p>}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* IDs */}
+                  <div className="border-t pt-3 space-y-1">
+                    <p className="text-xs text-muted-foreground font-medium">Идентификаторы</p>
+                    <div className="text-[10px] text-muted-foreground font-mono space-y-0.5">
+                      <p>Order: {selectedOrder.id}</p>
+                      <p>User: {selectedOrder.user_id}</p>
+                      {selectedOrder.service_id && <p>Service: {selectedOrder.service_id}</p>}
+                      {selectedOrder.provider_service_id && <p>ProviderService: {selectedOrder.provider_service_id}</p>}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="border-t pt-3 flex gap-2">
+                    <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => { setSelectedOrder(null); navigate(`/admin/users/${selectedOrder.user_id}`); }}>
+                      Профиль клиента
+                    </Button>
+                    {selectedOrder.refund_status !== "refunded" && selectedOrder.status !== "refunded" && (
+                      <Button variant="destructive" size="sm" className="flex-1 text-xs" onClick={() => { setSelectedOrder(null); setRefundOrder(selectedOrder); }}>
+                        <Undo2 className="h-3 w-3 mr-1" />Возврат
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       {/* Refund dialog */}
       <Dialog open={!!refundOrder} onOpenChange={() => setRefundOrder(null)}>
