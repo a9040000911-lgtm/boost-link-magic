@@ -1,10 +1,11 @@
-import { useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Shield, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getPlanLimits, type PlanLimits } from "@/lib/plan-limits";
 
 interface LicenseGateProps {
   children: ReactNode;
@@ -14,7 +15,6 @@ const LICENSE_STORAGE_KEY = "app_license_key";
 const LICENSE_CACHE_KEY = "app_license_cache";
 const CACHE_TTL = 1000 * 60 * 60; // 1 hour
 
-// Routes that bypass license check
 const BYPASS_PREFIXES = ["/admin", "/auth", "/reset-password"];
 
 interface LicenseCache {
@@ -23,12 +23,29 @@ interface LicenseCache {
   timestamp: number;
 }
 
+interface LicenseContextValue {
+  plan: string;
+  limits: PlanLimits;
+  isLicensed: boolean;
+}
+
+const LicenseContext = createContext<LicenseContextValue>({
+  plan: "standard",
+  limits: getPlanLimits("standard"),
+  isLicensed: false,
+});
+
+export function useLicense() {
+  return useContext(LicenseContext);
+}
+
 export default function LicenseGate({ children }: LicenseGateProps) {
   const location = useLocation();
   const [status, setStatus] = useState<"loading" | "valid" | "invalid" | "input">("loading");
   const [error, setError] = useState("");
   const [keyInput, setKeyInput] = useState("");
   const [checking, setChecking] = useState(false);
+  const [plan, setPlan] = useState("standard");
 
   const isBypassed = BYPASS_PREFIXES.some((p) => location.pathname.startsWith(p));
 
@@ -46,10 +63,10 @@ export default function LicenseGate({ children }: LicenseGateProps) {
       return;
     }
 
-    // Check cache
     try {
       const cached = JSON.parse(localStorage.getItem(LICENSE_CACHE_KEY) || "{}") as LicenseCache;
       if (cached.valid && Date.now() - cached.timestamp < CACHE_TTL) {
+        setPlan(cached.plan || "standard");
         setStatus("valid");
         return;
       }
@@ -70,10 +87,12 @@ export default function LicenseGate({ children }: LicenseGateProps) {
       if (fnError) throw new Error(fnError.message);
 
       if (data?.valid) {
+        const licensePlan = data.plan || "standard";
+        setPlan(licensePlan);
         localStorage.setItem(LICENSE_STORAGE_KEY, key);
         localStorage.setItem(
           LICENSE_CACHE_KEY,
-          JSON.stringify({ valid: true, plan: data.plan, timestamp: Date.now() })
+          JSON.stringify({ valid: true, plan: licensePlan, timestamp: Date.now() })
         );
         setStatus("valid");
       } else {
@@ -111,7 +130,11 @@ export default function LicenseGate({ children }: LicenseGateProps) {
   }
 
   if (status === "valid") {
-    return <>{children}</>;
+    return (
+      <LicenseContext.Provider value={{ plan, limits: getPlanLimits(plan), isLicensed: true }}>
+        {children}
+      </LicenseContext.Provider>
+    );
   }
 
   return (
