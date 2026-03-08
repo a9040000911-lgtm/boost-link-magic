@@ -938,7 +938,18 @@ const AdminServices = () => {
                   <div className="grid grid-cols-3 gap-3">
                     <div><Label className="text-xs">Мин. кол-во</Label><Input type="number" value={editForm.min_quantity} onChange={(e) => setEditForm({ ...editForm, min_quantity: e.target.value })} /></div>
                     <div><Label className="text-xs">Макс. кол-во</Label><Input type="number" value={editForm.max_quantity} onChange={(e) => setEditForm({ ...editForm, max_quantity: e.target.value })} /></div>
-                    <div><Label className="text-xs">Цена за 1000</Label><Input type="number" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: e.target.value })} /></div>
+                    <div>
+                      <Label className="text-xs">Цена за 1000</Label>
+                      <Input type="number" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: e.target.value })} />
+                      {editService && (() => {
+                        const cr = getCheapestRate(editService.id);
+                        if (cr && cr > 0) {
+                          const minP = cr * (1 + minMarkup / 100);
+                          return <p className="text-[10px] text-muted-foreground mt-0.5">Мин. цена: {minP.toFixed(2)} (наценка {minMarkup}%)</p>;
+                        }
+                        return null;
+                      })()}
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
