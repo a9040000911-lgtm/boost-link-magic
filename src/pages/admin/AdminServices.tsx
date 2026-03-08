@@ -314,7 +314,18 @@ const AdminServices = () => {
     toast.success("Привязка удалена");
   };
 
-  // === Bulk actions ===
+  // === Helper: get cheapest active provider rate for a catalog service ===
+  const getCheapestRate = (serviceId: string): number | null => {
+    const svcMappings = mappings.filter(m => m.service_id === serviceId && m.is_active);
+    if (svcMappings.length === 0) return null;
+    const rates = svcMappings.map(m => {
+      const ps = providerServices.find(p => p.id === m.provider_service_id);
+      return ps ? Number(ps.rate) : Infinity;
+    }).filter(r => r !== Infinity);
+    return rates.length > 0 ? Math.min(...rates) : null;
+  };
+
+  // === Bulk actions (catalog tab) ===
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -324,10 +335,11 @@ const AdminServices = () => {
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === filteredProviderServices.length) {
+    const target = activeTab === "catalog" ? filteredServices : filteredProviderServices;
+    if (selectedIds.size === target.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filteredProviderServices.map((s) => s.id)));
+      setSelectedIds(new Set(target.map((s) => s.id)));
     }
   };
 
@@ -339,14 +351,17 @@ const AdminServices = () => {
       return;
     }
     const ids = [...selectedIds];
+    let updated = 0;
+    let skipped = 0;
     for (const id of ids) {
-      const ps = providerServices.find((p) => p.id === id);
-      if (!ps) continue;
-      const ourPrice = ps.rate * (1 + markup / 100);
-      await supabase.from("provider_services").update({ markup_percent: markup, our_price: ourPrice }).eq("id", id);
+      const rate = getCheapestRate(id);
+      if (!rate) { skipped++; continue; }
+      const newPrice = rate * (1 + markup / 100);
+      await supabase.from("services").update({ price: newPrice, updated_at: new Date().toISOString() }).eq("id", id);
+      updated++;
     }
-    toast.success(`Наценка ${markup}% применена к ${ids.length} услугам`);
-    await logAuditAction("bulk_markup", "provider_services", undefined, { count: ids.length, markup });
+    toast.success(`Наценка ${markup}% → ${updated} услуг${skipped ? ` (${skipped} без провайдера)` : ""}`);
+    await logAuditAction("bulk_markup", "services", undefined, { count: updated, markup, skipped });
     setSelectedIds(new Set());
     setBulkMarkup("");
     await loadAll();
@@ -357,22 +372,17 @@ const AdminServices = () => {
     let updated = 0;
     let skipped = 0;
     for (const id of ids) {
-      const ps = providerServices.find((p) => p.id === id);
-      if (!ps) continue;
-      let markup = getMarkupForRate(ps.rate, markupLadder);
-      if (markup < minMarkup) {
-        markup = minMarkup; // Enforce minimum
-        skipped++;
-      }
-      const ourPrice = ps.rate * (1 + markup / 100);
-      await supabase.from("provider_services").update({ markup_percent: markup, our_price: ourPrice }).eq("id", id);
+      const rate = getCheapestRate(id);
+      if (!rate) { skipped++; continue; }
+      let markup = getMarkupForRate(rate, markupLadder);
+      if (markup < minMarkup) markup = minMarkup;
+      const newPrice = rate * (1 + markup / 100);
+      await supabase.from("services").update({ price: newPrice, updated_at: new Date().toISOString() }).eq("id", id);
       updated++;
     }
-    const msg = skipped > 0
-      ? `Лестница применена к ${updated} услугам (${skipped} повышены до мин. ${minMarkup}%)`
-      : `Лестница наценок применена к ${updated} услугам`;
+    const msg = `Лестница применена к ${updated} услугам${skipped ? ` (${skipped} без провайдера)` : ""}`;
     toast.success(msg);
-    await logAuditAction("ladder_markup", "provider_services", undefined, { count: updated, skipped_to_min: skipped });
+    await logAuditAction("ladder_markup", "services", undefined, { count: updated, skipped });
     setSelectedIds(new Set());
     await loadAll();
   };
