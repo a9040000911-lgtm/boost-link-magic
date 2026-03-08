@@ -18,6 +18,7 @@ import DashboardProjectDetail from "./pages/dashboard/DashboardProjectDetail";
 import DashboardTransactions from "./pages/dashboard/DashboardTransactions";
 import DashboardSupport from "./pages/dashboard/DashboardSupport";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminServices from "./pages/admin/AdminServices";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -72,6 +73,7 @@ const App = () => (
             </Route>
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
+              <Route path="analytics" element={<AdminAnalytics />} />
               <Route path="orders" element={<AdminOrders />} />
               <Route path="transactions" element={<AdminTransactions />} />
               <Route path="services" element={<AdminServices />} />

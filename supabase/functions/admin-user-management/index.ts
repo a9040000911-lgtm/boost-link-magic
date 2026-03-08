@@ -30,7 +30,7 @@ serve(async (req) => {
 
   // Check admin role
   const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-  const { data: roleData } = await adminClient.from("user_roles").select("role").eq("user_id", caller.id).eq("role", "admin").single();
+  const { data: roleData } = await adminClient.from("user_roles").select("role").eq("user_id", caller.id).in("role", ["admin", "ceo"]).limit(1).single();
   if (!roleData) {
     return new Response(JSON.stringify({ error: "Admin access required" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }

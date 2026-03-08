@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Shield, UserPlus, Trash2, RefreshCw, Search, History, Settings2, X, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
-import { logAuditAction, PERMISSIONS, PERMISSION_LABELS } from "@/lib/audit";
+import { logAuditAction, PERMISSIONS, PERMISSION_LABELS, ROLE_LABELS, ROLE_DESCRIPTIONS, type StaffRole } from "@/lib/audit";
 
 interface StaffMember {
   user_id: string;
@@ -39,7 +39,7 @@ const AdminStaff = () => {
   // Add staff dialog
   const [addOpen, setAddOpen] = useState(false);
   const [addEmail, setAddEmail] = useState("");
-  const [addRole, setAddRole] = useState<"moderator" | "admin">("moderator");
+  const [addRole, setAddRole] = useState<StaffRole>("moderator");
   const [addPermissions, setAddPermissions] = useState<string[]>([]);
   const [addLoading, setAddLoading] = useState(false);
   const [createdCreds, setCreatedCreds] = useState<{ email: string; password: string } | null>(null);
@@ -131,7 +131,7 @@ const AdminStaff = () => {
       if (roleErr) throw roleErr;
 
       // Grant permissions
-      if (addPermissions.length > 0 && addRole === "moderator") {
+      if (addPermissions.length > 0 && (addRole === "moderator" || addRole === "investor")) {
         const permsToInsert = addPermissions.map((p) => ({
           user_id: newUserId,
           permission: p,
@@ -294,19 +294,21 @@ const AdminStaff = () => {
 
                   <div>
                     <Label className="text-xs">Роль</Label>
-                    <Select value={addRole} onValueChange={(v) => setAddRole(v as any)}>
+                    <Select value={addRole} onValueChange={(v) => setAddRole(v as StaffRole)}>
                       <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="moderator">Модератор</SelectItem>
-                        <SelectItem value="admin">Администратор</SelectItem>
+                        <SelectItem value="moderator">{ROLE_LABELS.moderator}</SelectItem>
+                        <SelectItem value="admin">{ROLE_LABELS.admin}</SelectItem>
+                        <SelectItem value="ceo">{ROLE_LABELS.ceo}</SelectItem>
+                        <SelectItem value="investor">{ROLE_LABELS.investor}</SelectItem>
                       </SelectContent>
                     </Select>
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      {addRole === "admin" ? "Полный доступ ко всем разделам" : "Ограниченный доступ, настраивается правами ниже"}
+                      {ROLE_DESCRIPTIONS[addRole]}
                     </p>
                   </div>
 
-                  {addRole === "moderator" && (
+                  {(addRole === "moderator" || addRole === "investor") && (
                     <>
                       <Separator />
                       <div>
@@ -360,7 +362,7 @@ const AdminStaff = () => {
               </TableHeader>
               <TableBody>
                 {staff.map((s) => {
-                  const isAdmin = s.role.includes("admin");
+                  const isFullAccess = s.role.includes("admin") || s.role.includes("ceo");
                   return (
                     <TableRow key={s.user_id} className="text-[11px]">
                       <TableCell className="px-2">
@@ -373,12 +375,16 @@ const AdminStaff = () => {
                         </p>
                       </TableCell>
                       <TableCell className="px-2">
-                        <Badge variant={isAdmin ? "destructive" : "secondary"} className="text-[9px]">{s.role}</Badge>
+                        <Badge variant={isFullAccess ? "destructive" : s.role.includes("investor") ? "secondary" : "outline"} className="text-[9px]">
+                          {s.role.split(", ").map(r => ROLE_LABELS[r] || r).join(", ")}
+                        </Badge>
                       </TableCell>
                       <TableCell className="px-2">
                         <div className="flex flex-wrap gap-1">
-                          {isAdmin ? (
+                          {isFullAccess ? (
                             <span className="text-[9px] text-muted-foreground italic">Полный доступ</span>
+                          ) : s.role.includes("investor") ? (
+                            <span className="text-[9px] text-muted-foreground italic">Только просмотр</span>
                           ) : (
                             allPerms.map((perm) => {
                               const hasIt = s.permissions.includes(perm);
@@ -400,7 +406,7 @@ const AdminStaff = () => {
                           <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => openEditDialog(s)}>
                             <Settings2 className="h-3 w-3" />
                           </Button>
-                          {!isAdmin && (
+                          {!isFullAccess && (
                             <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive hover:text-destructive" onClick={() => removeStaff(s.user_id, s.role.split(", ")[0])}>
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -498,19 +504,19 @@ const AdminStaff = () => {
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="user">Пользователь (без роли)</SelectItem>
-                    <SelectItem value="moderator">Модератор</SelectItem>
-                    <SelectItem value="admin">Администратор</SelectItem>
+                    <SelectItem value="moderator">{ROLE_LABELS.moderator}</SelectItem>
+                    <SelectItem value="admin">{ROLE_LABELS.admin}</SelectItem>
+                    <SelectItem value="ceo">{ROLE_LABELS.ceo}</SelectItem>
+                    <SelectItem value="investor">{ROLE_LABELS.investor}</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  {editRole === "admin" && "Полный доступ ко всем разделам и функциям"}
-                  {editRole === "moderator" && "Доступ только к разрешённым разделам (настройте ниже)"}
-                  {editRole === "user" && "Обычный пользователь без доступа к админке"}
+                  {ROLE_DESCRIPTIONS[editRole] || "Обычный пользователь без доступа к админке"}
                 </p>
               </div>
 
               {/* Permissions */}
-              {editRole === "moderator" && (
+              {(editRole === "moderator" || editRole === "investor") && (
                 <>
                   <Separator />
                   <div>
@@ -550,10 +556,10 @@ const AdminStaff = () => {
                 </>
               )}
 
-              {editRole === "admin" && (
+              {(editRole === "admin" || editRole === "ceo") && (
                 <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-                  <p className="text-xs text-destructive font-medium">⚠️ Администратор имеет полный доступ</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">Все права включены автоматически. Для ограниченного доступа используйте роль «Модератор».</p>
+                  <p className="text-xs text-destructive font-medium">⚠️ {ROLE_LABELS[editRole]} имеет полный доступ</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Все права включены автоматически. Для ограниченного доступа используйте роль «Модератор» или «Инвестор».</p>
                 </div>
               )}
 

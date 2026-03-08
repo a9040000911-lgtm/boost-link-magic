@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { Package, ShoppingCart, Users, MessageSquare, LogOut, ArrowLeft, BarChart3, Shield, Server, Receipt, FolderOpen, Settings, Tag, FileText, HelpCircle, Puzzle, Link2, BookOpen, Bot, ChevronDown, CreditCard } from "lucide-react";
+import { Package, ShoppingCart, Users, MessageSquare, LogOut, ArrowLeft, BarChart3, Shield, Server, Receipt, FolderOpen, Settings, Tag, FileText, HelpCircle, Puzzle, Link2, BookOpen, Bot, ChevronDown, CreditCard, TrendingUp } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdminRole } from "@/hooks/useAdminRole";
+import { useStaffPermissions } from "@/hooks/useStaffPermissions";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -19,6 +21,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ROLE_LABELS } from "@/lib/audit";
 
 interface MenuItem {
   title: string;
@@ -38,6 +41,7 @@ const menuGroups: MenuGroup[] = [
     label: "Основное",
     items: [
       { title: "Дашборд", url: "/admin", icon: BarChart3, end: true },
+      { title: "Аналитика", url: "/admin/analytics", icon: TrendingUp },
       { title: "Заказы", url: "/admin/orders", icon: ShoppingCart },
       { title: "Транзакции", url: "/admin/transactions", icon: Receipt },
       { title: "Пользователи", url: "/admin/users", icon: Users },
@@ -84,6 +88,8 @@ export function AdminSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { user, signOut } = useAuth();
+  const { role } = useAdminRole();
+  const { canAccessTab } = useStaffPermissions();
   const location = useLocation();
   const [unresolvedCount, setUnresolvedCount] = useState(0);
 
@@ -100,21 +106,36 @@ export function AdminSidebar() {
       });
   }, []);
 
+  // Filter menu groups based on permissions
+  const filteredGroups = menuGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => canAccessTab(item.url)),
+    }))
+    .filter((group) => group.items.length > 0);
+
   const isGroupActive = (group: MenuGroup) =>
     group.items.some(item => item.end ? location.pathname === item.url : location.pathname.startsWith(item.url));
+
+  const roleColor = role === "admin" ? "destructive" : role === "ceo" ? "default" : role === "investor" ? "secondary" : "outline";
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border/60">
       <SidebarContent>
         {!collapsed && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-destructive font-bold text-sm px-4 py-2">
+            <SidebarGroupLabel className="text-destructive font-bold text-sm px-4 py-2 flex items-center gap-2">
               Админ-панель
+              {role && (
+                <Badge variant={roleColor as any} className="text-[8px] px-1 py-0">
+                  {ROLE_LABELS[role]}
+                </Badge>
+              )}
             </SidebarGroupLabel>
           </SidebarGroup>
         )}
 
-        {menuGroups.map((group) => (
+        {filteredGroups.map((group) => (
           <Collapsible key={group.label} defaultOpen={collapsed || isGroupActive(group)}>
             {!collapsed && (
               <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
