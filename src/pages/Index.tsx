@@ -26,6 +26,10 @@ const Index = () => {
   const [consentOffer, setConsentOffer] = useState(false);
   const [dbPatterns, setDbPatterns] = useState<DbLinkPattern[]>([]);
   const [dbPlatforms, setDbPlatforms] = useState<DbPlatform[]>([]);
+  const [loginMode, setLoginMode] = useState(false);
+  const [password, setPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   // Load DB patterns + platforms once on mount
   useEffect(() => {
