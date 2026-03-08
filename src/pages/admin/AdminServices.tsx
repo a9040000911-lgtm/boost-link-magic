@@ -257,7 +257,6 @@ const AdminServices = () => {
           <RefreshCw className={`h-3 w-3 mr-1 ${syncing ? "animate-spin" : ""}`} />
           {syncing ? "Синхр..." : "Синхр. провайдеров"}
         </Button>
-        </div>
       </div>
 
       {/* Provider cards */}
