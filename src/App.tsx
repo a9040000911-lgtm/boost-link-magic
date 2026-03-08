@@ -27,6 +27,7 @@ import AdminTransactions from "./pages/admin/AdminTransactions";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import AdminPromocodes from "./pages/admin/AdminPromocodes";
+import AdminPages from "./pages/admin/AdminPages";
 import CookieConsent from "./components/CookieConsent";
 
 const queryClient = new QueryClient();
