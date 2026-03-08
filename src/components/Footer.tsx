@@ -62,7 +62,7 @@ const Footer = () => {
       <div className="max-w-5xl mx-auto">
         <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-8">
           <div>
-            <p className="text-sm font-semibold text-white">{brandName}</p>
+            <p className="text-2xl font-extrabold text-white tracking-tight">{brandName}</p>
             <p className="text-xs text-white/60 mt-1">{brandTagline}</p>
             <div className="flex items-center gap-2 mt-2 text-xs text-white/50">
               <Clock className="w-3 h-3" />
