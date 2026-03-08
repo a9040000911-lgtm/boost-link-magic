@@ -349,6 +349,7 @@ serve(async (req) => {
         link: sanitizedLink,
         quantity,
         price: totalPrice,
+        cost_price: successResult.costPrice || null,
         platform: service.network,
         provider: successResult.provider,
         provider_order_id: successResult.providerOrderId,
