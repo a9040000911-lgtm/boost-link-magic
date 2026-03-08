@@ -108,6 +108,9 @@ const AdminServices = () => {
     min_quantity: "100", max_quantity: "10000", price: "0",
     speed: "medium", guarantee: "none", warning_text: ""
   });
+  const [createMappingIds, setCreateMappingIds] = useState<string[]>([]);
+  const [createProviderSearch, setCreateProviderSearch] = useState("");
+  const [createProviderFilter, setCreateProviderFilter] = useState("all");
 
   // Edit dialog
   const [editService, setEditService] = useState<Service | null>(null);
