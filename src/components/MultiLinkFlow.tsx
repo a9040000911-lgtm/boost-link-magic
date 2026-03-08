@@ -129,13 +129,13 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
           key={currentIndex}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-3 flex items-center gap-3"
+          className="p-3 flex items-center gap-3 rounded-xl bg-card border-2 border-primary/30 shadow-md shadow-primary/10"
         >
-          <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
+          <span className="px-2.5 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
             {platformNames[current.platform]}
           </span>
-          <span className="text-sm text-muted-foreground truncate flex-1 flex items-center gap-1.5">
-            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+          <span className="text-sm text-foreground font-medium truncate flex-1 flex items-center gap-1.5">
+            <ExternalLink className="w-3.5 h-3.5 shrink-0 text-primary" />
             {current.url}
           </span>
           <span className="text-xs text-muted-foreground shrink-0">
