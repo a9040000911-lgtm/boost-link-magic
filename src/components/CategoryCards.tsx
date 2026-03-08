@@ -34,7 +34,7 @@ const CategoryCards = ({ categories, onSelect, recommendedIds = [] }: CategoryCa
     return aRec - bRec;
   });
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full mx-auto">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 w-full mx-auto">
       {sorted.map((cat, i) => {
         const Icon = iconMap[cat.icon] || Heart;
         const isRecommended = recommendedIds.includes(cat.id);
