@@ -197,8 +197,12 @@ const AdminSettingsPage = () => {
     setLoading(false);
   };
 
+  const ladderJson = JSON.stringify(ladder);
+  const originalLadderJson = JSON.stringify(originalLadder);
+  const ladderChanged = ladderJson !== originalLadderJson;
+
   const changedKeys = Object.keys(values).filter(k => values[k] !== original[k]);
-  const hasChanges = changedKeys.length > 0;
+  const hasChanges = changedKeys.length > 0 || ladderChanged;
 
   const saveAll = async () => {
     setSaving(true);
@@ -208,7 +212,13 @@ const AdminSettingsPage = () => {
           .upsert({ key, value: values[key], updated_at: new Date().toISOString() }, { onConflict: "key" });
         if (error) throw error;
       }
-      toast.success(`Сохранено (${changedKeys.length} параметров)`);
+      if (ladderChanged) {
+        const { error } = await supabase.from("app_settings")
+          .upsert({ key: "markup_ladder", value: ladderJson, updated_at: new Date().toISOString() }, { onConflict: "key" });
+        if (error) throw error;
+      }
+      const total = changedKeys.length + (ladderChanged ? 1 : 0);
+      toast.success(`Сохранено (${total} параметров)`);
       await load();
     } catch (e: any) { toast.error(e.message); }
     setSaving(false);
