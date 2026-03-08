@@ -146,23 +146,23 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
               key={currentIndex}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`p-3 flex items-center gap-3 rounded-xl bg-card border-2 ${colors.border} shadow-md ${colors.shadow}`}
+              className={`p-4 flex items-center gap-4 rounded-xl bg-card border-2 ${colors.border} shadow-md ${colors.shadow}`}
             >
-              <span className={`px-2.5 py-1 rounded-full ${colors.bg} text-white text-xs font-semibold inline-flex items-center gap-1.5`}>
-                <PlatformIcon platform={current.platform} className="w-3.5 h-3.5" />
+              <span className={`px-3 py-1.5 rounded-full ${colors.bg} text-white text-sm font-semibold inline-flex items-center gap-2`}>
+                <PlatformIcon platform={current.platform} className="w-4 h-4" />
                 {platformNames[current.platform]}
               </span>
               {current.analysis && (
-                <span className={`px-2 py-0.5 rounded-full bg-muted text-xs font-medium ${colors.text}`}>
+                <span className={`px-3 py-1 rounded-full bg-muted text-sm font-medium ${colors.text}`}>
                   {current.analysis.label}
                   {current.analysis.username && <span className="opacity-60 ml-1">@{current.analysis.username}</span>}
                 </span>
               )}
-              <span className={`text-sm text-foreground font-medium truncate flex-1 flex items-center gap-1.5`}>
-                <ExternalLink className={`w-3.5 h-3.5 shrink-0 ${colors.text}`} />
+              <span className={`text-base text-foreground font-medium truncate flex-1 flex items-center gap-2`}>
+                <ExternalLink className={`w-4 h-4 shrink-0 ${colors.text}`} />
                 {current.url}
               </span>
-              <span className="text-xs text-muted-foreground shrink-0">
+              <span className="text-sm text-muted-foreground shrink-0">
                 {currentIndex + 1} из {orders.length}
               </span>
             </motion.div>
