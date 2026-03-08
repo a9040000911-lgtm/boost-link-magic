@@ -40,10 +40,17 @@ const SETTINGS_META: SettingMeta[] = [
   { key: "support_smtp_password", label: "SMTP пароль", hint: "Пароль для SMTP (хранится безопасно в настройках)", type: "text", group: "email_support" },
   { key: "support_email_from_name", label: "Имя отправителя", hint: "Имя которое увидит клиент в письме (например 'CoolLike Support')", type: "text", group: "email_support" },
 
-  // AI Support
-  { key: "support_ai_enabled", label: "ИИ-подсказки включены", hint: "Включить виджет ИИ-подсказок для операторов в чате поддержки", type: "boolean", group: "ai_support" },
-  { key: "support_ai_model", label: "Модель ИИ", hint: "Название модели Lovable AI (например google/gemini-2.5-flash, google/gemini-2.5-pro, openai/gpt-5-mini). Модель можно менять без перезапуска", type: "text", group: "ai_support" },
-  { key: "support_ai_system_prompt", label: "Системный промпт", hint: "Инструкция для ИИ — как генерировать подсказки для операторов", type: "textarea", group: "ai_support" },
+  // AI Support — Provider
+  { key: "support_ai_enabled", label: "ИИ-подсказки включены", hint: "Включить ИИ-помощника для операторов поддержки", type: "boolean", group: "ai_support" },
+  { key: "support_ai_provider", label: "Провайдер ИИ", hint: "lovable — встроенный Lovable AI (без доп. ключей). gemini — Google Gemini с ручным ключом. openclaw — OpenClaw. custom — любой OpenAI-совместимый endpoint", type: "text", group: "ai_support" },
+  { key: "support_ai_mode", label: "Режим работы", hint: "suggest — только подсказки оператору. auto — бот сам отвечает если уверен, иначе передаёт оператору. off — выключено", type: "text", group: "ai_support" },
+  { key: "support_ai_model", label: "Модель ИИ", hint: "Для lovable: google/gemini-2.5-flash, openai/gpt-5-mini. Для gemini: gemini-2.5-flash. Для custom: любая модель endpoint'а", type: "text", group: "ai_support" },
+  { key: "support_ai_system_prompt", label: "Системный промпт", hint: "Инструкция для ИИ — как генерировать ответы и подсказки", type: "textarea", group: "ai_support" },
+  { key: "support_ai_auto_confidence", label: "Порог уверенности (auto)", hint: "Минимальная уверенность (0.0-1.0) для автоответа бота. Если ниже — передаёт оператору", type: "text", group: "ai_support" },
+  { key: "support_ai_custom_endpoint", label: "Custom endpoint URL", hint: "URL OpenAI-совместимого API (для провайдеров custom/openclaw). Пример: https://api.openclaw.ai/v1/chat/completions", type: "text", group: "ai_support" },
+  { key: "support_ai_custom_key_env", label: "Имя секрета API-ключа", hint: "Название секрета в Cloud secrets, где хранится API-ключ кастомного провайдера (например OPENCLAW_API_KEY, GEMINI_API_KEY)", type: "text", group: "ai_support" },
+  { key: "support_ai_use_faq", label: "Использовать FAQ как контекст", hint: "ИИ будет учитывать опубликованные FAQ при генерации ответов", type: "boolean", group: "ai_support" },
+  { key: "support_ai_use_templates", label: "Использовать шаблоны как контекст", hint: "ИИ будет учитывать шаблоны ответов при генерации", type: "boolean", group: "ai_support" },
 
   // Support
   { key: "ticket_auto_close_hours", label: "Автозакрытие тикетов", hint: "Через сколько часов тикет закроется автоматически после ответа поддержки, если клиент не отвечает", type: "number", suffix: "ч", group: "support" },
@@ -92,7 +99,7 @@ const GROUPS = [
   { id: "contacts", label: "Контакты", icon: Mail, description: "Публичный email и часы работы поддержки" },
   { id: "telegram_support", label: "Telegram-бот поддержки", icon: MessageCircle, description: "Отдельный бот для приёма обращений через Telegram" },
   { id: "email_support", label: "Email поддержки", icon: Mail, description: "Настройки почты для приёма и отправки обращений" },
-  { id: "ai_support", label: "ИИ-подсказки", icon: Sparkles, description: "Настройки ИИ-помощника для операторов поддержки (Lovable AI)" },
+  { id: "ai_support", label: "ИИ-ассистент поддержки", icon: Sparkles, description: "Провайдер, режим и контекст для ИИ-помощника (веб + Telegram)" },
   { id: "support", label: "Поддержка", icon: MessageSquare, description: "Настройки тикетов и общения с клиентами" },
   { id: "orders", label: "Заказы", icon: ShoppingCart, description: "Лимиты и наценки на заказы" },
   { id: "finance", label: "Финансы", icon: Wallet, description: "Пополнения, выводы и бонусы" },

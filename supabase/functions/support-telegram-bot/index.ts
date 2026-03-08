@@ -24,6 +24,77 @@ async function tgSend(token: string, chatId: string | number, text: string, pars
   return res.json();
 }
 
+// Try AI auto-reply if enabled
+async function tryAIAutoReply(
+  supabase: any,
+  ticketId: string,
+  userMessage: string,
+  ticketSubject: string,
+): Promise<{ replied: boolean; answer?: string }> {
+  try {
+    const settings = await getSettings(supabase, [
+      'support_ai_enabled', 'support_ai_mode',
+    ]);
+
+    if (settings.support_ai_enabled !== "true" || settings.support_ai_mode !== "auto") {
+      return { replied: false };
+    }
+
+    // Load recent messages for context
+    const { data: recentMessages } = await supabase
+      .from("support_messages")
+      .select("message, is_admin")
+      .eq("ticket_id", ticketId)
+      .order("created_at", { ascending: true })
+      .limit(20);
+
+    const messages = (recentMessages || []).map((m: any) => ({
+      message: m.message,
+      is_admin: m.is_admin,
+    }));
+
+    // Call AI suggest function internally
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const aiResponse = await fetch(`${SUPABASE_URL}/functions/v1/support-ai-suggest`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({
+        _internal: true,
+        messages,
+        ticket_subject: ticketSubject,
+        channel: "telegram",
+        mode: "auto",
+      }),
+    });
+
+    if (!aiResponse.ok) return { replied: false };
+
+    const aiData = await aiResponse.json();
+
+    if (aiData.should_auto_reply && aiData.answer) {
+      // Save AI response as admin message
+      await supabase.from("support_messages").insert({
+        ticket_id: ticketId,
+        user_id: "00000000-0000-0000-0000-000000000000",
+        message: `🤖 ${aiData.answer}`,
+        is_admin: true,
+      });
+
+      return { replied: true, answer: aiData.answer };
+    }
+
+    return { replied: false };
+  } catch (e) {
+    console.error("AI auto-reply error:", e);
+    return { replied: false };
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -82,7 +153,6 @@ Deno.serve(async (req) => {
 
       if (existingTickets && existingTickets.length > 0) {
         ticketId = existingTickets[0].id;
-        // Update ticket status to open if it was waiting
         if (existingTickets[0].status === "waiting_reply") {
           await supabase.from("support_tickets").update({
             status: "open",
@@ -91,7 +161,6 @@ Deno.serve(async (req) => {
           }).eq("id", ticketId);
         }
       } else {
-        // Create new ticket with system user
         const { data: newTicket, error } = await supabase
           .from("support_tickets")
           .insert({
@@ -146,14 +215,12 @@ Deno.serve(async (req) => {
         }
 
         if (fileId) {
-          // Get file URL from Telegram
           const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
           const fileData = await fileRes.json();
           if (fileData.ok) {
             const filePath = fileData.result.file_path;
             const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`;
 
-            // Download and upload to storage
             const fileResponse = await fetch(fileUrl);
             const fileBlob = await fileResponse.blob();
             const storagePath = `telegram/${ticketId}/${Date.now()}_${fileName}`;
@@ -177,7 +244,32 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Confirm to user
+      // Try AI auto-reply
+      if (text && text.length > 3) {
+        const aiResult = await tryAIAutoReply(supabase, ticketId, text, ticketSubject);
+        if (aiResult.replied && aiResult.answer) {
+          // Send AI answer to user in Telegram
+          await tgSend(BOT_TOKEN, chatId, `💬 ${aiResult.answer}`);
+
+          // Update ticket to waiting_reply (AI answered)
+          await supabase.from("support_tickets").update({
+            status: "waiting_reply",
+            last_admin_reply_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }).eq("id", ticketId);
+
+          // Notify admin about auto-reply
+          if (ADMIN_CHAT_ID) {
+            await tgSend(BOT_TOKEN, ADMIN_CHAT_ID,
+              `🤖 Авто-ответ для <b>${firstName}</b>:\n\nВопрос: ${text}\nОтвет: ${aiResult.answer}`
+            );
+          }
+
+          return json({ ok: true, ai_replied: true });
+        }
+      }
+
+      // No AI auto-reply — standard flow
       const confirmMsg = settings.support_bot_confirm || "✅ Ваше сообщение получено! Мы ответим в ближайшее время.";
       if (isNewTicket) {
         await tgSend(BOT_TOKEN, chatId, confirmMsg);
@@ -203,7 +295,7 @@ Deno.serve(async (req) => {
       return json({ success: result.ok });
     }
 
-    // === SET WEBHOOK: register webhook URL with Telegram ===
+    // === SET WEBHOOK ===
     if (action === "set_webhook") {
       const { url } = body;
       if (!url) return json({ error: "url required" }, 400);
