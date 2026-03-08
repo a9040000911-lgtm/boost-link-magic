@@ -106,6 +106,7 @@ const GROUPS = [
   { id: "support", label: "Поддержка", icon: MessageSquare, description: "Настройки тикетов и общения с клиентами" },
   { id: "orders", label: "Заказы", icon: ShoppingCart, description: "Лимиты и наценки на заказы" },
   { id: "finance", label: "Финансы", icon: Wallet, description: "Пополнения, выводы и бонусы" },
+  { id: "license", label: "Лицензия", icon: Shield, description: "Глобальный лицензионный ключ для всего сайта — вводится один раз" },
   { id: "system", label: "Система", icon: Shield, description: "Технический режим и уведомления" },
   { id: "plan_standard", label: "План Standard", icon: Clock, description: "Лимиты базового плана лицензии" },
   { id: "plan_pro", label: "План Pro", icon: Clock, description: "Лимиты расширенного плана лицензии" },
