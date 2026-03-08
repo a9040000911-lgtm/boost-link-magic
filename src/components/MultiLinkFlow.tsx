@@ -8,6 +8,7 @@ import {
   detectPlatform,
   categoriesByPlatform,
   getServicesForCategory,
+  getRecommendedCategoryIds,
   platformNames,
   type Platform,
   type Category,
