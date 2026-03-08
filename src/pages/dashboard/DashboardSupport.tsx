@@ -146,7 +146,7 @@ const DashboardSupport = () => {
     if (!user) return;
     const { data } = await supabase
       .from("orders")
-      .select("id, service_name, created_at, status")
+      .select("id, order_number, service_name, created_at, status")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(50);
