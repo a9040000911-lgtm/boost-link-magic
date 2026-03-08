@@ -467,7 +467,7 @@ const Catalog = () => {
                             animate={{ opacity: 1, width: "auto" }}
                             exit={{ opacity: 0, width: 0 }}
                             transition={{ duration: 0.2, ease: "easeInOut" }}
-                            className="text-xs font-semibold hidden sm:inline overflow-hidden whitespace-nowrap"
+                            className="text-sm font-semibold hidden sm:inline overflow-hidden whitespace-nowrap"
                           >
                             {net.label}
                           </motion.span>
