@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CategoryCards from '@/components/CategoryCards';
+import PlatformIcon from '@/components/PlatformIcon';
 import ServiceCarousel from '@/components/ServiceCarousel';
 import {
   detectPlatform,
@@ -141,7 +142,8 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
               animate={{ opacity: 1, y: 0 }}
               className={`p-3 flex items-center gap-3 rounded-xl bg-card border-2 ${colors.border} shadow-md ${colors.shadow}`}
             >
-              <span className={`px-2.5 py-0.5 rounded-full ${colors.bg} text-white text-xs font-semibold`}>
+              <span className={`px-2.5 py-1 rounded-full ${colors.bg} text-white text-xs font-semibold inline-flex items-center gap-1.5`}>
+                <PlatformIcon platform={current.platform} className="w-3.5 h-3.5" />
                 {platformNames[current.platform]}
               </span>
               <span className={`text-sm text-foreground font-medium truncate flex-1 flex items-center gap-1.5`}>
