@@ -165,6 +165,14 @@ const AdminStaff = () => {
     if (!editMember || !user) return;
     setSaving(true);
 
+    // Update telegram_chat_id if changed
+    const oldTg = editMember.telegram_chat_id || "";
+    if (editTelegramChatId !== oldTg) {
+      await supabase.from("profiles").update({ telegram_chat_id: editTelegramChatId || null } as any).eq("id", editMember.user_id);
+      await logAuditAction("update_telegram_2fa", "staff", editMember.user_id, { telegram_chat_id: editTelegramChatId || null });
+    }
+    setSaving(true);
+
     const currentRole = editMember.role.split(", ")[0];
 
     // Update role if changed
