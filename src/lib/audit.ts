@@ -24,7 +24,9 @@ export type AuditAction =
   | "login_admin"
   | "update_telegram_2fa"
   | "bulk_markup"
-  | "ladder_markup";
+  | "ladder_markup"
+  | "bulk_category"
+  | "bulk_network";
 
 export async function logAuditAction(
   action: AuditAction,
