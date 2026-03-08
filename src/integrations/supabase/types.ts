@@ -1048,6 +1048,7 @@ export type Database = {
           category: string
           created_at: string
           description: string | null
+          guarantee: string
           id: string
           is_enabled: boolean
           max_quantity: number
@@ -1055,12 +1056,14 @@ export type Database = {
           name: string
           network: string
           price: number
+          speed: string
           updated_at: string
         }
         Insert: {
           category?: string
           created_at?: string
           description?: string | null
+          guarantee?: string
           id?: string
           is_enabled?: boolean
           max_quantity?: number
@@ -1068,12 +1071,14 @@ export type Database = {
           name: string
           network?: string
           price?: number
+          speed?: string
           updated_at?: string
         }
         Update: {
           category?: string
           created_at?: string
           description?: string | null
+          guarantee?: string
           id?: string
           is_enabled?: boolean
           max_quantity?: number
@@ -1081,6 +1086,7 @@ export type Database = {
           name?: string
           network?: string
           price?: number
+          speed?: string
           updated_at?: string
         }
         Relationships: []
