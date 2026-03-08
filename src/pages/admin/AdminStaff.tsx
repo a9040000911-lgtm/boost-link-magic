@@ -553,6 +553,24 @@ const AdminStaff = () => {
                   <p className="text-[10px] text-muted-foreground mt-1">Все права включены автоматически. Для ограниченного доступа используйте роль «Модератор».</p>
                 </div>
               )}
+
+              {/* Telegram 2FA */}
+              <Separator />
+              <div>
+                <Label className="text-xs font-medium flex items-center gap-1.5">
+                  <MessageCircle className="h-3 w-3" />
+                  Telegram Chat ID (для 2FA)
+                </Label>
+                <Input
+                  className="mt-1 text-xs"
+                  placeholder="Например: 123456789"
+                  value={editTelegramChatId}
+                  onChange={(e) => setEditTelegramChatId(e.target.value)}
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Коды 2FA будут отправляться в Telegram и на почту. Если ID не указан — только на почту.
+                </p>
+              </div>
             </div>
           )}
 
