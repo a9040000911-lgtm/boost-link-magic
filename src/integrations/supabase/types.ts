@@ -651,6 +651,7 @@ export type Database = {
           id: string
           is_admin: boolean
           message: string
+          reply_to_id: string | null
           ticket_id: string
           user_id: string
         }
@@ -662,6 +663,7 @@ export type Database = {
           id?: string
           is_admin?: boolean
           message: string
+          reply_to_id?: string | null
           ticket_id: string
           user_id: string
         }
@@ -673,10 +675,18 @@ export type Database = {
           id?: string
           is_admin?: boolean
           message?: string
+          reply_to_id?: string | null
           ticket_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "support_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "support_messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "support_messages_ticket_id_fkey"
             columns: ["ticket_id"]
