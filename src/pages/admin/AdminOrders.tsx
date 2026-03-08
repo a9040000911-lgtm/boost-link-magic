@@ -25,9 +25,12 @@ interface Order {
   provider_order_id: string | null;
   service_id: string | null;
   provider_service_id: string | null;
+  refund_status: string | null;
+  refunded_amount: number | null;
+  refunded_at: string | null;
+  refunded_by: string | null;
   created_at: string;
   updated_at: string;
-  profiles?: { display_name: string | null; id: string } | null;
 }
 
 const statusColors: Record<string, string> = {
