@@ -170,6 +170,13 @@ const TariffExplainer = ({ onClose, netConfig }: { onClose: () => void; netConfi
     </div>
   </motion.div>
 );
+/* Smart price formatter — shows enough decimals so the value isn't "0.00" */
+const fmtPrice = (perUnit: number) => {
+  if (perUnit === 0) return "0.00";
+  if (perUnit >= 0.01) return perUnit.toFixed(2);
+  if (perUnit >= 0.001) return perUnit.toFixed(3);
+  return perUnit.toFixed(4);
+};
 
 const Catalog = () => {
   const navigate = useNavigate();
@@ -588,7 +595,7 @@ const Catalog = () => {
                                     </td>
                                     <td className="px-3 py-2 text-right font-bold whitespace-nowrap">
                                       <span className={isPopular ? (activeNetConfig?.color || 'text-primary') : ''}>
-                                        {pricePerUnit.toFixed(2)} ₽
+                                        {fmtPrice(pricePerUnit)} ₽
                                       </span>
                                     </td>
                                     <td className="px-2 py-2 text-center hidden sm:table-cell"><SpeedBadge speed={service.speed} /></td>
@@ -671,7 +678,7 @@ const Catalog = () => {
                                       ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
                                       : 'bg-muted text-foreground'
                                   }`}>
-                                    {pricePerUnit.toFixed(2)} ₽ / шт
+                                    {fmtPrice(pricePerUnit)} ₽ / шт
                                   </span>
                                 </div>
                               </motion.button>
@@ -706,7 +713,7 @@ const Catalog = () => {
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Выбрано</p>
                       <h3 className="text-sm font-bold text-foreground line-clamp-2">{selectedService.name}</h3>
                       <p className={`text-lg font-bold mt-1 ${activeNetConfig?.color || 'text-primary'}`}>
-                        {(selectedService.price / 1000).toFixed(2)} ₽ <span className="text-xs font-normal text-muted-foreground">/ шт</span>
+                        {fmtPrice(selectedService.price / 1000)} ₽ <span className="text-xs font-normal text-muted-foreground">/ шт</span>
                       </p>
                       {/* Speed & Guarantee */}
                       <div className="flex items-center gap-3 mt-1.5">
@@ -810,7 +817,7 @@ const Catalog = () => {
                         </span>
                       ) : (
                         <>
-                          <span className="font-bold">{totalPrice.toFixed(2)} ₽</span>
+                          <span className="font-bold">{fmtPrice(totalPrice)} ₽</span>
                           <span className="border-l border-white/30 pl-2">Оформить</span>
                         </>
                       )}
@@ -848,7 +855,7 @@ const Catalog = () => {
                   </div>
                 </div>
                 <span className={`text-sm font-bold ${activeNetConfig?.color || 'text-primary'}`}>
-                  {(selectedService.price / 1000).toFixed(2)} ₽/шт
+                  {fmtPrice(selectedService.price / 1000)} ₽/шт
                 </span>
               </div>
 
@@ -904,7 +911,7 @@ const Catalog = () => {
                   disabled={!link.trim() || (checkboxSettings.show_offer_checkbox && !consentOffer) || (checkboxSettings.show_policy_checkbox && !consentPD) || ordering}
                   className={`flex-1 py-2.5 rounded-xl ${activeNetConfig?.bg || 'bg-primary'} text-white font-bold text-sm disabled:opacity-40 flex items-center justify-center gap-2`}
                 >
-                  {ordering ? 'Оформляем...' : `${totalPrice.toFixed(2)} ₽ — Заказать`}
+                  {ordering ? 'Оформляем...' : `${fmtPrice(totalPrice)} ₽ — Заказать`}
                 </button>
               </div>
             </div>
