@@ -4,6 +4,7 @@ import HeroInput from '@/components/HeroInput';
 import MultiLinkFlow from '@/components/MultiLinkFlow';
 import type { LinkOrder } from '@/components/MultiLinkFlow';
 import MarketingSection from '@/components/MarketingSection';
+import TestimonialsSection from '@/components/TestimonialsSection';
 import { detectPlatform } from '@/lib/smm-data';
 import { Sparkles, Check, ExternalLink, Mail } from 'lucide-react';
 
@@ -262,7 +263,12 @@ const Index = () => {
       </div>
 
       {/* Marketing */}
-      {!showFlow && !showSummary && <MarketingSection />}
+      {!showFlow && !showSummary && (
+        <>
+          <MarketingSection />
+          <TestimonialsSection />
+        </>
+      )}
     </div>
   );
 };
