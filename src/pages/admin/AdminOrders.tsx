@@ -68,6 +68,7 @@ const AdminOrders = () => {
   const [refundOrder, setRefundOrder] = useState<Order | null>(null);
   const [refundReason, setRefundReason] = useState("");
   const [refunding, setRefunding] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     if (!user) return;
