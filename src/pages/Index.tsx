@@ -400,70 +400,160 @@ const Index = () => {
                   </div>
 
                   {/* Email — compact */}
-                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted/50 border border-border mb-2 relative z-10">
-                    <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Email для регистрации"
-                      className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-xs"
-                    />
-                  </div>
+                  <AnimatePresence mode="wait">
+                    {!loginMode ? (
+                      <motion.div key="email-input" initial={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted/50 border border-border mb-2 relative z-10">
+                          <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="Email для регистрации"
+                            className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-xs"
+                          />
+                        </div>
 
-                  {/* Consent — single line each */}
-                  <div className="space-y-1 mb-2 relative z-10 text-left">
-                    <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input type="checkbox" checked={consentPD} onChange={(e) => setConsentPD(e.target.checked)}
-                        className="w-3.5 h-3.5 rounded border-border text-primary shrink-0" />
-                      <span className="text-[10px] text-muted-foreground">
-                        Согласен на обработку <a href="/privacy" target="_blank" className="text-primary hover:underline">персональных данных</a> (152-ФЗ)
-                      </span>
-                    </label>
-                    <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input type="checkbox" checked={consentOffer} onChange={(e) => setConsentOffer(e.target.checked)}
-                        className="w-3.5 h-3.5 rounded border-border text-primary shrink-0" />
-                      <span className="text-[10px] text-muted-foreground">
-                        Принимаю <a href="/privacy" target="_blank" className="text-primary hover:underline">публичную оферту</a>
-                      </span>
-                    </label>
-                  </div>
+                        {/* Consent */}
+                        <div className="space-y-1 mb-2 relative z-10 text-left">
+                          <label className="flex items-center gap-1.5 cursor-pointer">
+                            <input type="checkbox" checked={consentPD} onChange={(e) => setConsentPD(e.target.checked)}
+                              className="w-3.5 h-3.5 rounded border-border text-primary shrink-0" />
+                            <span className="text-[10px] text-muted-foreground">
+                              Согласен на обработку <a href="/privacy" target="_blank" className="text-primary hover:underline">персональных данных</a> (152-ФЗ)
+                            </span>
+                          </label>
+                          <label className="flex items-center gap-1.5 cursor-pointer">
+                            <input type="checkbox" checked={consentOffer} onChange={(e) => setConsentOffer(e.target.checked)}
+                              className="w-3.5 h-3.5 rounded border-border text-primary shrink-0" />
+                            <span className="text-[10px] text-muted-foreground">
+                              Принимаю <a href="/privacy" target="_blank" className="text-primary hover:underline">публичную оферту</a>
+                            </span>
+                          </label>
+                        </div>
 
-                  {/* Buttons */}
-                  <div className="flex gap-2 justify-center relative z-10">
-                    <button
-                      onClick={() => { setCompletedOrders(null); setUrls(urls.length ? urls : completedOrders!.map(o => o.url)); }}
-                      className="px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium"
-                    >
-                      ← Назад
-                    </button>
-                    <button onClick={handleReset} className="px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium">
-                      Новый заказ
-                    </button>
-                    <button
-                      disabled={!email.includes('@') || !consentPD || !consentOffer}
-                      onClick={() => {
-                        if (!completedOrders) return;
-                        // Save order data to sessionStorage for post-auth pickup
-                        sessionStorage.setItem('pending_order', JSON.stringify({
-                          orders: completedOrders.map(o => ({
-                            url: o.url,
-                            platform: o.platform,
-                            categoryName: o.category?.name,
-                            serviceName: o.service?.name,
-                            serviceId: o.service?.id,
-                            quantity: o.quantity,
-                            price: o.service?.price,
-                          })),
-                          email,
-                        }));
-                        navigate(`/auth?email=${encodeURIComponent(email)}&redirect=/dashboard/orders&pending=1`);
-                      }}
-                      className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-primary to-rose-500 text-primary-foreground text-xs font-bold shadow-md disabled:opacity-40 hover:shadow-lg transition-shadow"
-                    >
-                      🚀 Оплатить
-                    </button>
-                  </div>
+                        {/* Buttons */}
+                        <div className="flex gap-2 justify-center relative z-10">
+                          <button
+                            onClick={() => { setCompletedOrders(null); setUrls(urls.length ? urls : completedOrders!.map(o => o.url)); }}
+                            className="px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium"
+                          >
+                            ← Назад
+                          </button>
+                          <button onClick={handleReset} className="px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium">
+                            Новый заказ
+                          </button>
+                          <button
+                            disabled={!email.includes('@') || !consentPD || !consentOffer || authLoading}
+                            onClick={async () => {
+                              if (!completedOrders) return;
+                              setAuthLoading(true);
+                              // Save order data
+                              sessionStorage.setItem('pending_order', JSON.stringify({
+                                orders: completedOrders.map(o => ({
+                                  url: o.url,
+                                  platform: o.platform,
+                                  categoryName: o.category?.name,
+                                  serviceName: o.service?.name,
+                                  serviceId: o.service?.id,
+                                  quantity: o.quantity,
+                                  price: o.service?.price,
+                                })),
+                                email,
+                              }));
+                              // Try signing in with a dummy password to check if account exists
+                              const { error: signInErr } = await supabase.auth.signInWithPassword({
+                                email,
+                                password: '__check_exists__',
+                              });
+                              // "Invalid login credentials" means account exists but wrong password
+                              if (signInErr?.message?.includes('Invalid login credentials')) {
+                                setLoginMode(true);
+                                setAuthLoading(false);
+                                return;
+                              }
+                              // If no error somehow (unlikely) or email not confirmed, just redirect to auth
+                              setAuthLoading(false);
+                              navigate(`/auth?email=${encodeURIComponent(email)}&redirect=/dashboard/orders&pending=1`);
+                            }}
+                            className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-primary to-rose-500 text-primary-foreground text-xs font-bold shadow-md disabled:opacity-40 hover:shadow-lg transition-shadow"
+                          >
+                            {authLoading ? '...' : '🚀 Оплатить'}
+                          </button>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="login-form"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="relative z-10"
+                      >
+                        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 mb-2">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Lock className="w-4 h-4 text-primary" />
+                            <span className="text-xs font-semibold text-foreground">
+                              Аккаунт с {email} уже существует
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mb-3">
+                            Введите пароль для входа или восстановите доступ через почту
+                          </p>
+                          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted/50 border border-border mb-2">
+                            <KeyRound className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <input
+                              type="password"
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              placeholder="Пароль"
+                              onKeyDown={(e) => e.key === 'Enter' && password.length >= 6 && document.getElementById('btn-login')?.click()}
+                              className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-xs"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => { setLoginMode(false); setPassword(''); setResetSent(false); }}
+                              className="px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium"
+                            >
+                              ← Назад
+                            </button>
+                            <button
+                              id="btn-login"
+                              disabled={password.length < 6 || authLoading}
+                              onClick={async () => {
+                                setAuthLoading(true);
+                                const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+                                if (err) {
+                                  toast.error('Неверный пароль');
+                                  setAuthLoading(false);
+                                  return;
+                                }
+                                toast.success('Вход выполнен!');
+                                navigate('/dashboard/orders?pending=1');
+                              }}
+                              className="flex-1 px-4 py-1.5 rounded-lg bg-gradient-to-r from-primary to-rose-500 text-primary-foreground text-xs font-bold shadow-md disabled:opacity-40"
+                            >
+                              {authLoading ? '...' : '🚀 Войти и оплатить'}
+                            </button>
+                          </div>
+                          <button
+                            disabled={resetSent}
+                            onClick={async () => {
+                              await supabase.auth.resetPasswordForEmail(email, {
+                                redirectTo: `${window.location.origin}/reset-password`,
+                              });
+                              setResetSent(true);
+                              toast.success('Ссылка для сброса пароля отправлена на ' + email);
+                            }}
+                            className="mt-2 text-[10px] text-primary hover:underline disabled:opacity-50"
+                          >
+                            {resetSent ? '✓ Ссылка отправлена' : 'Забыли пароль? Восстановить →'}
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </motion.div>
             )}
