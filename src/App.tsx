@@ -39,6 +39,8 @@ import CookieConsent from "./components/CookieConsent";
 import SiteWidgets from "./components/SiteWidgets";
 import DynamicPage from "./pages/DynamicPage";
 import Catalog from "./pages/Catalog";
+import Glossary from "./pages/Glossary";
+import Academy from "./pages/Academy";
 import LicenseGate from "./components/LicenseGate";
 import AdminLicenses from "./pages/admin/AdminLicenses";
 import AdminBots from "./pages/admin/AdminBots";
@@ -60,6 +62,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/catalog" element={<Catalog />} />
+            <Route path="/glossary" element={<Glossary />} />
+            <Route path="/academy" element={<Academy />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/auth" element={<Auth />} />

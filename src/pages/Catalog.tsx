@@ -63,22 +63,23 @@ const networkConfig: { key: string; label: string; icon: string; color: string; 
   { key: "Traffic", label: "Трафик", icon: "globe", color: "text-emerald-500", bg: "bg-emerald-500", border: "border-emerald-400", shadow: "shadow-emerald-500/25" },
 ];
 
-/* ─── Tariff Explainer ─── */
+/* ─── Tariff Explainer — detailed ─── */
 const TariffExplainer = ({ onClose, netConfig }: { onClose: () => void; netConfig?: typeof networkConfig[0] }) => (
   <motion.div
     initial={{ opacity: 0, y: 8 }}
     animate={{ opacity: 1, y: 0 }}
     exit={{ opacity: 0, y: 8 }}
-    className="absolute top-full left-0 right-0 z-50 mt-1 rounded-xl border border-border/60 bg-card shadow-xl p-4 text-xs"
+    className="absolute top-full left-0 right-0 z-50 mt-1 rounded-xl border border-border/60 bg-card shadow-xl p-4 text-xs max-h-[70vh] overflow-y-auto"
   >
     <div className="flex items-center justify-between mb-3">
       <h4 className="font-bold text-foreground text-sm">В чём разница тарифов?</h4>
       <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
     </div>
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Speed */}
       <div>
         <p className="font-semibold text-foreground mb-1 flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-green-500" /> Скорость выполнения</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-2">
           {Object.entries(speedMeta).map(([key, m]) => {
             const Icon = m.icon;
             return (
@@ -89,10 +90,16 @@ const TariffExplainer = ({ onClose, netConfig }: { onClose: () => void; netConfi
             );
           })}
         </div>
+        <p className="text-muted-foreground leading-relaxed">
+          <strong>Мгновенно</strong> — старт в течение минут. <strong>Быстро</strong> — от 10 мин до 1 часа.
+          <strong> Средне</strong> — несколько часов. <strong>Постепенно</strong> — растянутый во времени процесс, имитирующий органический рост.
+        </p>
       </div>
+
+      {/* Guarantee */}
       <div>
         <p className="font-semibold text-foreground mb-1 flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-emerald-500" /> Гарантия</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-2">
           {Object.entries(guaranteeMeta).map(([key, m]) => {
             const Icon = m.icon;
             return (
@@ -103,11 +110,62 @@ const TariffExplainer = ({ onClose, netConfig }: { onClose: () => void; netConfi
             );
           })}
         </div>
+        <p className="text-muted-foreground leading-relaxed">
+          Гарантия означает, что при списаниях (дропе) в указанный период услуга будет восполнена бесплатно.
+          <strong> Без гарантии</strong> — дешевле, но списания не компенсируются.
+        </p>
       </div>
-      <p className="text-muted-foreground leading-relaxed">
-        Тарифы отличаются <strong>скоростью</strong> выполнения и <strong>гарантией</strong> на списания.
-        Более дорогие — быстрее стартуют и дольше гарантируют сохранение результата.
-        Дешёвые тарифы выполняются постепенно и могут не иметь гарантии восполнения.
+
+      {/* Subscriber quality */}
+      <div>
+        <p className="font-semibold text-foreground mb-1 flex items-center gap-1.5">👥 Качество подписчиков</p>
+        <div className="space-y-1.5">
+          <div className="p-2 rounded-lg bg-muted/30 border border-border/30">
+            <p className="font-medium text-foreground">🤖 Боты / офферы</p>
+            <p className="text-muted-foreground">Самый дешёвый вариант. Аккаунты массовые, без аватарок и постов. Высокий процент списаний (дроп 20-60%). Подходят для начальной «подушки» подписчиков.</p>
+          </div>
+          <div className="p-2 rounded-lg bg-muted/30 border border-border/30">
+            <p className="font-medium text-foreground">👤 Микс / средне качество</p>
+            <p className="text-muted-foreground">Смесь реальных и офферных аккаунтов. Есть аватарки, некоторые публикации. Дроп 10-30%. Оптимальное соотношение цена/качество.</p>
+          </div>
+          <div className="p-2 rounded-lg bg-muted/30 border border-border/30">
+            <p className="font-medium text-foreground">💎 Живые / высокое качество</p>
+            <p className="text-muted-foreground">Реальные активные пользователи. Аватарки, посты, сторис. Минимальный дроп (0-10%). Самый дорогой, но самый надёжный вариант.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Views */}
+      <div>
+        <p className="font-semibold text-foreground mb-1 flex items-center gap-1.5">👁️ Типы просмотров</p>
+        <div className="space-y-1.5">
+          <div className="p-2 rounded-lg bg-muted/30 border border-border/30">
+            <p className="font-medium text-foreground">Обычные просмотры</p>
+            <p className="text-muted-foreground">Засчитываются как просмотры видео/сторис. Дёшево и быстро, но не влияют на вовлечённость и рекомендации.</p>
+          </div>
+          <div className="p-2 rounded-lg bg-muted/30 border border-border/30">
+            <p className="font-medium text-foreground">Удерживающие просмотры</p>
+            <p className="text-muted-foreground">Зрители «смотрят» видео определённое время. Повышают удержание аудитории и помогают продвижению в алгоритмах.</p>
+          </div>
+          <div className="p-2 rounded-lg bg-muted/30 border border-border/30">
+            <p className="font-medium text-foreground">Живые просмотры (онлайн)</p>
+            <p className="text-muted-foreground">Реальные пользователи заходят в эфир или на видео. Самый качественный, влияет на рекомендации, но дороже.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Drops & refills */}
+      <div>
+        <p className="font-semibold text-foreground mb-1 flex items-center gap-1.5">📉 Списания и рефил</p>
+        <p className="text-muted-foreground leading-relaxed">
+          <strong>Дроп (списания)</strong> — часть подписчиков/лайков со временем отписывается или удаляется площадкой. Это нормальный процесс.
+          <strong> Рефил</strong> — автоматическое восполнение списаний в период действия гарантии. Если тариф с гарантией 30 дней — при дропе в этот период сервис бесплатно добавит новых подписчиков.
+        </p>
+      </div>
+
+      <p className="text-muted-foreground leading-relaxed border-t border-border/30 pt-3">
+        💡 <strong>Совет:</strong> для долгосрочного результата выбирайте тарифы с гарантией и средней/высокой скоростью.
+        Для быстрого разового эффекта — дешёвые без гарантии.
       </p>
     </div>
   </motion.div>
@@ -342,16 +400,21 @@ const Catalog = () => {
         </motion.div>
       )}
 
-      {/* Header */}
+      {/* Header with prominent search */}
       <div className="border-b border-border/60 bg-card/50 shrink-0">
-        <div className="max-w-7xl mx-auto px-4 py-2">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
               <ArrowLeft className="w-4 h-4" /> <span className="hidden sm:inline">На главную</span>
             </Link>
-            <div className="relative w-48 sm:w-56">
+            <div className="relative flex-1 max-w-xl">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Поиск..." className="pl-9 h-8 text-sm bg-muted/40 border-border/40" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Поиск по названию, описанию или категории..."
+                className="pl-9 h-10 text-sm bg-muted/30 border-border/50 rounded-xl focus:bg-card focus:border-primary/50 transition-all"
+              />
             </div>
           </div>
         </div>
@@ -584,7 +647,7 @@ const Catalog = () => {
                                 onClick={() => selectService(service)}
                                 whileHover={{ y: -2 }}
                                 whileTap={{ scale: 0.98 }}
-                                className={`relative p-4 rounded-2xl text-left transition-all flex flex-col min-h-[180px] ${
+                                className={`relative p-4 rounded-2xl text-left transition-all flex flex-col h-auto ${
                                   isSelected
                                     ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/10'}`
                                     : isPopular
