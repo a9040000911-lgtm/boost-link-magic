@@ -792,7 +792,7 @@ const AdminServices = () => {
                                 {effectiveMarkup}%
                               </Badge>
                             </TableCell>
-                            <TableCell className="px-2 text-right font-mono font-medium">{ourPrice.toFixed(2)}₽</TableCell>
+                            <TableCell className="px-2 text-right font-mono font-medium">{fmtPrice(ourPrice)}</TableCell>
                             <TableCell className="px-2">
                               {svcMappings.length > 0 ? (
                                 <Badge variant="outline" className="text-[9px]">{svcMappings.length}</Badge>
