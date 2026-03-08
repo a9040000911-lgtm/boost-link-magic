@@ -445,21 +445,21 @@ const Catalog = () => {
                     }}
                     className={`relative ${
                       isActive
-                        ? `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl ${net.bg} text-white shadow-lg ${net.shadow}`
-                        : "w-9 h-9 rounded-xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border hover:shadow-sm"
+                        ? `inline-flex items-center gap-2 px-4 py-2.5 rounded-xl ${net.bg} text-white shadow-lg ${net.shadow}`
+                        : "w-11 h-11 rounded-xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border hover:shadow-sm"
                     }`}
                     title={net.label}
                   >
                     <motion.div
                       layout
-                      className="flex items-center gap-1.5"
+                      className="flex items-center gap-2"
                       transition={{
                         type: "spring",
                         stiffness: 500,
                         damping: 35,
                       }}
                     >
-                      <PlatformIcon platform={net.icon} className="w-4 h-4" />
+                      <PlatformIcon platform={net.icon} className="w-7 h-7" />
                       <AnimatePresence mode="popLayout">
                         {isActive && (
                           <motion.span
