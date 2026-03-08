@@ -1,15 +1,16 @@
-// License plan definitions and limits
+import { supabase } from "@/integrations/supabase/client";
+
 export interface PlanLimits {
   label: string;
-  maxOrdersPerMonth: number;      // 0 = unlimited
-  maxOrderAmount: number;          // max single order price (₽), 0 = unlimited
-  maxProjectsCount: number;        // 0 = unlimited
+  maxOrdersPerMonth: number;
+  maxOrderAmount: number;
+  maxProjectsCount: number;
   supportPriority: "normal" | "high" | "urgent";
   canUsePromocodes: boolean;
   canUseBulkOrders: boolean;
 }
 
-export const PLAN_LIMITS: Record<string, PlanLimits> = {
+const DEFAULTS: Record<string, PlanLimits> = {
   standard: {
     label: "Standard",
     maxOrdersPerMonth: 100,
@@ -30,9 +31,9 @@ export const PLAN_LIMITS: Record<string, PlanLimits> = {
   },
   enterprise: {
     label: "Enterprise",
-    maxOrdersPerMonth: 0, // unlimited
-    maxOrderAmount: 0,    // unlimited
-    maxProjectsCount: 0,  // unlimited
+    maxOrdersPerMonth: 0,
+    maxOrderAmount: 0,
+    maxProjectsCount: 0,
     supportPriority: "urgent",
     canUsePromocodes: true,
     canUseBulkOrders: true,
@@ -40,5 +41,31 @@ export const PLAN_LIMITS: Record<string, PlanLimits> = {
 };
 
 export function getPlanLimits(plan: string): PlanLimits {
-  return PLAN_LIMITS[plan] || PLAN_LIMITS.standard;
+  return DEFAULTS[plan] || DEFAULTS.standard;
+}
+
+/** Fetch plan limits from app_settings (DB), falling back to defaults */
+export async function fetchPlanLimits(plan: string): Promise<PlanLimits> {
+  const defaults = getPlanLimits(plan);
+  const prefix = `plan_${plan}_`;
+
+  const { data } = await supabase
+    .from("app_settings")
+    .select("key, value")
+    .like("key", `${prefix}%`);
+
+  if (!data || data.length === 0) return defaults;
+
+  const settings: Record<string, string> = {};
+  data.forEach((r) => { settings[r.key] = r.value; });
+
+  return {
+    label: plan.charAt(0).toUpperCase() + plan.slice(1),
+    maxOrdersPerMonth: Number(settings[`${prefix}max_orders_month`] ?? defaults.maxOrdersPerMonth),
+    maxOrderAmount: Number(settings[`${prefix}max_order_amount`] ?? defaults.maxOrderAmount),
+    maxProjectsCount: Number(settings[`${prefix}max_projects`] ?? defaults.maxProjectsCount),
+    supportPriority: (settings[`${prefix}support_priority`] as any) || defaults.supportPriority,
+    canUsePromocodes: true,
+    canUseBulkOrders: settings[`${prefix}bulk_orders`] === "true",
+  };
 }
