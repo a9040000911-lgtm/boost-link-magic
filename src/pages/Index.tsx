@@ -147,7 +147,7 @@ const Index = () => {
           className={`relative z-10 ${isActive ? 'mb-2' : 'mb-6'}`}
         >
           <motion.div
-            className="inline-flex items-center gap-1 text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tight select-none"
+            className={`inline-flex items-center gap-1 font-extrabold tracking-tight select-none ${isActive ? 'text-4xl md:text-5xl' : 'text-6xl md:text-7xl lg:text-8xl'}`}
             whileHover={{ scale: 1.05 }}
           >
             {(siteContent?.heroTitle || "COOLLIKE").split("").map((letter, i) => (
@@ -155,10 +155,8 @@ const Index = () => {
                 key={i}
                 className="inline-block"
                 style={{
-                  background: "linear-gradient(180deg, #c084fc 0%, #a855f7 50%, #7c3aed 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  filter: "drop-shadow(0 2px 8px rgba(168,85,247,0.3))",
+                  color: "white",
+                  textShadow: "0 2px 16px rgba(255,255,255,0.3)",
                   animationDelay: `${i * 0.15}s`,
                 }}
                 initial={{ opacity: 0, y: -20, rotate: -10 }}
