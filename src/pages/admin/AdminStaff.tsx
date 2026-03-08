@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Shield, UserPlus, Trash2, RefreshCw, Search, History, Settings2, X } from "lucide-react";
+import { Shield, UserPlus, Trash2, RefreshCw, Search, History, Settings2, X, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { logAuditAction, PERMISSIONS, PERMISSION_LABELS } from "@/lib/audit";
 
