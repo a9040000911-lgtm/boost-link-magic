@@ -4,6 +4,7 @@ import CategoryCards from '@/components/CategoryCards';
 import PlatformIcon from '@/components/PlatformIcon';
 import ServiceCarousel from '@/components/ServiceCarousel';
 import {
+  analyzeLink,
   detectPlatform,
   categoriesByPlatform,
   getServicesForCategory,
@@ -11,12 +12,14 @@ import {
   type Platform,
   type Category,
   type Service,
+  type LinkAnalysis,
 } from '@/lib/smm-data';
 import { ArrowLeft, ArrowRight, Check, ExternalLink, Minus, Plus } from 'lucide-react';
 
 export interface LinkOrder {
   url: string;
   platform: Platform;
+  analysis: LinkAnalysis | null;
   category: Category | null;
   service: Service | null;
   quantity: number;
@@ -32,8 +35,9 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
   const [orders, setOrders] = useState<LinkOrder[]>(() =>
     urls
       .map((url) => {
-        const platform = detectPlatform(url);
-        return platform ? { url, platform, category: null, service: null, quantity: 100 } : null;
+        const analysis = analyzeLink(url);
+        const platform = analysis?.platform ?? detectPlatform(url);
+        return platform ? { url, platform, analysis, category: null, service: null, quantity: 100 } : null;
       })
       .filter(Boolean) as LinkOrder[]
   );
@@ -146,6 +150,12 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
                 <PlatformIcon platform={current.platform} className="w-3.5 h-3.5" />
                 {platformNames[current.platform]}
               </span>
+              {current.analysis && (
+                <span className={`px-2 py-0.5 rounded-full bg-muted text-xs font-medium ${colors.text}`}>
+                  {current.analysis.label}
+                  {current.analysis.username && <span className="opacity-60 ml-1">@{current.analysis.username}</span>}
+                </span>
+              )}
               <span className={`text-sm text-foreground font-medium truncate flex-1 flex items-center gap-1.5`}>
                 <ExternalLink className={`w-3.5 h-3.5 shrink-0 ${colors.text}`} />
                 {current.url}

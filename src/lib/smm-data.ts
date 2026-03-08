@@ -1,9 +1,33 @@
 export type Platform = 'instagram' | 'youtube' | 'tiktok' | 'telegram' | 'vk';
 
+export type LinkType =
+  | 'profile'
+  | 'post'
+  | 'reel'
+  | 'story'
+  | 'video'
+  | 'shorts'
+  | 'channel'
+  | 'playlist'
+  | 'live'
+  | 'group'
+  | 'wall'
+  | 'photo'
+  | 'unknown';
+
+export interface LinkAnalysis {
+  platform: Platform;
+  linkType: LinkType;
+  username?: string;
+  contentId?: string;
+  label: string;
+  raw: string;
+}
+
 export interface Category {
   id: string;
   name: string;
-  icon: string; // lucide icon name
+  icon: string;
   description: string;
   serviceCount: number;
   highlight: string;
@@ -19,14 +43,120 @@ export interface Service {
   speed: string;
 }
 
+// ──── Platform detection ────
+
+const platformPatterns: { platform: Platform; patterns: RegExp[] }[] = [
+  { platform: 'instagram', patterns: [/instagram\.com/i, /instagr\.am/i] },
+  { platform: 'youtube', patterns: [/youtube\.com/i, /youtu\.be/i] },
+  { platform: 'tiktok', patterns: [/tiktok\.com/i, /vm\.tiktok/i] },
+  { platform: 'telegram', patterns: [/t\.me/i, /telegram\./i] },
+  { platform: 'vk', patterns: [/vk\.com/i, /vk\.ru/i] },
+];
+
 export function detectPlatform(url: string): Platform | null {
-  const lower = url.toLowerCase();
-  if (lower.includes('instagram.com') || lower.includes('instagr.am')) return 'instagram';
-  if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'youtube';
-  if (lower.includes('tiktok.com') || lower.includes('vm.tiktok')) return 'tiktok';
-  if (lower.includes('t.me') || lower.includes('telegram.')) return 'telegram';
-  if (lower.includes('vk.com') || lower.includes('vk.ru')) return 'vk';
+  for (const { platform, patterns } of platformPatterns) {
+    if (patterns.some((p) => p.test(url))) return platform;
+  }
   return null;
+}
+
+// ──── Link type detection ────
+
+interface TypeRule {
+  type: LinkType;
+  pattern: RegExp;
+  label: string;
+  extractUsername?: number;
+  extractId?: number;
+}
+
+const instagramRules: TypeRule[] = [
+  { type: 'reel', pattern: /instagram\.com\/reels?\/([A-Za-z0-9_-]+)/i, label: 'Reels', extractId: 1 },
+  { type: 'story', pattern: /instagram\.com\/stories\/([A-Za-z0-9_.]+)/i, label: 'Stories', extractUsername: 1 },
+  { type: 'post', pattern: /instagram\.com\/p\/([A-Za-z0-9_-]+)/i, label: 'Пост', extractId: 1 },
+  { type: 'live', pattern: /instagram\.com\/([A-Za-z0-9_.]+)\/live/i, label: 'Прямой эфир', extractUsername: 1 },
+  { type: 'profile', pattern: /instagram\.com\/([A-Za-z0-9_.]+)\/?(\?.*)?$/i, label: 'Профиль', extractUsername: 1 },
+];
+
+const youtubeRules: TypeRule[] = [
+  { type: 'shorts', pattern: /youtube\.com\/shorts\/([A-Za-z0-9_-]+)/i, label: 'Shorts', extractId: 1 },
+  { type: 'live', pattern: /youtube\.com\/live\/([A-Za-z0-9_-]+)/i, label: 'Прямой эфир', extractId: 1 },
+  { type: 'playlist', pattern: /youtube\.com\/playlist\?list=([A-Za-z0-9_-]+)/i, label: 'Плейлист', extractId: 1 },
+  { type: 'video', pattern: /youtube\.com\/watch\?v=([A-Za-z0-9_-]+)/i, label: 'Видео', extractId: 1 },
+  { type: 'video', pattern: /youtu\.be\/([A-Za-z0-9_-]+)/i, label: 'Видео', extractId: 1 },
+  { type: 'channel', pattern: /youtube\.com\/@([A-Za-z0-9_.-]+)/i, label: 'Канал', extractUsername: 1 },
+  { type: 'channel', pattern: /youtube\.com\/channel\/([A-Za-z0-9_-]+)/i, label: 'Канал', extractId: 1 },
+  { type: 'channel', pattern: /youtube\.com\/c\/([A-Za-z0-9_.-]+)/i, label: 'Канал', extractUsername: 1 },
+];
+
+const tiktokRules: TypeRule[] = [
+  { type: 'video', pattern: /tiktok\.com\/@([A-Za-z0-9_.]+)\/video\/(\d+)/i, label: 'Видео', extractUsername: 1, extractId: 2 },
+  { type: 'video', pattern: /vm\.tiktok\.com\/([A-Za-z0-9]+)/i, label: 'Видео (короткая)', extractId: 1 },
+  { type: 'live', pattern: /tiktok\.com\/@([A-Za-z0-9_.]+)\/live/i, label: 'Прямой эфир', extractUsername: 1 },
+  { type: 'profile', pattern: /tiktok\.com\/@([A-Za-z0-9_.]+)\/?(\?.*)?$/i, label: 'Профиль', extractUsername: 1 },
+];
+
+const telegramRules: TypeRule[] = [
+  { type: 'post', pattern: /t\.me\/([A-Za-z0-9_]+)\/(\d+)/i, label: 'Пост', extractUsername: 1, extractId: 2 },
+  { type: 'channel', pattern: /t\.me\/([A-Za-z0-9_]+)\/?$/i, label: 'Канал / Группа', extractUsername: 1 },
+];
+
+const vkRules: TypeRule[] = [
+  { type: 'wall', pattern: /vk\.com\/wall(-?\d+_\d+)/i, label: 'Запись на стене', extractId: 1 },
+  { type: 'photo', pattern: /vk\.com\/photo(-?\d+_\d+)/i, label: 'Фото', extractId: 1 },
+  { type: 'video', pattern: /vk\.com\/video(-?\d+_\d+)/i, label: 'Видео', extractId: 1 },
+  { type: 'video', pattern: /vk\.com\/clip(-?\d+_\d+)/i, label: 'Клип', extractId: 1 },
+  { type: 'group', pattern: /vk\.com\/(club|public)(\d+)/i, label: 'Сообщество', extractId: 2 },
+  { type: 'profile', pattern: /vk\.com\/id(\d+)/i, label: 'Профиль', extractId: 1 },
+  { type: 'profile', pattern: /vk\.com\/([A-Za-z0-9_.]+)\/?(\?.*)?$/i, label: 'Страница', extractUsername: 1 },
+];
+
+const rulesByPlatform: Record<Platform, TypeRule[]> = {
+  instagram: instagramRules,
+  youtube: youtubeRules,
+  tiktok: tiktokRules,
+  telegram: telegramRules,
+  vk: vkRules,
+};
+
+export const linkTypeLabels: Record<LinkType, string> = {
+  profile: 'Профиль',
+  post: 'Пост',
+  reel: 'Reels',
+  story: 'Stories',
+  video: 'Видео',
+  shorts: 'Shorts',
+  channel: 'Канал',
+  playlist: 'Плейлист',
+  live: 'Прямой эфир',
+  group: 'Группа',
+  wall: 'Запись',
+  photo: 'Фото',
+  unknown: 'Ссылка',
+};
+
+/**
+ * Smart link analyzer: detects platform, link type, username/content ID.
+ * Returns null if platform is not recognized.
+ */
+export function analyzeLink(url: string): LinkAnalysis | null {
+  const platform = detectPlatform(url);
+  if (!platform) return null;
+
+  const rules = rulesByPlatform[platform];
+  for (const rule of rules) {
+    const match = url.match(rule.pattern);
+    if (match) {
+      const username = rule.extractUsername ? match[rule.extractUsername] : undefined;
+      const contentId = rule.extractId ? match[rule.extractId] : undefined;
+      if (username && ['explore', 'accounts', 'about', 'settings', 'direct', 'reels'].includes(username.toLowerCase())) {
+        continue;
+      }
+      return { platform, linkType: rule.type, username, contentId, label: rule.label, raw: url };
+    }
+  }
+
+  return { platform, linkType: 'unknown', label: 'Ссылка', raw: url };
 }
 
 export const platformNames: Record<Platform, string> = {
