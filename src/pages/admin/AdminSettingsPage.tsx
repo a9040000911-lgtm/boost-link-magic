@@ -22,6 +22,19 @@ interface SettingMeta {
 }
 
 const SETTINGS_META: SettingMeta[] = [
+  // Telegram Support Bot
+  { key: "support_bot_token", label: "Токен бота поддержки", hint: "Токен отдельного Telegram-бота для приёма обращений (получите у @BotFather). Оставьте пустым чтобы использовать основной бот", type: "text", group: "telegram_support" },
+  { key: "support_bot_welcome", label: "Приветствие бота", hint: "Сообщение которое бот отправит при команде /start", type: "textarea", group: "telegram_support" },
+  { key: "support_bot_confirm", label: "Подтверждение получения", hint: "Сообщение после получения сообщения от клиента", type: "textarea", group: "telegram_support" },
+
+  // Email Support
+  { key: "support_email_address", label: "Email поддержки", hint: "Адрес на который клиенты пишут обращения (например support@example.com)", type: "text", group: "email_support" },
+  { key: "support_smtp_host", label: "SMTP сервер", hint: "Адрес SMTP-сервера для отправки ответов (например smtp.gmail.com)", type: "text", group: "email_support" },
+  { key: "support_smtp_port", label: "SMTP порт", hint: "Порт SMTP (обычно 587 для TLS или 465 для SSL)", type: "number", group: "email_support" },
+  { key: "support_smtp_user", label: "SMTP логин", hint: "Логин для авторизации на SMTP-сервере", type: "text", group: "email_support" },
+  { key: "support_smtp_password", label: "SMTP пароль", hint: "Пароль для SMTP (хранится безопасно в настройках)", type: "text", group: "email_support" },
+  { key: "support_email_from_name", label: "Имя отправителя", hint: "Имя которое увидит клиент в письме (например 'CoolLike Support')", type: "text", group: "email_support" },
+
   // Support
   { key: "ticket_auto_close_hours", label: "Автозакрытие тикетов", hint: "Через сколько часов тикет закроется автоматически после ответа поддержки, если клиент не отвечает", type: "number", suffix: "ч", group: "support" },
   { key: "ticket_reopen_window_hours", label: "Окно переоткрытия", hint: "Сколько часов после закрытия клиент может заново открыть тикет, не создавая новый", type: "number", suffix: "ч", group: "support" },
