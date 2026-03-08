@@ -72,6 +72,7 @@ const menuGroups: MenuGroup[] = [
   {
     label: "Система",
     items: [
+      { title: "Платежи", url: "/admin/payments", icon: CreditCard },
       { title: "Сотрудники", url: "/admin/staff", icon: Shield },
       { title: "Настройки", url: "/admin/settings", icon: Settings },
       { title: "Документация", url: "/admin/docs", icon: BookOpen },
