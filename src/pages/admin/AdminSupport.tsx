@@ -931,13 +931,7 @@ const AdminSupport = () => {
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                     className="min-h-[36px] max-h-[300px] text-xs resize-vertical overflow-y-auto"
-                    rows={1}
-                    ref={(el) => {
-                      if (el) {
-                        el.style.height = "auto";
-                        el.style.height = Math.min(el.scrollHeight, 200) + "px";
-                      }
-                    }}
+                    rows={2}
                   />
                   <Button size="sm" className="h-8 px-3" onClick={() => sendMessage()} disabled={(!newMessage.trim() && !uploading) || sending}>
                     <Send className="h-3 w-3" />
