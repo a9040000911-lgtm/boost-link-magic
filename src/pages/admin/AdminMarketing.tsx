@@ -121,7 +121,7 @@ export default function AdminMarketing() {
       supabase.from("achievements").select("*").order("sort_order"),
       supabase.from("fortune_wheel_prizes").select("*").order("sort_order"),
       supabase.from("app_settings").select("*").in("key", MARKETING_KEYS),
-      supabase.from("spartan_members").select("id", { count: "exact", head: true }),
+      supabase.rpc("get_spartan_count"),
     ]);
 
     if (tiersRes.data) setTiers(tiersRes.data as LoyaltyTier[]);
