@@ -60,7 +60,7 @@ export default function AdminAPI() {
     }
 
     const { data } = await q;
-    setLogs(data || []);
+    setLogs((data || []) as unknown as AuditLog[]);
     setLoading(false);
   }
 
