@@ -47,7 +47,7 @@ const CategoryCards = ({ categories, onSelect, recommendedIds = [] }: CategoryCa
             whileHover={{ scale: 1.07, rotate: i % 2 === 0 ? 2 : -2, y: -8, filter: 'brightness(1.2) saturate(1.3)' }}
             whileTap={{ scale: 0.96, rotate: 0 }}
             onClick={() => onSelect(cat)}
-            className={`relative overflow-hidden rounded-2xl p-5 text-left cursor-pointer group transition-[filter] duration-300 ${gradientClasses[i % gradientClasses.length]} ${isRecommended ? 'ring-2 ring-white/60 ring-offset-2 ring-offset-background' : ''}`}
+            className={`relative overflow-hidden rounded-2xl p-6 text-left cursor-pointer group transition-[filter] duration-300 ${gradientClasses[i % gradientClasses.length]} ${isRecommended ? 'ring-2 ring-white/60 ring-offset-2 ring-offset-background' : ''}`}
             style={{ boxShadow: isRecommended ? '0 10px 40px -5px rgba(0,0,0,0.35)' : '0 10px 40px -10px rgba(0,0,0,0.25)' }}
           >
             {/* Animated background blobs */}
