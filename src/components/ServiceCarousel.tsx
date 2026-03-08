@@ -28,14 +28,12 @@ const ServiceCarousel = ({ services, categoryName }: ServiceCarouselProps) => {
       className="w-full max-w-4xl mx-auto"
     >
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-foreground">
-          {categoryName}
-        </h3>
+        <h3 className="text-lg font-semibold text-foreground">{categoryName}</h3>
         <div className="flex gap-2">
-          <button onClick={scrollPrev} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-secondary-foreground hover:bg-primary hover:text-primary-foreground transition-colors">
+          <button onClick={scrollPrev} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors">
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <button onClick={scrollNext} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-secondary-foreground hover:bg-primary hover:text-primary-foreground transition-colors">
+          <button onClick={scrollNext} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors">
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
@@ -51,7 +49,7 @@ const ServiceCarousel = ({ services, categoryName }: ServiceCarouselProps) => {
               transition={{ duration: 0.4, delay: i * 0.1 }}
               className="min-w-[280px] max-w-[300px] flex-shrink-0"
             >
-              <div className="glass-card p-5 h-full flex flex-col gap-4 hover:border-primary/30 transition-all duration-300 hover:scale-[1.02]">
+              <div className="glass-card p-5 h-full flex flex-col gap-4 hover:shadow-md transition-all duration-300 hover:scale-[1.02]">
                 <div>
                   <h4 className="font-semibold text-foreground mb-1">{service.name}</h4>
                   <p className="text-xs text-muted-foreground">{service.description}</p>
@@ -72,7 +70,7 @@ const ServiceCarousel = ({ services, categoryName }: ServiceCarouselProps) => {
                   </div>
                 </div>
 
-                <button className="w-full py-2.5 rounded-xl bg-primary/10 text-primary text-sm font-medium hover:bg-primary hover:text-primary-foreground transition-all duration-300">
+                <button className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:brightness-110 transition-all duration-300">
                   Заказать
                 </button>
               </div>
