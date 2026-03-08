@@ -5,13 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, Save, RefreshCw, MessageSquare, Shield, Wallet, ShoppingCart, Bell, Clock, MessageCircle, Mail, Sparkles } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Settings, Save, RefreshCw, MessageSquare, Shield, Wallet, ShoppingCart, Clock, MessageCircle, Mail, Sparkles, Globe, Wrench } from "lucide-react";
 import { toast } from "sonner";
 
-// ===== CONFIG: all settings metadata in one place =====
-// type: "number" | "text" | "textarea" | "boolean"
 interface SettingMeta {
   key: string;
   label: string;
@@ -40,7 +38,7 @@ const SETTINGS_META: SettingMeta[] = [
   { key: "support_smtp_password", label: "SMTP пароль", hint: "Пароль для SMTP (хранится безопасно в настройках)", type: "text", group: "email_support" },
   { key: "support_email_from_name", label: "Имя отправителя", hint: "Имя которое увидит клиент в письме (например 'CoolLike Support')", type: "text", group: "email_support" },
 
-  // AI Support — Provider
+  // AI Support
   { key: "support_ai_enabled", label: "ИИ-подсказки включены", hint: "Включить ИИ-помощника для операторов поддержки", type: "boolean", group: "ai_support" },
   { key: "support_ai_provider", label: "Провайдер ИИ", hint: "lovable — встроенный Lovable AI (без доп. ключей). gemini — Google Gemini с ручным ключом. openclaw — OpenClaw. custom — любой OpenAI-совместимый endpoint", type: "text", group: "ai_support" },
   { key: "support_ai_mode", label: "Режим работы", hint: "suggest — только подсказки оператору. auto — бот сам отвечает если уверен, иначе передаёт оператору. off — выключено", type: "text", group: "ai_support" },
@@ -58,7 +56,7 @@ const SETTINGS_META: SettingMeta[] = [
   { key: "support_welcome_message", label: "Приветственное сообщение", hint: "Текст, который клиент видит при создании нового обращения в поддержку", type: "textarea", group: "support" },
   { key: "support_staff_rules", label: "Правила для сотрудников", hint: "Правила и инструкции для операторов поддержки. Отображаются в чате поддержки", type: "textarea", group: "support" },
 
-  // Catalog Checkboxes
+  // Catalog
   { key: "show_offer_checkbox", label: "Чекбокс Оферты", hint: "Показывать чекбокс принятия оферты при оформлении заказа", type: "boolean", group: "catalog" },
   { key: "show_policy_checkbox", label: "Чекбокс Политики", hint: "Показывать чекбокс согласия с Политикой и Правилами при оформлении заказа", type: "boolean", group: "catalog" },
   { key: "offer_default_checked", label: "Оферта включена по умолчанию", hint: "Если включено — чекбокс оферты будет отмечен при загрузке страницы", type: "boolean", group: "catalog" },
@@ -84,21 +82,17 @@ const SETTINGS_META: SettingMeta[] = [
   { key: "telegram_notifications", label: "Telegram уведомления", hint: "Отправлять ли уведомления о новых заказах и тикетах в Telegram-бот", type: "boolean", group: "system" },
   { key: "auto_confirm_email", label: "Авто-подтверждение email", hint: "Если включено — пользователи не должны подтверждать email при регистрации. Отключите для дополнительной безопасности", type: "boolean", group: "system" },
 
-  // Plan: Standard
+  // Plans
   { key: "plan_standard_max_orders_month", label: "Макс. заказов/мес", hint: "Лимит заказов в месяц для плана Standard (0 = без ограничений)", type: "number", group: "plan_standard" },
   { key: "plan_standard_max_order_amount", label: "Макс. сумма заказа", hint: "Максимальная сумма одного заказа (0 = без ограничений)", type: "number", suffix: "₽", group: "plan_standard" },
   { key: "plan_standard_max_projects", label: "Макс. проектов", hint: "Максимальное количество проектов (0 = без ограничений)", type: "number", group: "plan_standard" },
   { key: "plan_standard_support_priority", label: "Приоритет поддержки", hint: "normal / high / urgent", type: "text", group: "plan_standard" },
   { key: "plan_standard_bulk_orders", label: "Массовые заказы", hint: "Доступ к массовым заказам", type: "boolean", group: "plan_standard" },
-
-  // Plan: Pro
   { key: "plan_pro_max_orders_month", label: "Макс. заказов/мес", hint: "Лимит заказов в месяц для плана Pro (0 = без ограничений)", type: "number", group: "plan_pro" },
   { key: "plan_pro_max_order_amount", label: "Макс. сумма заказа", hint: "Максимальная сумма одного заказа (0 = без ограничений)", type: "number", suffix: "₽", group: "plan_pro" },
   { key: "plan_pro_max_projects", label: "Макс. проектов", hint: "Максимальное количество проектов (0 = без ограничений)", type: "number", group: "plan_pro" },
   { key: "plan_pro_support_priority", label: "Приоритет поддержки", hint: "normal / high / urgent", type: "text", group: "plan_pro" },
   { key: "plan_pro_bulk_orders", label: "Массовые заказы", hint: "Доступ к массовым заказам", type: "boolean", group: "plan_pro" },
-
-  // Plan: Enterprise
   { key: "plan_enterprise_max_orders_month", label: "Макс. заказов/мес", hint: "Лимит заказов в месяц для плана Enterprise (0 = без ограничений)", type: "number", group: "plan_enterprise" },
   { key: "plan_enterprise_max_order_amount", label: "Макс. сумма заказа", hint: "Максимальная сумма одного заказа (0 = без ограничений)", type: "number", suffix: "₽", group: "plan_enterprise" },
   { key: "plan_enterprise_max_projects", label: "Макс. проектов", hint: "Максимальное количество проектов (0 = без ограничений)", type: "number", group: "plan_enterprise" },
@@ -122,11 +116,51 @@ const GROUPS = [
   { id: "plan_enterprise", label: "План Enterprise", icon: Clock, description: "Лимиты корпоративного плана лицензии" },
 ];
 
+// Tabs that group the GROUPS
+const TABS = [
+  { id: "general", label: "Общие", icon: Globe, groupIds: ["contacts", "system", "license"] },
+  { id: "support", label: "Поддержка", icon: MessageSquare, groupIds: ["support", "telegram_support", "email_support", "ai_support"] },
+  { id: "commerce", label: "Каталог и заказы", icon: ShoppingCart, groupIds: ["catalog", "orders"] },
+  { id: "finance", label: "Финансы", icon: Wallet, groupIds: ["finance"] },
+  { id: "plans", label: "Тарифы", icon: Clock, groupIds: ["plan_standard", "plan_pro", "plan_enterprise"] },
+];
+
+const SettingField = ({ setting, val, changed, updateVal }: { setting: SettingMeta; val: string; changed: boolean; updateVal: (key: string, val: string) => void }) => (
+  <div className="space-y-1">
+    <div className="flex items-center gap-2">
+      <Label className={`text-xs font-medium ${changed ? "text-primary" : ""}`}>
+        {setting.label}
+        {changed && <span className="text-[9px] ml-1">●</span>}
+      </Label>
+    </div>
+    <p className="text-[11px] text-muted-foreground leading-snug">{setting.hint}</p>
+    {setting.type === "boolean" ? (
+      <div className="flex items-center gap-2 pt-1">
+        <Switch checked={val === "true"} onCheckedChange={v => updateVal(setting.key, v ? "true" : "false")} />
+        <span className="text-xs text-muted-foreground">{val === "true" ? "Включено" : "Отключено"}</span>
+      </div>
+    ) : setting.type === "textarea" ? (
+      <Textarea value={val} onChange={e => updateVal(setting.key, e.target.value)} className="text-xs min-h-[60px]" />
+    ) : (
+      <div className="flex items-center gap-1.5">
+        <Input
+          type={setting.type === "number" ? "number" : "text"}
+          value={val}
+          onChange={e => updateVal(setting.key, e.target.value)}
+          className="text-xs h-8 w-[200px]"
+        />
+        {setting.suffix && <span className="text-xs text-muted-foreground">{setting.suffix}</span>}
+      </div>
+    )}
+  </div>
+);
+
 const AdminSettingsPage = () => {
   const [values, setValues] = useState<Record<string, string>>({});
   const [original, setOriginal] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState("general");
 
   useEffect(() => { load(); }, []);
 
@@ -140,12 +174,12 @@ const AdminSettingsPage = () => {
     setLoading(false);
   };
 
-  const hasChanges = Object.keys(values).some(k => values[k] !== original[k]);
+  const changedKeys = Object.keys(values).filter(k => values[k] !== original[k]);
+  const hasChanges = changedKeys.length > 0;
 
   const saveAll = async () => {
     setSaving(true);
     try {
-      const changedKeys = Object.keys(values).filter(k => values[k] !== original[k]);
       for (const key of changedKeys) {
         const { error } = await supabase.from("app_settings")
           .upsert({ key, value: values[key], updated_at: new Date().toISOString() }, { onConflict: "key" });
@@ -164,7 +198,7 @@ const AdminSettingsPage = () => {
   if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>;
 
   return (
-    <div className="flex flex-col h-full gap-3 overflow-auto">
+    <div className="flex flex-col h-full gap-3">
       {/* Header */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
@@ -176,78 +210,73 @@ const AdminSettingsPage = () => {
             <RefreshCw className="h-3 w-3 mr-1" />Сбросить
           </Button>
           <Button size="sm" className="h-7 text-xs" onClick={saveAll} disabled={saving || !hasChanges}>
-            <Save className="h-3 w-3 mr-1" />{saving ? "..." : `Сохранить${hasChanges ? ` (${Object.keys(values).filter(k => values[k] !== original[k]).length})` : ""}`}
+            <Save className="h-3 w-3 mr-1" />{saving ? "..." : `Сохранить${hasChanges ? ` (${changedKeys.length})` : ""}`}
           </Button>
         </div>
       </div>
 
-      {/* Settings groups */}
-      <div className="space-y-4">
-        {GROUPS.map(group => {
-          const GroupIcon = group.icon;
-          const groupSettings = SETTINGS_META.filter(s => s.group === group.id);
-          return (
-            <Card key={group.id} className="border-border/60">
-              <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <GroupIcon className="h-4 w-4 text-primary" />
-                  {group.label}
-                  <span className="text-[11px] font-normal text-muted-foreground ml-1">— {group.description}</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-2 space-y-4">
-                {groupSettings.map(setting => {
-                  const val = values[setting.key] ?? "";
-                  const changed = val !== (original[setting.key] ?? "");
-                  return (
-                    <div key={setting.key} className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Label className={`text-xs font-medium ${changed ? "text-primary" : ""}`}>
-                          {setting.label}
-                          {changed && <span className="text-[9px] ml-1">●</span>}
-                        </Label>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground leading-snug">{setting.hint}</p>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
+        <TabsList className="h-8 shrink-0 w-fit">
+          {TABS.map(tab => {
+            const TabIcon = tab.icon;
+            const tabChanges = tab.groupIds.flatMap(gid =>
+              SETTINGS_META.filter(s => s.group === gid).map(s => s.key)
+            ).filter(k => values[k] !== original[k]).length;
+            return (
+              <TabsTrigger key={tab.id} value={tab.id} className="text-xs h-7 px-3 gap-1.5">
+                <TabIcon className="h-3 w-3" />
+                {tab.label}
+                {tabChanges > 0 && (
+                  <span className="bg-primary text-primary-foreground text-[9px] rounded-full px-1.5 min-w-[16px] text-center">{tabChanges}</span>
+                )}
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
 
-                      {setting.type === "boolean" ? (
-                        <div className="flex items-center gap-2 pt-1">
-                          <Switch
-                            checked={val === "true"}
-                            onCheckedChange={v => updateVal(setting.key, v ? "true" : "false")}
-                          />
-                          <span className="text-xs text-muted-foreground">{val === "true" ? "Включено" : "Отключено"}</span>
-                        </div>
-                      ) : setting.type === "textarea" ? (
-                        <Textarea
-                          value={val}
-                          onChange={e => updateVal(setting.key, e.target.value)}
-                          className="text-xs min-h-[60px]"
+        <div className="flex-1 min-h-0 overflow-auto mt-3">
+          {TABS.map(tab => (
+            <TabsContent key={tab.id} value={tab.id} className="mt-0 space-y-4">
+              {tab.groupIds.map(groupId => {
+                const group = GROUPS.find(g => g.id === groupId);
+                if (!group) return null;
+                const GroupIcon = group.icon;
+                const groupSettings = SETTINGS_META.filter(s => s.group === groupId);
+                if (groupSettings.length === 0) return null;
+                return (
+                  <Card key={groupId} className="border-border/60">
+                    <CardHeader className="p-4 pb-2">
+                      <CardTitle className="text-sm font-bold flex items-center gap-2">
+                        <GroupIcon className="h-4 w-4 text-primary" />
+                        {group.label}
+                        <span className="text-[11px] font-normal text-muted-foreground ml-1">— {group.description}</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-2 space-y-4">
+                      {groupSettings.map(setting => (
+                        <SettingField
+                          key={setting.key}
+                          setting={setting}
+                          val={values[setting.key] ?? ""}
+                          changed={(values[setting.key] ?? "") !== (original[setting.key] ?? "")}
+                          updateVal={updateVal}
                         />
-                      ) : (
-                        <div className="flex items-center gap-1.5">
-                          <Input
-                            type={setting.type === "number" ? "number" : "text"}
-                            value={val}
-                            onChange={e => updateVal(setting.key, e.target.value)}
-                            className="text-xs h-8 w-[200px]"
-                          />
-                          {setting.suffix && <span className="text-xs text-muted-foreground">{setting.suffix}</span>}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </TabsContent>
+          ))}
+        </div>
+      </Tabs>
 
-      {/* Sticky save bar when changes exist */}
+      {/* Sticky save bar */}
       {hasChanges && (
-        <div className="sticky bottom-0 bg-background border-t p-2 flex items-center justify-between -mx-3 -mb-3 px-3">
+        <div className="sticky bottom-0 bg-background border-t p-2 flex items-center justify-between shrink-0">
           <span className="text-xs text-muted-foreground">
-            Изменено: {Object.keys(values).filter(k => values[k] !== original[k]).length} параметров
+            Изменено: {changedKeys.length} параметров
           </span>
           <Button size="sm" className="h-8 text-xs px-4" onClick={saveAll} disabled={saving}>
             <Save className="h-3 w-3 mr-1" />{saving ? "Сохранение..." : "Сохранить все изменения"}
