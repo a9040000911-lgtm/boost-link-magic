@@ -108,6 +108,9 @@ const AdminServices = () => {
     min_quantity: "100", max_quantity: "10000", price: "0",
     speed: "medium", guarantee: "none", warning_text: ""
   });
+  const [createMappingIds, setCreateMappingIds] = useState<string[]>([]);
+  const [createProviderSearch, setCreateProviderSearch] = useState("");
+  const [createProviderFilter, setCreateProviderFilter] = useState("all");
 
   // Edit dialog
   const [editService, setEditService] = useState<Service | null>(null);
@@ -196,7 +199,7 @@ const AdminServices = () => {
   };
 
   const createService = async () => {
-    const { error } = await supabase.from("services").insert({
+    const { data, error } = await supabase.from("services").insert({
       name: newService.name,
       description: newService.description || null,
       category: newService.category || "Uncategorized",
@@ -207,12 +210,25 @@ const AdminServices = () => {
       speed: newService.speed || "medium",
       guarantee: newService.guarantee || "none",
       warning_text: newService.warning_text || null,
-    });
+    }).select().single();
     if (error) { toast.error(error.message); return; }
-    await logAuditAction("create_service", "service", undefined, { name: newService.name });
-    toast.success("Услуга создана");
+
+    // Create provider mappings if selected
+    if (createMappingIds.length > 0 && data) {
+      for (let i = 0; i < createMappingIds.length; i++) {
+        await supabase.from("service_provider_mappings").insert({
+          service_id: data.id, provider_service_id: createMappingIds[i], priority: i + 1,
+        });
+      }
+    }
+
+    await logAuditAction("create_service", "service", data?.id, { name: newService.name, mappings: createMappingIds.length });
+    toast.success(createMappingIds.length > 0 ? `Услуга создана + ${createMappingIds.length} провайдер(ов) привязано` : "Услуга создана");
     setCreateOpen(false);
     setNewService({ name: "", description: "", category: "", network: "", min_quantity: "100", max_quantity: "10000", price: "0", speed: "medium", guarantee: "none", warning_text: "" });
+    setCreateMappingIds([]);
+    setCreateProviderSearch("");
+    setCreateProviderFilter("all");
     await loadAll();
   };
 
@@ -607,7 +623,7 @@ const AdminServices = () => {
                 <DialogTrigger asChild>
                   <Button size="sm" className="h-7 text-xs px-2"><Plus className="h-3 w-3 mr-1" />Создать</Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader><DialogTitle>Новая услуга</DialogTitle></DialogHeader>
                   <div className="space-y-3">
                     <div><Label className="text-xs">Название</Label><Input value={newService.name} onChange={(e) => setNewService({ ...newService, name: e.target.value })} /></div>
@@ -653,7 +669,118 @@ const AdminServices = () => {
                       <Label className="text-xs">Предупреждение (warning)</Label>
                       <Textarea value={newService.warning_text} onChange={(e) => setNewService({ ...newService, warning_text: e.target.value })} placeholder="Текст предупреждения перед заказом..." className="h-16" />
                     </div>
-                    <Button onClick={createService} disabled={!newService.name} className="w-full">Создать</Button>
+
+                    {/* Provider mapping section */}
+                    <div className="border rounded-md p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-semibold flex items-center gap-1">
+                          <Link2 className="h-3 w-3" />Привязка провайдеров
+                          {createMappingIds.length > 0 && (
+                            <Badge variant="default" className="text-[9px] ml-1">{createMappingIds.length}</Badge>
+                          )}
+                        </Label>
+                      </div>
+
+                      {/* Selected providers */}
+                      {createMappingIds.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {createMappingIds.map((psId, idx) => {
+                            const ps = providerServices.find(p => p.id === psId);
+                            if (!ps) return null;
+                            return (
+                              <Badge key={psId} variant="secondary" className="text-[9px] gap-1 pr-1">
+                                <span className="font-mono">#{idx + 1}</span> {ps.provider} · {ps.name.slice(0, 40)} · {ps.rate.toFixed(2)}₽
+                                <button
+                                  onClick={() => setCreateMappingIds(prev => prev.filter(id => id !== psId))}
+                                  className="ml-1 hover:text-destructive"
+                                >×</button>
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Search & filter */}
+                      <div className="flex gap-1">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                          <Input
+                            placeholder="Поиск провайдерской услуги..."
+                            value={createProviderSearch}
+                            onChange={(e) => setCreateProviderSearch(e.target.value)}
+                            className="pl-7 h-7 text-xs"
+                          />
+                        </div>
+                        <Select value={createProviderFilter} onValueChange={setCreateProviderFilter}>
+                          <SelectTrigger className="w-[100px] h-7 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Все</SelectItem>
+                            {providerKeys.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Provider services list */}
+                      <div className="max-h-[180px] overflow-y-auto border rounded text-[10px]">
+                        {providerServices
+                          .filter(ps => {
+                            if (createProviderFilter !== "all" && ps.provider !== createProviderFilter) return false;
+                            if (createProviderSearch) {
+                              const q = createProviderSearch.toLowerCase();
+                              if (!ps.name.toLowerCase().includes(q) && !String(ps.provider_service_id).includes(q)) return false;
+                            }
+                            return true;
+                          })
+                          .slice(0, 50)
+                          .map(ps => {
+                            const isSelected = createMappingIds.includes(ps.id);
+                            return (
+                              <div
+                                key={ps.id}
+                                className={`flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-muted/50 border-b border-border/30 ${isSelected ? "bg-primary/10" : ""}`}
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setCreateMappingIds(prev => prev.filter(id => id !== ps.id));
+                                  } else {
+                                    setCreateMappingIds(prev => [...prev, ps.id]);
+                                    // Auto-fill fields from first selected provider
+                                    if (createMappingIds.length === 0) {
+                                      setNewService(prev => ({
+                                        ...prev,
+                                        name: prev.name || ps.name,
+                                        category: prev.category || ps.category,
+                                        network: prev.network || ps.network,
+                                        description: prev.description || ps.description || "",
+                                        min_quantity: prev.min_quantity === "100" ? String(ps.min_quantity) : prev.min_quantity,
+                                        max_quantity: prev.max_quantity === "10000" ? String(ps.max_quantity) : prev.max_quantity,
+                                      }));
+                                      // Auto-calculate price with ladder
+                                      const ladderMarkup = getMarkupForRate(ps.rate, markupLadder);
+                                      const effectiveMarkup = Math.max(ladderMarkup, minMarkup);
+                                      const autoPrice = ps.rate * (1 + effectiveMarkup / 100);
+                                      setNewService(prev => ({
+                                        ...prev,
+                                        price: prev.price === "0" ? autoPrice.toFixed(2) : prev.price,
+                                      }));
+                                    }
+                                  }
+                                }}
+                              >
+                                <Checkbox checked={isSelected} className="scale-[0.7]" />
+                                <span className="text-muted-foreground w-[60px] shrink-0">{ps.provider}</span>
+                                <span className="flex-1 truncate">{ps.name}</span>
+                                <span className="text-muted-foreground shrink-0">{ps.network}</span>
+                                <span className="font-mono shrink-0 w-[70px] text-right">{ps.rate.toFixed(2)}₽</span>
+                              </div>
+                            );
+                          })}
+                      </div>
+                      <p className="text-[9px] text-muted-foreground">Выберите одну или несколько услуг провайдера. Приоритет — порядок выбора.</p>
+                    </div>
+
+                    <Button onClick={createService} disabled={!newService.name} className="w-full">
+                      Создать{createMappingIds.length > 0 ? ` + ${createMappingIds.length} привязок` : ""}
+                    </Button>
                   </div>
                 </DialogContent>
               </Dialog>
