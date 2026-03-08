@@ -61,7 +61,7 @@ const DashboardOrders = () => {
     return orders.filter((o) => {
       if (statusFilter !== "all" && o.status !== statusFilter) return false;
       if (platformFilter !== "all" && o.platform !== platformFilter) return false;
-      if (search && !o.service_name.toLowerCase().includes(search.toLowerCase()) && !o.link.toLowerCase().includes(search.toLowerCase())) return false;
+      if (search && !o.service_name.toLowerCase().includes(search.toLowerCase()) && !o.link.toLowerCase().includes(search.toLowerCase()) && !o.id.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
   }, [orders, search, statusFilter, platformFilter]);
