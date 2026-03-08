@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.support-email]
 verify_jwt = false
+
+[functions.support-ai-suggest]
+verify_jwt = false
