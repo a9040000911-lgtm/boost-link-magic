@@ -266,10 +266,10 @@ const Catalog = () => {
                     <button
                       key={cat}
                       onClick={() => handleCategoryChange(cat)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${
                         activeCategory === cat
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground"
+                          ? `${activeNetConfig?.bg || 'bg-primary'} text-white border-transparent`
+                          : "bg-muted text-muted-foreground border-transparent"
                       }`}
                     >
                       {cat}
