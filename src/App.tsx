@@ -44,6 +44,7 @@ import AdminLicenses from "./pages/admin/AdminLicenses";
 import AdminBots from "./pages/admin/AdminBots";
 import AdminInquiries from "./pages/admin/AdminInquiries";
 import AdminPayments from "./pages/admin/AdminPayments";
+import AdminAPI from "./pages/admin/AdminAPI";
 import Contact from "./pages/Contact";
 
 const queryClient = new QueryClient();
