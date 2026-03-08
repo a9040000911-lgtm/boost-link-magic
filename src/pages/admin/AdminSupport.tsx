@@ -8,11 +8,20 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { MessageSquare, Send, Search, User, Clock, ChevronLeft, Paperclip, Mail, MessageCircle, AlertTriangle, Ban, ShieldOff, ShieldCheck, Timer, TimerOff, Reply, X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { MessageSquare, Send, Search, User, Clock, ChevronLeft, Paperclip, Mail, MessageCircle, AlertTriangle, Ban, ShieldOff, ShieldCheck, Timer, TimerOff, Reply, X, Sparkles, FileText, BookOpen, Loader2 } from "lucide-react";
 import { ImageViewer } from "@/components/support/ImageViewer";
 import { AudioPlayer } from "@/components/support/AudioPlayer";
 import { VideoPlayer } from "@/components/support/VideoPlayer";
 import { toast } from "@/hooks/use-toast";
+
+interface ResponseTemplate {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  shortcut: string | null;
+}
 
 interface Ticket {
   id: string;
@@ -180,19 +189,20 @@ const AdminSupport = () => {
   const [banDialogOpen, setBanDialogOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
 
+  // New features
+  const [responseTemplates, setResponseTemplates] = useState<ResponseTemplate[]>([]);
+  const [staffRules, setStaffRules] = useState("");
+  const [showRules, setShowRules] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+
   useEffect(() => {
     if (!user) return;
     loadTickets();
     loadBans();
-    // Load settings
-    supabase.from("app_settings").select("key, value").in("key", ["ticket_auto_close_hours", "ticket_reopen_window_hours"]).then(({ data }) => {
-      if (data) {
-        for (const r of data as any[]) {
-          if (r.key === "ticket_auto_close_hours") AUTO_CLOSE_HOURS = parseInt(r.value) || 24;
-          if (r.key === "ticket_reopen_window_hours") REOPEN_HOURS = parseInt(r.value) || 48;
-        }
-      }
-    });
+    loadTemplatesAndSettings();
   }, [user]);
 
   useEffect(() => {
@@ -247,6 +257,61 @@ const AdminSupport = () => {
     const map: Record<string, SupportBan> = {};
     (data || []).forEach((b: any) => { map[b.user_id] = b as SupportBan; });
     setBansMap(map);
+  };
+
+  const loadTemplatesAndSettings = async () => {
+    // Load settings
+    const { data: settingsData } = await supabase.from("app_settings").select("key, value").in("key", [
+      "ticket_auto_close_hours", "ticket_reopen_window_hours", "support_staff_rules", "support_ai_enabled"
+    ]);
+    if (settingsData) {
+      for (const r of settingsData as any[]) {
+        if (r.key === "ticket_auto_close_hours") AUTO_CLOSE_HOURS = parseInt(r.value) || 24;
+        if (r.key === "ticket_reopen_window_hours") REOPEN_HOURS = parseInt(r.value) || 48;
+        if (r.key === "support_staff_rules") setStaffRules(r.value || "");
+        if (r.key === "support_ai_enabled") setAiEnabled(r.value === "true");
+      }
+    }
+    // Load templates
+    const { data: tplData } = await supabase.from("support_response_templates").select("*").eq("is_enabled", true).order("sort_order");
+    setResponseTemplates((tplData as any[]) || []);
+  };
+
+  const fetchAiSuggestions = async () => {
+    if (!activeTicket || messages.length === 0) return;
+    setAiLoading(true);
+    setAiError("");
+    setAiSuggestions([]);
+    try {
+      const ticketMessages = messages
+        .filter(m => m.ticket_id === activeTicket.id)
+        .slice(-10)
+        .map(m => ({ message: m.message, is_admin: m.is_admin }));
+
+      const { data, error } = await supabase.functions.invoke("support-ai-suggest", {
+        body: {
+          messages: ticketMessages,
+          ticket_subject: activeTicket.subject,
+          channel: activeTicket.channel || "web",
+        },
+      });
+      if (error) throw error;
+      if (data?.error) { setAiError(data.error); return; }
+      setAiSuggestions(data?.suggestions || []);
+    } catch (e: any) {
+      setAiError(e.message || "Ошибка ИИ");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const applyTemplate = (content: string) => {
+    setNewMessage(content);
+  };
+
+  const applySuggestion = (suggestion: string) => {
+    setNewMessage(suggestion);
+    setAiSuggestions([]);
   };
 
   const clientGroups = useMemo((): ClientGroup[] => {
@@ -618,6 +683,10 @@ const AdminSupport = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
+                  {/* Rules button */}
+                  <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setShowRules(!showRules)} title="Правила для сотрудников">
+                    <BookOpen className="h-3 w-3" />
+                  </Button>
                   <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-orange-500 hover:text-orange-600" onClick={addWarning} title="Предупреждение">
                     <AlertTriangle className="h-3 w-3" />
                   </Button>
@@ -664,6 +733,46 @@ const AdminSupport = () => {
                 </div>
               )}
             </div>
+
+            {/* Staff Rules Panel */}
+            {showRules && staffRules && (
+              <div className="border-b bg-muted/30 p-2 shrink-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold flex items-center gap-1"><BookOpen className="h-3 w-3" /> Правила для сотрудников</span>
+                  <button onClick={() => setShowRules(false)} className="text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /></button>
+                </div>
+                <div className="text-[10px] text-muted-foreground whitespace-pre-wrap max-h-[120px] overflow-y-auto">{staffRules}</div>
+              </div>
+            )}
+
+            {/* AI Suggestions Widget */}
+            {aiEnabled && activeTicket && activeTicket.status !== "closed" && (
+              <div className="border-b bg-gradient-to-r from-primary/5 to-primary/0 p-2 shrink-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold flex items-center gap-1"><Sparkles className="h-3 w-3 text-primary" /> ИИ-подсказки</span>
+                  <Button variant="ghost" size="sm" className="h-5 text-[10px] px-2" onClick={fetchAiSuggestions} disabled={aiLoading}>
+                    {aiLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Получить подсказки"}
+                  </Button>
+                </div>
+                {aiError && <p className="text-[10px] text-destructive">{aiError}</p>}
+                {aiSuggestions.length > 0 && (
+                  <div className="space-y-1">
+                    {aiSuggestions.map((s, i) => (
+                      <button
+                        key={i}
+                        onClick={() => applySuggestion(s)}
+                        className="w-full text-left text-[10px] bg-background border rounded-md px-2 py-1.5 hover:border-primary/50 hover:bg-primary/5 transition-colors line-clamp-2"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {!aiLoading && aiSuggestions.length === 0 && !aiError && (
+                  <p className="text-[10px] text-muted-foreground">Нажмите «Получить подсказки» для генерации вариантов ответа</p>
+                )}
+              </div>
+            )}
 
             {/* Messages */}
             <div className="flex-1 overflow-auto p-3 space-y-2">
@@ -746,6 +855,36 @@ const AdminSupport = () => {
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
                     <Paperclip className="h-4 w-4" />
                   </Button>
+                  {/* Templates popover */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0" title="Шаблоны ответов">
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[280px] p-0" align="start" side="top">
+                      <div className="p-2 border-b">
+                        <p className="text-[10px] font-bold">Шаблоны ответов</p>
+                      </div>
+                      <div className="max-h-[250px] overflow-y-auto">
+                        {responseTemplates.length === 0 ? (
+                          <p className="text-[10px] text-muted-foreground p-3 text-center">Нет шаблонов</p>
+                        ) : responseTemplates.map(tpl => (
+                          <button
+                            key={tpl.id}
+                            onClick={() => applyTemplate(tpl.content)}
+                            className="w-full text-left p-2 hover:bg-muted/50 transition-colors border-b last:border-b-0"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-medium">{tpl.title}</span>
+                              {tpl.shortcut && <Badge variant="secondary" className="text-[8px] px-1 h-4">{tpl.shortcut}</Badge>}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5">{tpl.content}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                   <Input
                     placeholder="Написать ответ..."
                     value={newMessage}

@@ -1118,6 +1118,42 @@ export type Database = {
           },
         ]
       }
+      support_response_templates: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          id: string
+          is_enabled: boolean
+          shortcut: string | null
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          content: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          shortcut?: string | null
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          shortcut?: string | null
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       support_tickets: {
         Row: {
           auto_close_at: string | null
