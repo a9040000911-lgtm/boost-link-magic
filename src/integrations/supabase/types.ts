@@ -1058,6 +1058,7 @@ export type Database = {
           price: number
           speed: string
           updated_at: string
+          warning_text: string | null
         }
         Insert: {
           category?: string
@@ -1073,6 +1074,7 @@ export type Database = {
           price?: number
           speed?: string
           updated_at?: string
+          warning_text?: string | null
         }
         Update: {
           category?: string
@@ -1088,6 +1090,7 @@ export type Database = {
           price?: number
           speed?: string
           updated_at?: string
+          warning_text?: string | null
         }
         Relationships: []
       }
