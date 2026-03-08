@@ -795,6 +795,41 @@ const Catalog = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ─── Warning Modal ─── */}
+      <AnimatePresence>
+        {showWarning && selectedService?.warning_text && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowWarning(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className={`relative max-w-md w-full rounded-2xl ${activeNetConfig?.bg || 'bg-primary'} p-6 shadow-2xl text-white`}
+            >
+              <div className="flex items-start gap-3 mb-4">
+                <AlertTriangle className="w-7 h-7 shrink-0 mt-0.5" />
+                <h3 className="text-lg font-bold">Внимание!</h3>
+              </div>
+              <p className="text-sm leading-relaxed whitespace-pre-line opacity-95 mb-6">
+                {selectedService.warning_text}
+              </p>
+              <button
+                onClick={acceptWarning}
+                className="w-full py-3 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-white font-bold text-sm transition-colors"
+              >
+                Принять
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
