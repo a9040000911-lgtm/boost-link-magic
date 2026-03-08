@@ -130,7 +130,7 @@ const Index = () => {
       </div>
 
       {/* Content — fills remaining viewport */}
-      <div className="flex-1 min-h-0 bg-background px-4 relative z-10 overflow-hidden">
+      <div className="flex-1 min-h-0 hero-gradient px-4 relative z-10 overflow-hidden">
         <div className="h-full max-w-5xl mx-auto">
           <AnimatePresence mode="wait">
             {showFlow && (
