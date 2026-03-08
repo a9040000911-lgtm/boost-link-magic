@@ -686,7 +686,7 @@ const AdminSupport = () => {
   }, [messages, tickets]);
 
   return (
-    <div className="flex h-full gap-0 border rounded-md overflow-hidden">
+    <div className="flex gap-0 border rounded-md overflow-hidden" style={{ height: "calc(100vh - 5.5rem)" }}>
       {/* Client list */}
       <div className={`flex flex-col border-r w-[320px] shrink-0 ${selectedUserId ? "hidden lg:flex" : "flex w-full lg:w-[320px]"}`}>
         <div className="p-2 border-b shrink-0 space-y-1">
