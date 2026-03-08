@@ -10,8 +10,13 @@ import { ShoppingCart, FolderKanban, TrendingUp, Clock, Shield } from "lucide-re
 
 const DashboardOverview = () => {
   const { user } = useAuth();
-  const { plan, limits, isLicensed } = useLicense();
+  const { plan, isLicensed } = useLicense();
+  const [limits, setLimits] = useState<PlanLimits>(getPlanLimits(plan));
   const [stats, setStats] = useState({ orders: 0, projects: 0, totalSpent: 0, pending: 0, monthlyOrders: 0 });
+
+  useEffect(() => {
+    fetchPlanLimits(plan).then(setLimits);
+  }, [plan]);
 
   useEffect(() => {
     if (!user) return;
