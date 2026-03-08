@@ -566,7 +566,7 @@ const Catalog = () => {
               </div>
 
               {/* Service list — scrollable, with bottom padding on mobile for sticky form */}
-              <div className="flex-1 min-h-0 overflow-y-auto pr-1 pb-2 md:pb-0">
+              <div className={`flex-1 min-h-0 overflow-y-auto pr-1 md:pb-0 ${selectedService ? 'pb-52' : 'pb-2'}`}>
                 {categoryServices.length > 0 ? (
                   <AnimatePresence mode="wait">
                     <motion.div

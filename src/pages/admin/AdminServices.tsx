@@ -625,6 +625,38 @@ const AdminServices = () => {
                     <div><Label className="text-xs">Макс. кол-во</Label><Input type="number" value={editForm.max_quantity} onChange={(e) => setEditForm({ ...editForm, max_quantity: e.target.value })} /></div>
                     <div><Label className="text-xs">Цена за 1000</Label><Input type="number" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: e.target.value })} /></div>
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs flex items-center gap-1"><Zap className="h-3 w-3" />Скорость</Label>
+                      <Select value={editForm.speed} onValueChange={(v) => setEditForm({ ...editForm, speed: v })}>
+                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="instant">⚡ Мгновенно</SelectItem>
+                          <SelectItem value="fast">🚀 Быстро</SelectItem>
+                          <SelectItem value="medium">⏱ Средне</SelectItem>
+                          <SelectItem value="slow">🐢 Медленно</SelectItem>
+                          <SelectItem value="gradual">📈 Постепенно</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs flex items-center gap-1"><ShieldCheck className="h-3 w-3" />Гарантия</Label>
+                      <Select value={editForm.guarantee} onValueChange={(v) => setEditForm({ ...editForm, guarantee: v })}>
+                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Без гарантии</SelectItem>
+                          <SelectItem value="7d">7 дней</SelectItem>
+                          <SelectItem value="30d">30 дней</SelectItem>
+                          <SelectItem value="60d">60 дней</SelectItem>
+                          <SelectItem value="lifetime">♾ Навсегда</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1"><AlertTriangle className="h-3 w-3" />Предупреждение</Label>
+                    <Textarea value={editForm.warning_text} onChange={(e) => setEditForm({ ...editForm, warning_text: e.target.value })} placeholder="Текст предупреждения перед заказом..." className="h-16" />
+                  </div>
                   <Button onClick={saveEditService} className="w-full" size="sm">Сохранить изменения</Button>
                 </div>
 
