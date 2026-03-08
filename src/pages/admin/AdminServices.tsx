@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,10 +15,30 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   RefreshCw, Search, Package, Plus, Link2, Trash2, ArrowUp, ArrowDown,
-  Zap, ShieldCheck, AlertTriangle, Settings2, ChevronRight
+  Zap, ShieldCheck, AlertTriangle, Settings2, ChevronRight, Percent, Layers
 } from "lucide-react";
 import { toast } from "sonner";
 import { logAuditAction } from "@/lib/audit";
+
+interface MarkupTier {
+  maxRate: number;
+  markup: number;
+}
+
+const DEFAULT_MARKUP_LADDER: MarkupTier[] = [
+  { maxRate: 20, markup: 80 },
+  { maxRate: 50, markup: 60 },
+  { maxRate: 150, markup: 40 },
+  { maxRate: 500, markup: 30 },
+  { maxRate: Infinity, markup: 20 },
+];
+
+const getMarkupForRate = (rate: number, ladder: MarkupTier[]): number => {
+  for (const tier of ladder) {
+    if (rate <= tier.maxRate) return tier.markup;
+  }
+  return 30;
+};
 
 interface ProviderService {
   id: string;
