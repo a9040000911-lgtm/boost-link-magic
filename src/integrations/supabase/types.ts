@@ -261,6 +261,57 @@ export type Database = {
         }
         Relationships: []
       }
+      providers: {
+        Row: {
+          api_key_env: string
+          api_url: string
+          balance: number | null
+          balance_currency: string | null
+          created_at: string
+          health_latency_ms: number | null
+          health_status: string | null
+          id: string
+          is_enabled: boolean
+          key: string
+          label: string
+          last_health_check: string | null
+          services_count: number | null
+          updated_at: string
+        }
+        Insert: {
+          api_key_env: string
+          api_url: string
+          balance?: number | null
+          balance_currency?: string | null
+          created_at?: string
+          health_latency_ms?: number | null
+          health_status?: string | null
+          id?: string
+          is_enabled?: boolean
+          key: string
+          label: string
+          last_health_check?: string | null
+          services_count?: number | null
+          updated_at?: string
+        }
+        Update: {
+          api_key_env?: string
+          api_url?: string
+          balance?: number | null
+          balance_currency?: string | null
+          created_at?: string
+          health_latency_ms?: number | null
+          health_status?: string | null
+          id?: string
+          is_enabled?: boolean
+          key?: string
+          label?: string
+          last_health_check?: string | null
+          services_count?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       service_provider_mappings: {
         Row: {
           created_at: string
