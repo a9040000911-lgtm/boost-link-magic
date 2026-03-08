@@ -257,6 +257,8 @@ const AdminServices = () => {
       name: svc.name, description: svc.description || "", category: svc.category,
       network: svc.network, min_quantity: String(svc.min_quantity),
       max_quantity: String(svc.max_quantity), price: String(svc.price),
+      speed: svc.speed || "medium", guarantee: svc.guarantee || "none",
+      warning_text: svc.warning_text || "",
     });
     setAddMappingOpen(false);
   };
