@@ -110,6 +110,7 @@ const GROUPS = [
   { id: "email_support", label: "Email поддержки", icon: Mail, description: "Настройки почты для приёма и отправки обращений" },
   { id: "ai_support", label: "ИИ-ассистент поддержки", icon: Sparkles, description: "Провайдер, режим и контекст для ИИ-помощника (веб + Telegram)" },
   { id: "support", label: "Поддержка", icon: MessageSquare, description: "Настройки тикетов и общения с клиентами" },
+  { id: "catalog", label: "Каталог", icon: ShoppingCart, description: "Чекбоксы согласий и отображение при оформлении заказа" },
   { id: "orders", label: "Заказы", icon: ShoppingCart, description: "Лимиты и наценки на заказы" },
   { id: "finance", label: "Финансы", icon: Wallet, description: "Пополнения, выводы и бонусы" },
   { id: "license", label: "Лицензия", icon: Shield, description: "Глобальный лицензионный ключ для всего сайта — вводится один раз" },
