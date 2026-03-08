@@ -532,6 +532,45 @@ const AdminServices = () => {
               </SelectContent>
             </Select>
           )}
+          {/* Price display toggles */}
+          <div className="flex items-center gap-0.5 ml-auto border rounded-md">
+            <Button
+              size="sm"
+              variant={priceMode === "per1" ? "default" : "ghost"}
+              className="h-7 text-[10px] px-2 rounded-r-none"
+              onClick={() => setPriceMode("per1")}
+            >
+              <Hash className="h-3 w-3 mr-0.5" />1шт
+            </Button>
+            <Button
+              size="sm"
+              variant={priceMode === "per1k" ? "default" : "ghost"}
+              className="h-7 text-[10px] px-2 rounded-l-none"
+              onClick={() => setPriceMode("per1k")}
+            >
+              1000
+            </Button>
+          </div>
+          <div className="flex items-center gap-0.5 border rounded-md">
+            <Button
+              size="sm"
+              variant={currency === "RUB" ? "default" : "ghost"}
+              className="h-7 text-[10px] px-2 rounded-r-none"
+              onClick={() => setCurrency("RUB")}
+            >
+              ₽
+            </Button>
+            <Button
+              size="sm"
+              variant={currency === "USD" ? "default" : "ghost"}
+              className="h-7 text-[10px] px-2 rounded-l-none"
+              onClick={() => setCurrency("USD")}
+              disabled={!usdRate}
+              title={!usdRate ? "Курс USD не загружен" : `1 USD = ${usdRate.toFixed(2)} ₽`}
+            >
+              <DollarSign className="h-3 w-3" />
+            </Button>
+          </div>
           {activeTab === "catalog" && (
             <>
               <Select value={enabledFilter} onValueChange={setEnabledFilter}>
