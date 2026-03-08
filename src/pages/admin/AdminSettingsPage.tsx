@@ -89,6 +89,7 @@ const SETTINGS_META: SettingMeta[] = [
 ];
 
 const GROUPS = [
+  { id: "contacts", label: "Контакты", icon: Mail, description: "Публичный email и часы работы поддержки" },
   { id: "telegram_support", label: "Telegram-бот поддержки", icon: MessageCircle, description: "Отдельный бот для приёма обращений через Telegram" },
   { id: "email_support", label: "Email поддержки", icon: Mail, description: "Настройки почты для приёма и отправки обращений" },
   { id: "ai_support", label: "ИИ-подсказки", icon: Sparkles, description: "Настройки ИИ-помощника для операторов поддержки (Lovable AI)" },
