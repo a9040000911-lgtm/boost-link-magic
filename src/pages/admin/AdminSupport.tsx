@@ -1093,7 +1093,8 @@ const AdminSupport = () => {
             )}
           </>
         )}
-      </div>
+      </ResizablePanel>
+      </ResizablePanelGroup>
 
       {/* Ban dialog */}
       <Dialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
