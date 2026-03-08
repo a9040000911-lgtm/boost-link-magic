@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageSquare, Plus, Send, ArrowLeft, Clock, CheckCircle2,
@@ -10,8 +11,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { format } from "date-fns";
+
+interface SupportTopic {
+  id: string;
+  name: string;
+  icon: string;
+  requires_order_id: boolean;
+  sort_order: number;
+}
+
+interface UserOrder {
+  id: string;
+  service_name: string;
+  created_at: string;
+  status: string;
+}
 
 interface Ticket {
   id: string;
