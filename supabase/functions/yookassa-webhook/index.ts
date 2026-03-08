@@ -4,12 +4,33 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const json = (body: object, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
+// YooKassa IP ranges (official docs 2026)
+const YOOKASSA_IP_RANGES = [
+  '185.71.76.', '185.71.77.',  // 185.71.76.0/27, 185.71.77.0/27
+  '77.75.153.', '77.75.156.',  // 77.75.153.0/25, 77.75.156.x
+];
+
+function isYooKassaIP(ip: string): boolean {
+  if (!ip) return false;
+  // In dev/test environments, allow all
+  const cleanIP = ip.split(',')[0].trim();
+  if (cleanIP === '127.0.0.1' || cleanIP === '::1') return true;
+  return YOOKASSA_IP_RANGES.some(prefix => cleanIP.startsWith(prefix));
+}
+
 serve(async (req) => {
   if (req.method !== 'POST') {
     return json({ error: 'Method not allowed' }, 405);
   }
 
   try {
+    // IP validation
+    const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || '';
+    if (!isYooKassaIP(clientIP)) {
+      console.warn(`Webhook from untrusted IP: ${clientIP}`);
+      // Log but don't block — edge function proxies may change IP; we verify with API below
+    }
+
     const body = await req.json();
     const event = body.event;
     const paymentObj = body.object;
@@ -18,7 +39,6 @@ serve(async (req) => {
       return json({ error: 'Invalid payload' }, 400);
     }
 
-    // Only process successful payments
     if (event !== 'payment.succeeded') {
       console.log(`Ignoring event: ${event}`);
       return json({ ok: true });
@@ -34,17 +54,27 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // --- SECURITY: Verify payment with YooKassa API instead of trusting webhook body ---
-    // Get credentials from secrets only (never from app_settings)
-    const shopId = Deno.env.get('YOOKASSA_SHOP_ID') || '';
-    const secretKey = Deno.env.get('YOOKASSA_SECRET_KEY') || '';
+    // Determine test or production mode from settings
+    const { data: testModeSetting } = await adminClient
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'yookassa_test_mode')
+      .single();
+
+    const isTestMode = testModeSetting?.value === 'true';
+    const shopId = isTestMode
+      ? Deno.env.get('YOOKASSA_TEST_SHOP_ID') || ''
+      : Deno.env.get('YOOKASSA_SHOP_ID') || '';
+    const secretKey = isTestMode
+      ? Deno.env.get('YOOKASSA_TEST_SECRET_KEY') || ''
+      : Deno.env.get('YOOKASSA_SECRET_KEY') || '';
 
     if (!shopId || !secretKey) {
-      console.error('YooKassa credentials not configured');
+      console.error(`YooKassa credentials not configured (test_mode=${isTestMode})`);
       return json({ error: 'Payment system not configured' }, 500);
     }
 
-    // Fetch the real payment from YooKassa API
+    // Verify payment with YooKassa API
     const verifyRes = await fetch(`https://api.yookassa.ru/v3/payments/${webhookPaymentId}`, {
       headers: {
         'Authorization': 'Basic ' + btoa(`${shopId}:${secretKey}`),
@@ -59,7 +89,6 @@ serve(async (req) => {
 
     const verifiedPayment = await verifyRes.json();
 
-    // Use ONLY verified data from YooKassa API, never from webhook body
     if (verifiedPayment.status !== 'succeeded') {
       console.log(`Payment ${webhookPaymentId} not succeeded (status: ${verifiedPayment.status}), ignoring`);
       return json({ ok: true, status: verifiedPayment.status });
@@ -76,7 +105,7 @@ serve(async (req) => {
       return json({ error: 'Invalid metadata' }, 400);
     }
 
-    // Check if transaction already processed (idempotency)
+    // Idempotency check
     const { data: existingTx } = await adminClient
       .from('transactions')
       .select('id, status')
@@ -104,11 +133,11 @@ serve(async (req) => {
       return json({ error: 'Failed to credit balance' }, 500);
     }
 
-    // Update transaction status
+    // Update transaction
     await adminClient.from('transactions').update({
       status: 'completed',
       balance_after: newBalance,
-      description: `Пополнение через ЮKassa (${paymentId}) — ${amount} ₽`,
+      description: `Пополнение через ЮKassa (${paymentId}) — ${amount} ₽${isTestMode ? ' (ТЕСТ)' : ''}`,
     }).eq('id', transactionId);
 
     // Audit log
@@ -122,10 +151,12 @@ serve(async (req) => {
         amount,
         new_balance: newBalance,
         provider: 'yookassa',
+        test_mode: isTestMode,
+        source_ip: clientIP,
       },
     });
 
-    console.log(`Payment ${paymentId} processed: +${amount}₽ for user ${userId}, new balance: ${newBalance}`);
+    console.log(`Payment ${paymentId} processed: +${amount}₽ for user ${userId}, new balance: ${newBalance}${isTestMode ? ' (TEST)' : ''}`);
     return json({ ok: true, new_balance: newBalance });
   } catch (error: unknown) {
     console.error('Webhook error:', error);

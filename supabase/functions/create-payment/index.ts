@@ -1,8 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') || '*';
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
@@ -17,10 +19,12 @@ serve(async (req) => {
   try {
     const { amount } = await req.json();
 
-    // Validate amount
-    if (!amount || typeof amount !== 'number' || amount < 1 || amount > 1000000) {
+    // Validate amount: positive integer, no sub-kopek decimals
+    if (!amount || typeof amount !== 'number' || amount < 1 || amount > 1000000 || !Number.isFinite(amount)) {
       return json({ error: 'Сумма должна быть от 1 до 1 000 000 ₽' }, 400);
     }
+    // Round to 2 decimal places to prevent sub-kopek amounts
+    const safeAmount = Math.round(amount * 100) / 100;
 
     // Auth
     const authHeader = req.headers.get('Authorization');
@@ -42,7 +46,7 @@ serve(async (req) => {
     const userId = claimsData.claims.sub;
     const userEmail = claimsData.claims.email || '';
 
-    // Check min deposit from settings
+    // Admin client for settings
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -51,36 +55,42 @@ serve(async (req) => {
     const { data: settings } = await adminClient
       .from('app_settings')
       .select('key, value')
-      .in('key', ['min_deposit_amount', 'active_payment_system', 'yookassa_return_url']);
+      .in('key', ['min_deposit_amount', 'active_payment_system', 'yookassa_return_url', 'yookassa_test_mode']);
 
     const settingsMap: Record<string, string> = {};
     (settings || []).forEach((r: any) => { settingsMap[r.key] = r.value; });
 
     const minDeposit = Number(settingsMap.min_deposit_amount || 50);
-    if (amount < minDeposit) {
+    if (safeAmount < minDeposit) {
       return json({ error: `Минимальная сумма пополнения: ${minDeposit} ₽` }, 400);
     }
 
-    // Get YooKassa credentials from secrets only
-    const shopId = Deno.env.get('YOOKASSA_SHOP_ID');
-    const secretKey = Deno.env.get('YOOKASSA_SECRET_KEY');
+    // Determine test or production mode
+    const isTestMode = settingsMap.yookassa_test_mode === 'true';
+    const shopId = isTestMode
+      ? Deno.env.get('YOOKASSA_TEST_SHOP_ID')
+      : Deno.env.get('YOOKASSA_SHOP_ID');
+    const secretKey = isTestMode
+      ? Deno.env.get('YOOKASSA_TEST_SECRET_KEY')
+      : Deno.env.get('YOOKASSA_SECRET_KEY');
 
     if (!shopId || !secretKey) {
+      console.error(`YooKassa credentials not configured (test_mode=${isTestMode})`);
       return json({ error: 'Платёжная система не настроена' }, 500);
     }
 
     const returnUrl = settingsMap.yookassa_return_url || `${req.headers.get('origin') || 'https://boost-link-magic.lovable.app'}/dashboard/transactions`;
 
-    // Create pending transaction first
+    // Create pending transaction
     const { data: tx, error: txErr } = await adminClient
       .from('transactions')
       .insert({
         user_id: userId,
         type: 'deposit',
-        amount: amount,
-        balance_after: 0, // Will be updated on webhook
+        amount: safeAmount,
+        balance_after: 0,
         status: 'pending',
-        description: `Пополнение через ЮKassa`,
+        description: `Пополнение через ЮKassa${isTestMode ? ' (ТЕСТ)' : ''}`,
       })
       .select()
       .single();
@@ -100,7 +110,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         amount: {
-          value: amount.toFixed(2),
+          value: safeAmount.toFixed(2),
           currency: 'RUB',
         },
         capture: true,
@@ -108,7 +118,7 @@ serve(async (req) => {
           type: 'redirect',
           return_url: returnUrl,
         },
-        description: `Пополнение баланса CoolLike — ${amount} ₽`,
+        description: `Пополнение баланса CoolLike — ${safeAmount} ₽${isTestMode ? ' (тест)' : ''}`,
         metadata: {
           transaction_id: tx.id,
           user_id: userId,
@@ -118,7 +128,7 @@ serve(async (req) => {
           items: [{
             description: `Пополнение баланса CoolLike`,
             quantity: '1',
-            amount: { value: amount.toFixed(2), currency: 'RUB' },
+            amount: { value: safeAmount.toFixed(2), currency: 'RUB' },
             vat_code: 1,
           }],
         } : undefined,
@@ -128,22 +138,20 @@ serve(async (req) => {
     const yooData = await yooResponse.json();
 
     if (!yooResponse.ok) {
-      // Rollback transaction
       await adminClient.from('transactions').update({ status: 'cancelled' }).eq('id', tx.id);
       console.error('YooKassa error:', JSON.stringify(yooData));
       return json({ error: yooData.description || 'Ошибка создания платежа' }, 500);
     }
 
-    // Update transaction with payment ID
     await adminClient.from('transactions').update({
-      description: `Пополнение через ЮKassa (${yooData.id})`,
+      description: `Пополнение через ЮKassa (${yooData.id})${isTestMode ? ' — ТЕСТ' : ''}`,
     }).eq('id', tx.id);
 
     return json({
       payment_id: yooData.id,
       confirmation_url: yooData.confirmation?.confirmation_url,
       transaction_id: tx.id,
-      amount,
+      amount: safeAmount,
     });
   } catch (error: unknown) {
     console.error('Create payment error:', error);

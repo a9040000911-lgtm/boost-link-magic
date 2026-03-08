@@ -6,15 +6,24 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, Save, RefreshCw, CheckCircle2, Circle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CreditCard, Save, RefreshCw, CheckCircle2, Circle, AlertTriangle, Shield } from "lucide-react";
 import { toast } from "sonner";
+
+interface FieldDef {
+  key: string;
+  label: string;
+  hint: string;
+  secret?: boolean;
+  group?: "test" | "prod";
+}
 
 interface PaymentSystem {
   id: string;
   name: string;
   description: string;
   logo: string;
-  fields: { key: string; label: string; hint: string; secret?: boolean }[];
+  fields: FieldDef[];
 }
 
 const PAYMENT_SYSTEMS: PaymentSystem[] = [
@@ -24,9 +33,15 @@ const PAYMENT_SYSTEMS: PaymentSystem[] = [
     description: "Приём платежей банковскими картами, электронными кошельками, через СБП и другие способы",
     logo: "💳",
     fields: [
-      { key: "yookassa_shop_id", label: "Shop ID", hint: "Идентификатор магазина из личного кабинета ЮKassa" },
-      { key: "yookassa_secret_key", label: "Секретный ключ", hint: "Секретный ключ из настроек ЮKassa", secret: true },
-      { key: "yookassa_return_url", label: "URL возврата", hint: "Страница, на которую вернётся пользователь после оплаты (например /dashboard)" },
+      // Test credentials
+      { key: "yookassa_test_shop_id", label: "Shop ID (тестовый)", hint: "Тестовый идентификатор магазина из ЮKassa", group: "test" },
+      { key: "yookassa_test_secret_key", label: "Секретный ключ (тестовый)", hint: "Тестовый секретный ключ из ЮKassa", secret: true, group: "test" },
+      // Production credentials
+      { key: "yookassa_shop_id", label: "Shop ID (боевой)", hint: "Боевой идентификатор магазина из личного кабинета ЮKassa", group: "prod" },
+      { key: "yookassa_secret_key", label: "Секретный ключ (боевой)", hint: "Боевой секретный ключ из настроек ЮKassa", secret: true, group: "prod" },
+      // Common
+      { key: "yookassa_return_url", label: "URL возврата", hint: "Страница, на которую вернётся пользователь после оплаты" },
+      { key: "yookassa_test_mode", label: "Тестовый режим", hint: "При включении используются тестовые ключи. Реальные списания НЕ производятся." },
     ],
   },
   {
@@ -98,9 +113,47 @@ const AdminPayments = () => {
 
   const activeSystem = values[ACTIVE_KEY] || "";
 
+  const renderField = (field: FieldDef) => {
+    const val = values[field.key] ?? "";
+    const changed = val !== (original[field.key] ?? "");
+
+    if (field.key.includes("test_mode")) {
+      return (
+        <div key={field.key} className="space-y-1">
+          <Label className={`text-xs font-medium ${changed ? "text-primary" : ""}`}>
+            {field.label} {changed && <span className="text-[9px]">●</span>}
+          </Label>
+          <p className="text-[11px] text-muted-foreground">{field.hint}</p>
+          <div className="flex items-center gap-2 pt-1">
+            <Switch
+              checked={val === "true"}
+              onCheckedChange={v => updateVal(field.key, v ? "true" : "false")}
+            />
+            <span className="text-xs text-muted-foreground">{val === "true" ? "Включён" : "Выключен"}</span>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div key={field.key} className="space-y-1">
+        <Label className={`text-xs font-medium ${changed ? "text-primary" : ""}`}>
+          {field.label} {changed && <span className="text-[9px]">●</span>}
+        </Label>
+        <p className="text-[11px] text-muted-foreground">{field.hint}</p>
+        <Input
+          type={field.secret ? "password" : "text"}
+          value={val}
+          onChange={e => updateVal(field.key, e.target.value)}
+          className="text-xs h-8 max-w-md"
+          placeholder={field.secret ? "••••••••" : ""}
+        />
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col h-full gap-4 overflow-auto">
-      {/* Header */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <CreditCard className="h-4 w-4 text-primary" />
@@ -120,11 +173,17 @@ const AdminPayments = () => {
         Выберите активную платёжную систему и настройте параметры подключения. Одновременно может быть активна только одна система.
       </p>
 
-      {/* Payment system cards */}
       <div className="grid gap-4">
         {PAYMENT_SYSTEMS.map(ps => {
           const isActive = activeSystem === ps.id;
-          const isConfigured = ps.fields.some(f => !f.key.includes("test_mode") && (values[f.key] ?? "").length > 0);
+          const isConfigured = ps.fields.some(f => !f.key.includes("test_mode") && !f.group && (values[f.key] ?? "").length > 0);
+          const isTestMode = values[`${ps.id}_test_mode`] === "true";
+
+          const testFields = ps.fields.filter(f => f.group === "test");
+          const prodFields = ps.fields.filter(f => f.group === "prod");
+          const commonFields = ps.fields.filter(f => !f.group && !f.key.includes("test_mode"));
+          const testModeField = ps.fields.find(f => f.key.includes("test_mode"));
+
           return (
             <Card
               key={ps.id}
@@ -150,53 +209,52 @@ const AdminPayments = () => {
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-1">{ps.description}</p>
               </CardHeader>
-              <CardContent className="p-4 pt-2 space-y-3">
-                {ps.fields.map(field => {
-                  const val = values[field.key] ?? "";
-                  const changed = val !== (original[field.key] ?? "");
+              <CardContent className="p-4 pt-2 space-y-4">
+                {/* Test mode toggle */}
+                {testModeField && renderField(testModeField)}
 
-                  // Special handling for boolean-like fields
-                  if (field.key.includes("test_mode")) {
-                    return (
-                      <div key={field.key} className="space-y-1">
-                        <Label className={`text-xs font-medium ${changed ? "text-primary" : ""}`}>
-                          {field.label} {changed && <span className="text-[9px]">●</span>}
-                        </Label>
-                        <p className="text-[11px] text-muted-foreground">{field.hint}</p>
-                        <div className="flex items-center gap-2 pt-1">
-                          <Switch
-                            checked={val === "true"}
-                            onCheckedChange={v => updateVal(field.key, v ? "true" : "false")}
-                          />
-                          <span className="text-xs text-muted-foreground">{val === "true" ? "Включён" : "Выключен"}</span>
-                        </div>
-                      </div>
-                    );
-                  }
+                {/* Test mode warning banner */}
+                {isActive && isTestMode && (
+                  <Alert className="border-yellow-500/50 bg-yellow-500/10">
+                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                    <AlertDescription className="text-xs text-yellow-700 dark:text-yellow-400">
+                      Используются <strong>тестовые ключи</strong>. Реальные списания не производятся.
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-                  return (
-                    <div key={field.key} className="space-y-1">
-                      <Label className={`text-xs font-medium ${changed ? "text-primary" : ""}`}>
-                        {field.label} {changed && <span className="text-[9px]">●</span>}
-                      </Label>
-                      <p className="text-[11px] text-muted-foreground">{field.hint}</p>
-                      <Input
-                        type={field.secret ? "password" : "text"}
-                        value={val}
-                        onChange={e => updateVal(field.key, e.target.value)}
-                        className="text-xs h-8 max-w-md"
-                        placeholder={field.secret ? "••••••••" : ""}
-                      />
+                {/* Test credentials section */}
+                {testFields.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 pt-1">
+                      <AlertTriangle className="h-3 w-3 text-yellow-500" />
+                      <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">Тестовые ключи</span>
+                      {isTestMode && <Badge variant="outline" className="text-[9px] h-4 border-yellow-500 text-yellow-600">Активны</Badge>}
                     </div>
-                  );
-                })}
+                    {testFields.map(renderField)}
+                  </div>
+                )}
+
+                {/* Production credentials section */}
+                {prodFields.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 pt-1">
+                      <Shield className="h-3 w-3 text-green-500" />
+                      <span className="text-xs font-semibold text-green-600 dark:text-green-400">Боевые ключи</span>
+                      {!isTestMode && <Badge variant="outline" className="text-[9px] h-4 border-green-500 text-green-600">Активны</Badge>}
+                    </div>
+                    {prodFields.map(renderField)}
+                  </div>
+                )}
+
+                {/* Common fields */}
+                {commonFields.map(renderField)}
               </CardContent>
             </Card>
           );
         })}
       </div>
 
-      {/* Sticky save bar */}
       {hasChanges && (
         <div className="sticky bottom-0 bg-background border-t p-2 flex items-center justify-between -mx-3 -mb-3 px-3">
           <span className="text-xs text-muted-foreground">Изменено: {changedCount} параметров</span>
