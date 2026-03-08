@@ -380,7 +380,7 @@ const Catalog = () => {
                           value={link}
                           onChange={(e) => setLink(e.target.value)}
                           placeholder="https://instagram.com/..."
-                          className="pl-10 bg-muted/30 border-border/40"
+                          className={`pl-10 bg-muted/30 border-2 ${activeNetConfig?.border || 'border-border/40'} focus:ring-0`}
                         />
                       </div>
                     </div>
