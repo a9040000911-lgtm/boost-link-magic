@@ -186,6 +186,14 @@ const Index = () => {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.96 }}
+                      onClick={() => { setCompletedOrders(null); setUrls(urls.length ? urls : completedOrders!.map(o => o.url)); }}
+                      className="px-6 py-3 rounded-xl bg-muted text-foreground text-sm font-medium"
+                    >
+                      ← Назад
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.96 }}
                       onClick={handleReset}
                       className="px-6 py-3 rounded-xl bg-muted text-foreground text-sm font-medium"
                     >
