@@ -775,8 +775,10 @@ const AdminSupport = () => {
         </div>
       </div>
 
+      </ResizablePanel>
+      <ResizableHandle withHandle />
       {/* Chat */}
-      <div className={`flex flex-col flex-1 min-w-0 ${!selectedUserId ? "hidden lg:flex" : "flex"}`}>
+      <ResizablePanel defaultSize={75} minSize={40} className={`flex flex-col min-w-0 ${!selectedUserId ? "hidden lg:flex" : "flex"}`}>
         {!selectedUserId ? (
           <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
             <div className="text-center">
