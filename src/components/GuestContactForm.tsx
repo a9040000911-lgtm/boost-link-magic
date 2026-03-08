@@ -15,7 +15,7 @@ const inquirySchema = z.object({
   message: z.string().trim().min(10, "Минимум 10 символов").max(2000),
 });
 
-export default function GuestContactForm() {
+export default function GuestContactForm({ workHours }: { workHours?: string }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
