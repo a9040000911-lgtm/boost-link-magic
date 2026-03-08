@@ -61,7 +61,13 @@ const TestimonialsSection = () => {
   const t = testimonials[current];
 
   return (
-    <section className="py-16 px-4 bg-muted/60">
+    <motion.section
+      initial={{ opacity: 0, y: 40 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-60px' }}
+      transition={{ duration: 0.6 }}
+      className="py-16 px-4 bg-muted/60"
+    >
       <div className="max-w-3xl mx-auto text-center">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
