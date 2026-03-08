@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, ArrowLeft, Package, Link2, Mail, Minus, Plus, Sparkles, Check,
   BarChart3, Zap, Clock, Timer, Snail, TrendingUp, Shield, ShieldCheck, ShieldAlert,
-  HelpCircle, Info, X
+  HelpCircle, Info, X, AlertTriangle
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import PlatformIcon from "@/components/PlatformIcon";
