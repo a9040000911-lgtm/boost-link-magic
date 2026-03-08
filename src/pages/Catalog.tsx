@@ -262,21 +262,21 @@ const Catalog = () => {
         </div>
       </motion.div>
 
-      {/* Platform Tabs */}
+      {/* Platform Grid */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.15 }} className="border-b border-border/40 bg-card/30">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="flex items-center gap-1 overflow-x-auto py-3 px-1 scrollbar-none">
+        <div className="max-w-6xl mx-auto px-4 py-3">
+          <div className="flex flex-wrap gap-1.5 justify-center">
             {availableNetworks.map((net) => (
               <button
                 key={net.key}
                 onClick={() => handleNetworkChange(net.key)}
-                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                   activeNetwork === net.key
                     ? `${net.bg} text-white shadow-lg ${net.shadow} scale-105`
                     : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
-                <PlatformIcon platform={net.icon} className="w-4.5 h-4.5" />
+                <PlatformIcon platform={net.icon} className="w-4 h-4" />
                 {net.label}
               </button>
             ))}
