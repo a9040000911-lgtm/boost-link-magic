@@ -32,6 +32,7 @@ import AdminPromocodes from "./pages/admin/AdminPromocodes";
 import AdminPages from "./pages/admin/AdminPages";
 import AdminFAQ from "./pages/admin/AdminFAQ";
 import AdminWidgets from "./pages/admin/AdminWidgets";
+import AdminLinks from "./pages/admin/AdminLinks";
 import CookieConsent from "./components/CookieConsent";
 import SiteWidgets from "./components/SiteWidgets";
 import DynamicPage from "./pages/DynamicPage";
