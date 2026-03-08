@@ -17,6 +17,10 @@ export type AuditAction =
   | "reopen_ticket"
   | "reply_ticket"
   | "update_user_balance"
+  | "update_user_profile"
+  | "update_user_email"
+  | "update_user_password"
+  | "ban_user"
   | "login_admin";
 
 export async function logAuditAction(
