@@ -61,6 +61,11 @@ const FileUpload = ({ file, preview, onFileChange, accent = "primary", onBeforeS
 
   const takeScreenshot = async () => {
     try {
+      // Hide the widget modal before screenshot prompt
+      onBeforeScreenshot?.();
+      // Small delay to let the modal animate out
+      await new Promise(r => setTimeout(r, 300));
+
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: "monitor" } as any });
       const video = document.createElement("video");
       video.srcObject = stream;
@@ -78,8 +83,11 @@ const FileUpload = ({ file, preview, onFileChange, accent = "primary", onBeforeS
           const f = new File([blob], `screenshot-${Date.now()}.png`, { type: "image/png" });
           handleFile(f);
         }
+        // Show the widget modal again
+        onAfterScreenshot?.();
       }, "image/png");
     } catch {
+      onAfterScreenshot?.();
       toast.error("Скриншот отменён или не поддерживается браузером");
     }
   };
