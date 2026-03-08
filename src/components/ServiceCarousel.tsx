@@ -56,17 +56,17 @@ const ServiceCarousel = ({ services, categoryName, onServiceSelect, selectedServ
               className="min-w-[220px] max-w-[240px] flex-shrink-0 cursor-pointer"
               onClick={() => onServiceSelect?.(service)}
             >
-              <div className={`relative overflow-hidden glass-card p-6 h-full flex flex-col gap-4 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 group ${selectedServiceId === service.id ? 'ring-2 ring-primary shadow-lg shadow-primary/15' : ''}`}>
+              <div className={`relative overflow-hidden rounded-2xl p-6 h-full flex flex-col gap-4 transition-all duration-300 bg-card border-2 border-border/80 shadow-lg hover:shadow-2xl hover:border-primary/30 group ${selectedServiceId === service.id ? 'ring-2 ring-primary border-primary/40 shadow-primary/20' : ''}`}>
                 {/* Shimmer */}
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent -skew-x-12"
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/8 to-transparent -skew-x-12"
                   animate={{ x: ['-200%', '300%'] }}
                   transition={{ duration: 4, repeat: Infinity, repeatDelay: 3, ease: 'easeInOut', delay: i * 0.5 }}
                 />
 
                 {/* Price highlight */}
                 <motion.div
-                  className="absolute top-4 right-4 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-bold"
+                  className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-bold shadow-md shadow-primary/30"
                   animate={{ scale: [1, 1.08, 1] }}
                   transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                 >
@@ -79,11 +79,11 @@ const ServiceCarousel = ({ services, categoryName, onServiceSelect, selectedServ
                 </div>
 
                 <div className="flex flex-col gap-2.5 mt-auto relative z-10">
-                  <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2.5 text-sm text-foreground/70">
                     <Package className="w-4 h-4 text-secondary" />
                     <span>{service.minOrder} — {service.maxOrder.toLocaleString()}</span>
                   </div>
-                  <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2.5 text-sm text-foreground/70">
                     <Zap className="w-4 h-4 text-accent" />
                     <span>{service.speed}</span>
                   </div>
@@ -96,7 +96,7 @@ const ServiceCarousel = ({ services, categoryName, onServiceSelect, selectedServ
                 <motion.button
                   whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.96 }}
-                  className="relative z-10 w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-primary/30 transition-shadow duration-300"
+                  className="relative z-10 w-full py-3 rounded-xl bg-gradient-to-r from-primary to-pink-500 text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 transition-shadow duration-300"
                 >
                   <motion.span
                     animate={{ x: [0, 3, 0] }}
