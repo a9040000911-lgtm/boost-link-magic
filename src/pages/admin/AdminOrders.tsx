@@ -55,8 +55,9 @@ const AdminOrders = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [providerServices, setProviderServices] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
+  const [refundReason, setRefundReason] = useState("");
+  const [refunding, setRefunding] = useState(false);
 
-  useEffect(() => {
     if (!user) return;
     loadData();
   }, [user]);
