@@ -31,12 +31,13 @@ async function callAI({ provider, model, systemPrompt, userPrompt, endpoint, api
       actualModel = model || "google/gemini-3-flash-preview";
       break;
 
-    case "gemini":
-      // Google Gemini via their OpenAI-compatible endpoint
+    case "gemini": {
+      // Rotate keys from DB — least-used strategy
       url = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
-      apiKey = Deno.env.get(apiKeyEnv || "GEMINI_API_KEY") || "";
+      apiKey = ""; // will be set below from rotation
       actualModel = model || "gemini-2.5-flash";
       break;
+    }
 
     case "openclaw":
       url = endpoint || "https://api.openclaw.com/v1/chat/completions";
