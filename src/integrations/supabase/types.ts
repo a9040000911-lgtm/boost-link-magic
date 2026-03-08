@@ -23,7 +23,11 @@ export type Database = {
           price: number
           progress: number
           project_id: string | null
+          provider: string | null
+          provider_order_id: string | null
+          provider_service_id: string | null
           quantity: number
+          service_id: string | null
           service_name: string
           status: string
           updated_at: string
@@ -37,7 +41,11 @@ export type Database = {
           price?: number
           progress?: number
           project_id?: string | null
+          provider?: string | null
+          provider_order_id?: string | null
+          provider_service_id?: string | null
           quantity?: number
+          service_id?: string | null
           service_name: string
           status?: string
           updated_at?: string
@@ -51,7 +59,11 @@ export type Database = {
           price?: number
           progress?: number
           project_id?: string | null
+          provider?: string | null
+          provider_order_id?: string | null
+          provider_service_id?: string | null
           quantity?: number
+          service_id?: string | null
           service_name?: string
           status?: string
           updated_at?: string
@@ -63,6 +75,20 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_provider_service_id_fkey"
+            columns: ["provider_service_id"]
+            isOneToOne: false
+            referencedRelation: "provider_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]
@@ -271,6 +297,71 @@ export type Database = {
           network?: string
           price?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      support_messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_admin: boolean
+          message: string
+          ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          message: string
+          ticket_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          message?: string
+          ticket_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          created_at: string
+          id: string
+          priority: string
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          priority?: string
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          priority?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
