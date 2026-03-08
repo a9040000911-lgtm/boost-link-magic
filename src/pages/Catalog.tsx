@@ -158,12 +158,49 @@ const Catalog = () => {
   const activeNetConfig = networkConfig.find(n => n.key === activeNetwork);
   const totalPrice = selectedService ? (selectedService.price / 1000) * quantity : 0;
 
-  const handleOrder = () => {
+  const handleOrder = async () => {
     if (!user) {
       navigate("/auth");
       return;
     }
-    toast({ title: "Заказ оформлен!", description: `${selectedService?.name} × ${quantity}` });
+    if (!selectedService || !link.trim() || ordering) return;
+
+    setOrdering(true);
+    try {
+      // Generate idempotency key to prevent double orders
+      const idempotencyKey = `${user.id}_${selectedService.id}_${Date.now()}`;
+
+      const { data, error } = await supabase.functions.invoke("create-order", {
+        body: {
+          service_id: selectedService.id,
+          link: link.trim(),
+          quantity,
+          idempotency_key: idempotencyKey,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.deduplicated) {
+        toast({ title: "Заказ уже создан", description: "Повторный запрос проигнорирован" });
+      } else {
+        toast({
+          title: "✅ Заказ оформлен!",
+          description: `${selectedService.name} × ${quantity} — ${Number(data.price).toFixed(2)}₽`,
+        });
+      }
+
+      // Reset form
+      setLink("");
+      setConsentOffer(false);
+      setConsentPD(false);
+    } catch (e: any) {
+      const msg = e.message || "Ошибка при создании заказа";
+      toast({ title: "Ошибка", description: msg, variant: "destructive" });
+    } finally {
+      setOrdering(false);
+    }
   };
 
   if (loading) {
