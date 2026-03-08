@@ -175,44 +175,44 @@ const Index = () => {
               exit={{ opacity: 0 }}
               className="relative z-10 w-full max-w-2xl mx-auto mt-4"
             >
-              <div className="rounded-2xl border border-destructive/30 bg-destructive/10 backdrop-blur-xl p-5">
-                <div className="flex items-start gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-destructive/20 flex items-center justify-center shrink-0">
-                    <AlertTriangle className="w-5 h-5 text-destructive" />
+              <div className="rounded-2xl border-2 border-white/30 bg-background/95 backdrop-blur-xl p-6 md:p-8 shadow-2xl shadow-black/20">
+                <div className="flex items-start gap-4 mb-5">
+                  <div className="w-12 h-12 rounded-xl bg-destructive/15 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-6 h-6 text-destructive" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-foreground mb-1">{error}</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
+                    <h3 className="text-base md:text-lg font-bold text-foreground mb-1.5">{error}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                       Возможно, формат ссылки новый или платформа пока не поддерживается автоматически. 
                       Вы можете выбрать услугу вручную в каталоге — ваша ссылка будет подставлена автоматически.
                     </p>
                   </div>
                 </div>
                 {unrecognizedUrls.length > 0 && (
-                  <div className="space-y-1 mb-3">
+                  <div className="space-y-1.5 mb-5">
                     {unrecognizedUrls.map((u, i) => (
-                      <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 text-xs text-muted-foreground truncate">
-                        <ExternalLink className="w-3 h-3 shrink-0" />
+                      <div key={i} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-sm text-muted-foreground truncate">
+                        <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                         <span className="truncate">{u}</span>
                       </div>
                     ))}
                   </div>
                 )}
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={() => {
                       const linkParam = unrecognizedUrls[0] || '';
                       navigate(`/catalog${linkParam ? `?link=${encodeURIComponent(linkParam)}` : ''}`);
                     }}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-bold shadow-md hover:opacity-90 transition-opacity"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-primary text-primary-foreground text-base font-bold shadow-lg hover:opacity-90 transition-opacity"
                   >
-                    <BookOpen className="w-3.5 h-3.5" />
+                    <BookOpen className="w-5 h-5" />
                     Перейти в каталог
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <ArrowRight className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => { setError(''); setUnrecognizedUrls([]); }}
-                    className="px-4 py-2 rounded-lg bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-colors"
+                    className="px-6 py-3.5 rounded-xl border border-border bg-muted text-foreground text-sm font-medium hover:bg-accent transition-colors"
                   >
                     Попробовать другую ссылку
                   </button>
