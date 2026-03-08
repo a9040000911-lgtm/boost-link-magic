@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, MessageSquare, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Filter, MessageSquare, ExternalLink, ChevronDown, ChevronUp, Copy, Check as CheckIcon } from "lucide-react";
+import { toast } from "sonner";
 
 interface Order {
   id: string;
