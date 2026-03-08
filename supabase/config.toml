@@ -2,3 +2,9 @@ project_id = "ozgtjafcbwlmpmrsluhy"
 
 [functions.verify-license]
 verify_jwt = false
+
+[functions.support-telegram-bot]
+verify_jwt = false
+
+[functions.support-email]
+verify_jwt = false

@@ -349,18 +349,32 @@ const AdminSupport = () => {
 
     setTickets(prev => prev.map(t => t.id === activeTicket.id ? { ...t, status: "waiting_reply", auto_close_at: autoCloseAt, last_admin_reply_at: new Date().toISOString() } : t));
 
+    // Notify admin via Telegram
     try {
       await supabase.functions.invoke("telegram-bot", {
-        body: { action: "notify", text: `📤 Ответ на тикет: <b>${activeTicket.subject}</b>\n\n${newMessage.trim() || "📎 Файл"}\n\n⏳ Автозакрытие через 24ч если клиент не ответит` },
+        body: { action: "notify", text: `📤 Ответ на тикет: <b>${activeTicket.subject}</b>\n\n${newMessage.trim() || "📎 Файл"}\n\n⏳ Автозакрытие через ${AUTO_CLOSE_HOURS}ч если клиент не ответит` },
       });
     } catch (e) {}
 
-    if (activeTicket.channel === "telegram" && activeTicket.subject.includes("(")) {
+    // Send reply to Telegram user if channel is telegram
+    if (activeTicket.channel === "telegram") {
       const chatIdMatch = activeTicket.subject.match(/\((\d+)\)/);
       if (chatIdMatch) {
         try {
-          await supabase.functions.invoke("telegram-bot", {
+          await supabase.functions.invoke("support-telegram-bot", {
             body: { action: "reply", chat_id: chatIdMatch[1], text: newMessage.trim() || "📎 Файл отправлен" },
+          });
+        } catch (e) {}
+      }
+    }
+
+    // Send reply via email if channel is email
+    if (activeTicket.channel === "email") {
+      const emailMatch = activeTicket.subject.match(/\(([^\s@]+@[^\s@]+\.[^\s@]+)\)/);
+      if (emailMatch) {
+        try {
+          await supabase.functions.invoke("support-email", {
+            body: { action: "reply", to: emailMatch[1], subject: `Re: ${activeTicket.subject}`, text: newMessage.trim() || "📎 Файл отправлен" },
           });
         } catch (e) {}
       }
