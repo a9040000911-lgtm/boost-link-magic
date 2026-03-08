@@ -41,6 +41,8 @@ import Catalog from "./pages/Catalog";
 import LicenseGate from "./components/LicenseGate";
 import AdminLicenses from "./pages/admin/AdminLicenses";
 import AdminBots from "./pages/admin/AdminBots";
+import AdminInquiries from "./pages/admin/AdminInquiries";
+import Contact from "./pages/Contact";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +56,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/catalog" element={<Catalog />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
@@ -86,6 +89,7 @@ const App = () => (
               <Route path="docs" element={<AdminDocs />} />
               <Route path="licenses" element={<AdminLicenses />} />
               <Route path="bots" element={<AdminBots />} />
+              <Route path="inquiries" element={<AdminInquiries />} />
             </Route>
             <Route path="/page/:slug" element={<DynamicPage />} />
             <Route path="*" element={<NotFound />} />
