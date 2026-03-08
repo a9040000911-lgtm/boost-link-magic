@@ -80,6 +80,7 @@ const DashboardSupport = () => {
   // New ticket form
   const [selectedTopicId, setSelectedTopicId] = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState("");
+  const [contactIdentifier, setContactIdentifier] = useState("");
   const [newMessage, setNewMessage] = useState("");
   const [newPriority, setNewPriority] = useState("normal");
   const [creating, setCreating] = useState(false);
