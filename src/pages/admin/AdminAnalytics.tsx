@@ -108,7 +108,7 @@ const AdminAnalytics = () => {
   }
 
   return (
-    <div className="flex flex-col h-full gap-4 overflow-auto">
+    <div className="flex flex-col h-full gap-4 overflow-auto pr-4">
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-primary" />
