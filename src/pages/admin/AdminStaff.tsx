@@ -504,14 +504,14 @@ const AdminStaff = () => {
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="user">Пользователь (без роли)</SelectItem>
-                    <SelectItem value="moderator">Модератор</SelectItem>
-                    <SelectItem value="admin">Администратор</SelectItem>
+                    <SelectItem value="moderator">{ROLE_LABELS.moderator}</SelectItem>
+                    <SelectItem value="admin">{ROLE_LABELS.admin}</SelectItem>
+                    <SelectItem value="ceo">{ROLE_LABELS.ceo}</SelectItem>
+                    <SelectItem value="investor">{ROLE_LABELS.investor}</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  {editRole === "admin" && "Полный доступ ко всем разделам и функциям"}
-                  {editRole === "moderator" && "Доступ только к разрешённым разделам (настройте ниже)"}
-                  {editRole === "user" && "Обычный пользователь без доступа к админке"}
+                  {ROLE_DESCRIPTIONS[editRole] || "Обычный пользователь без доступа к админке"}
                 </p>
               </div>
 
