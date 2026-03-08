@@ -57,6 +57,7 @@ export type Database = {
           label: string
           last_error: string | null
           last_used_at: string | null
+          model: string
           provider: string
           updated_at: string
           usage_count: number
@@ -70,6 +71,7 @@ export type Database = {
           label?: string
           last_error?: string | null
           last_used_at?: string | null
+          model?: string
           provider?: string
           updated_at?: string
           usage_count?: number
@@ -83,6 +85,7 @@ export type Database = {
           label?: string
           last_error?: string | null
           last_used_at?: string | null
+          model?: string
           provider?: string
           updated_at?: string
           usage_count?: number
