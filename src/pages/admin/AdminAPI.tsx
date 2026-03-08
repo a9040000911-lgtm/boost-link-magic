@@ -159,7 +159,7 @@ export default function AdminAPI() {
                     {mcpKeySet === null ? (
                       <Badge variant="outline" className="text-[10px]">Проверка…</Badge>
                     ) : mcpKeySet ? (
-                      <Badge className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-200">
+                      <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20">
                         Ключ настроен
                       </Badge>
                     ) : (
