@@ -92,7 +92,7 @@ const MarketingSection = () => {
             Почему выбирают <span className="gradient-text">нас</span>
           </h2>
           <p className="text-muted-foreground max-w-lg mx-auto">
-            Мы — лидер рынка SMM-услуг с 2020 года. Тысячи блогеров и бизнесов доверяют нам продвижение
+            Современный сервис продвижения, продуманный до мелочей. Умный подбор услуг, удобный интерфейс и минимум ошибок
           </p>
         </motion.div>
 
