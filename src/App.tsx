@@ -15,7 +15,11 @@ import DashboardProjects from "./pages/dashboard/DashboardProjects";
 import DashboardSettings from "./pages/dashboard/DashboardSettings";
 import DashboardProjectDetail from "./pages/dashboard/DashboardProjectDetail";
 import DashboardTransactions from "./pages/dashboard/DashboardTransactions";
+import AdminOrders from "./pages/admin/AdminOrders";
 import AdminServices from "./pages/admin/AdminServices";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminUserDetail from "./pages/admin/AdminUserDetail";
+import AdminSupport from "./pages/admin/AdminSupport";
 import CookieConsent from "./components/CookieConsent";
 
 const queryClient = new QueryClient();
@@ -39,10 +43,12 @@ const App = () => (
             <Route path="settings" element={<DashboardSettings />} />
           </Route>
           <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminServices />} />
+            <Route index element={<AdminOrders />} />
             <Route path="services" element={<AdminServices />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="users/:userId" element={<AdminUserDetail />} />
+            <Route path="support" element={<AdminSupport />} />
           </Route>
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
         <CookieConsent />
