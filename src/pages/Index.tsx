@@ -91,13 +91,13 @@ const Index = () => {
           className={`relative z-10 ${isActive ? 'mb-2' : 'mb-6'}`}
         >
           <motion.div
-            className="inline-flex items-center gap-0.5 text-3xl font-extrabold tracking-tight select-none"
+            className="inline-flex items-center gap-1 text-5xl md:text-6xl font-extrabold tracking-tight select-none"
             whileHover={{ scale: 1.05 }}
           >
             {"COOLLIKE".split("").map((letter, i) => (
               <motion.span
                 key={i}
-                className="inline-block bg-clip-text text-transparent bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 animate-[shimmer_3s_ease-in-out_infinite]"
+                className="inline-block text-white"
                 style={{
                   WebkitTextStroke: "1px rgba(255,255,255,0.7)",
                   textShadow: "0 0 20px rgba(168,85,247,0.5), 0 4px 12px rgba(0,0,0,0.3)",
