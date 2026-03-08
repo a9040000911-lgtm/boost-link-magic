@@ -180,7 +180,7 @@ const Index = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-2xl md:text-3xl font-medium tracking-tight mb-10 text-white text-center relative z-10"
           >
-            Продвигайте свои соцсети
+            {siteContent?.heroSubtitle || 'Продвигайте свои соцсети'}
           </motion.h1>
         )}
 
