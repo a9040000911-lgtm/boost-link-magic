@@ -32,6 +32,7 @@ import AdminPromocodes from "./pages/admin/AdminPromocodes";
 import AdminPages from "./pages/admin/AdminPages";
 import AdminFAQ from "./pages/admin/AdminFAQ";
 import AdminWidgets from "./pages/admin/AdminWidgets";
+import AdminLinks from "./pages/admin/AdminLinks";
 import CookieConsent from "./components/CookieConsent";
 import SiteWidgets from "./components/SiteWidgets";
 import DynamicPage from "./pages/DynamicPage";
@@ -76,6 +77,7 @@ const App = () => (
             <Route path="support" element={<AdminSupport />} />
             <Route path="staff" element={<AdminStaff />} />
             <Route path="providers" element={<AdminProviders />} />
+            <Route path="links" element={<AdminLinks />} />
           </Route>
           <Route path="/page/:slug" element={<DynamicPage />} />
           <Route path="*" element={<NotFound />} />

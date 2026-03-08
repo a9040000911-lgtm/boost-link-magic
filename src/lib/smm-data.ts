@@ -1,4 +1,4 @@
-export type Platform = 'instagram' | 'youtube' | 'tiktok' | 'telegram' | 'vk';
+export type Platform = 'instagram' | 'youtube' | 'tiktok' | 'telegram' | 'vk' | string;
 
 export type LinkType =
   | 'profile'
@@ -22,6 +22,7 @@ export interface LinkAnalysis {
   contentId?: string;
   label: string;
   raw: string;
+  categoryId?: string; // optional DB category mapping
 }
 
 export interface Category {
@@ -43,6 +44,19 @@ export interface Service {
   speed: string;
 }
 
+// ──── DB pattern type ────
+export interface DbLinkPattern {
+  id: string;
+  platform: string;
+  link_type: string;
+  pattern: string;
+  label: string;
+  extract_username_group: number | null;
+  extract_id_group: number | null;
+  category_id: string | null;
+  is_enabled: boolean;
+}
+
 // ──── Platform detection ────
 
 const platformPatterns: { platform: Platform; patterns: RegExp[] }[] = [
@@ -60,6 +74,27 @@ export function detectPlatform(url: string): Platform | null {
   return null;
 }
 
+/**
+ * Detect platform using DB patterns as secondary source.
+ * Returns platform string from DB if hardcoded detection fails.
+ */
+export function detectPlatformWithDb(url: string, dbPatterns: DbLinkPattern[]): Platform | null {
+  // 1. Try hardcoded first
+  const hardcoded = detectPlatform(url);
+  if (hardcoded) return hardcoded;
+
+  // 2. Try DB patterns
+  for (const dp of dbPatterns) {
+    try {
+      const re = new RegExp(dp.pattern, 'i');
+      if (re.test(url)) return dp.platform;
+    } catch {
+      // invalid regex in DB — skip
+    }
+  }
+  return null;
+}
+
 // ──── Link type detection ────
 
 interface TypeRule {
@@ -68,6 +103,7 @@ interface TypeRule {
   label: string;
   extractUsername?: number;
   extractId?: number;
+  categoryId?: string;
 }
 
 const instagramRules: TypeRule[] = [
@@ -111,7 +147,7 @@ const vkRules: TypeRule[] = [
   { type: 'profile', pattern: /vk\.com\/([A-Za-z0-9_.]+)\/?(\?.*)?$/i, label: 'Страница', extractUsername: 1 },
 ];
 
-const rulesByPlatform: Record<Platform, TypeRule[]> = {
+const rulesByPlatform: Record<string, TypeRule[]> = {
   instagram: instagramRules,
   youtube: youtubeRules,
   tiktok: tiktokRules,
@@ -144,15 +180,17 @@ export function analyzeLink(url: string): LinkAnalysis | null {
   if (!platform) return null;
 
   const rules = rulesByPlatform[platform];
-  for (const rule of rules) {
-    const match = url.match(rule.pattern);
-    if (match) {
-      const username = rule.extractUsername ? match[rule.extractUsername] : undefined;
-      const contentId = rule.extractId ? match[rule.extractId] : undefined;
-      if (username && ['explore', 'accounts', 'about', 'settings', 'direct', 'reels'].includes(username.toLowerCase())) {
-        continue;
+  if (rules) {
+    for (const rule of rules) {
+      const match = url.match(rule.pattern);
+      if (match) {
+        const username = rule.extractUsername ? match[rule.extractUsername] : undefined;
+        const contentId = rule.extractId ? match[rule.extractId] : undefined;
+        if (username && ['explore', 'accounts', 'about', 'settings', 'direct', 'reels'].includes(username.toLowerCase())) {
+          continue;
+        }
+        return { platform, linkType: rule.type, username, contentId, label: rule.label, raw: url };
       }
-      return { platform, linkType: rule.type, username, contentId, label: rule.label, raw: url };
     }
   }
 
@@ -160,9 +198,42 @@ export function analyzeLink(url: string): LinkAnalysis | null {
 }
 
 /**
+ * Analyze link with DB patterns as secondary source.
+ * First tries hardcoded rules, then DB patterns.
+ */
+export function analyzeLinkWithDb(url: string, dbPatterns: DbLinkPattern[]): LinkAnalysis | null {
+  // 1. Try hardcoded analysis first
+  const hardcoded = analyzeLink(url);
+  if (hardcoded) return hardcoded;
+
+  // 2. Try DB patterns
+  for (const dp of dbPatterns) {
+    try {
+      const re = new RegExp(dp.pattern, 'i');
+      const match = url.match(re);
+      if (match) {
+        const username = dp.extract_username_group ? match[dp.extract_username_group] : undefined;
+        const contentId = dp.extract_id_group ? match[dp.extract_id_group] : undefined;
+        return {
+          platform: dp.platform,
+          linkType: dp.link_type as LinkType,
+          username,
+          contentId,
+          label: dp.label,
+          raw: url,
+          categoryId: dp.category_id || undefined,
+        };
+      }
+    } catch {
+      // invalid regex — skip
+    }
+  }
+
+  return null;
+}
+
+/**
  * Returns the recommended category ID suffix based on link type.
- * E.g. for a Reel → 'views', for a profile → 'followers'/'subs'/'members'.
- * Maps to category IDs like 'ig-views', 'yt-subs', etc.
  */
 const linkTypeToCategory: Record<LinkType, string[]> = {
   profile: ['followers', 'subs', 'members', 'friends'],
@@ -182,7 +253,7 @@ const linkTypeToCategory: Record<LinkType, string[]> = {
 
 export function getRecommendedCategoryIds(analysis: LinkAnalysis | null, categories: Category[]): string[] {
   if (!analysis) return [];
-  const keywords = linkTypeToCategory[analysis.linkType] || [];
+  const keywords = linkTypeToCategory[analysis.linkType as LinkType] || [];
   if (keywords.length === 0) return [];
 
   return categories
@@ -190,7 +261,7 @@ export function getRecommendedCategoryIds(analysis: LinkAnalysis | null, categor
     .map((cat) => cat.id);
 }
 
-export const platformNames: Record<Platform, string> = {
+export const platformNames: Record<string, string> = {
   instagram: 'Instagram',
   youtube: 'YouTube',
   tiktok: 'TikTok',
@@ -198,7 +269,7 @@ export const platformNames: Record<Platform, string> = {
   vk: 'ВКонтакте',
 };
 
-export const platformColors: Record<Platform, string> = {
+export const platformColors: Record<string, string> = {
   instagram: '330 80% 60%',
   youtube: '0 80% 55%',
   tiktok: '170 80% 50%',
@@ -220,7 +291,7 @@ export const categoriesByPlatform: Record<Platform, Category[]> = {
     { id: 'yt-comments', name: 'Комментарии', icon: 'message-circle', description: 'Тематические комментарии под видео', serviceCount: 3, highlight: 'Premium' },
   ],
   tiktok: [
-    { id: 'tt-views', name: 'Просмотры', icon: 'eye', description: 'Просмотры видео для попадания в рекомендации', serviceCount: 7, highlight: 'Топ продаж' },
+    { id: 'tt-views', name: 'Просмотры', icon: 'eye', description: 'Просмотры видео для попадания в рекомендацию', serviceCount: 7, highlight: 'Топ продаж' },
     { id: 'tt-likes', name: 'Лайки', icon: 'heart', description: 'Сердечки на видео от активных пользователей', serviceCount: 5, highlight: 'Популярное' },
     { id: 'tt-followers', name: 'Подписчики', icon: 'users', description: 'Рост аудитории TikTok аккаунта', serviceCount: 8, highlight: 'Быстрый старт' },
     { id: 'tt-shares', name: 'Репосты', icon: 'share-2', description: 'Поделиться видео для вирусного охвата', serviceCount: 3, highlight: 'Premium' },

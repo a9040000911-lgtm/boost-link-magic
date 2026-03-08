@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import HeroInput from '@/components/HeroInput';
@@ -7,9 +7,9 @@ import type { LinkOrder } from '@/components/MultiLinkFlow';
 import MarketingSection from '@/components/MarketingSection';
 import TestimonialsSection from '@/components/TestimonialsSection';
 import Footer from '@/components/Footer';
-import { detectPlatform } from '@/lib/smm-data';
+import { detectPlatformWithDb, type DbLinkPattern } from '@/lib/smm-data';
 import { supabase } from '@/integrations/supabase/client';
-import { Sparkles, Check, ExternalLink, Mail, PartyPopper, Zap, AlertTriangle, BookOpen, ArrowRight } from 'lucide-react';
+import { Sparkles, Check, ExternalLink, Mail, PartyPopper, Zap, AlertTriangle, BookOpen, ArrowRight, X } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -21,12 +21,23 @@ const Index = () => {
   const [email, setEmail] = useState('');
   const [consentPD, setConsentPD] = useState(false);
   const [consentOffer, setConsentOffer] = useState(false);
+  const [dbPatterns, setDbPatterns] = useState<DbLinkPattern[]>([]);
+
+  // Load DB patterns once on mount
+  useEffect(() => {
+    supabase
+      .from('link_patterns')
+      .select('*')
+      .eq('is_enabled', true)
+      .order('sort_order')
+      .then(({ data }) => {
+        if (data) setDbPatterns(data as unknown as DbLinkPattern[]);
+      });
+  }, []);
 
   const logUnrecognizedLinks = async (badUrls: string[]) => {
-    // Save to DB
     const inserts = badUrls.map(url => ({ url, user_agent: navigator.userAgent }));
     await supabase.from('unrecognized_links' as any).insert(inserts);
-    // Telegram alert
     try {
       await supabase.functions.invoke('telegram-bot', {
         body: {
@@ -45,21 +56,23 @@ const Index = () => {
     setCompletedOrders(null);
 
     setTimeout(() => {
-      const valid = inputUrls.filter((u) => detectPlatform(u) !== null);
-      const invalid = inputUrls.filter((u) => detectPlatform(u) === null);
+      const valid = inputUrls.filter((u) => detectPlatformWithDb(u, dbPatterns) !== null);
+      const invalid = inputUrls.filter((u) => detectPlatformWithDb(u, dbPatterns) === null);
 
-      if (valid.length === 0) {
+      if (valid.length === 0 && invalid.length > 0) {
+        // All unrecognized
         setError('Не удалось определить платформу');
         setUnrecognizedUrls(invalid);
         setUrls([]);
         logUnrecognizedLinks(invalid);
-      } else {
+      } else if (valid.length > 0 && invalid.length > 0) {
+        // Mixed: start flow with valid, show warning for invalid
         setUrls(valid);
-        if (invalid.length > 0) {
-          setError(`${invalid.length} ссылок не распознано`);
-          setUnrecognizedUrls(invalid);
-          logUnrecognizedLinks(invalid);
-        }
+        setUnrecognizedUrls(invalid);
+        logUnrecognizedLinks(invalid);
+      } else {
+        // All valid
+        setUrls(valid);
       }
       setIsLoading(false);
     }, 800);
@@ -73,17 +86,25 @@ const Index = () => {
   const handleCancel = () => {
     setUrls([]);
     setError('');
+    setUnrecognizedUrls([]);
   };
 
   const handleReset = () => {
     setCompletedOrders(null);
     setUrls([]);
     setError('');
+    setUnrecognizedUrls([]);
+  };
+
+  const handleDismissUnrecognized = (urlToRemove: string) => {
+    setUnrecognizedUrls(prev => prev.filter(u => u !== urlToRemove));
   };
 
   const showFlow = urls.length > 0;
   const showSummary = completedOrders !== null;
   const isActive = showFlow || showSummary;
+  // Show unrecognized banner when there are unrecognized urls (both standalone & alongside flow)
+  const showUnrecognizedBanner = unrecognizedUrls.length > 0;
 
   return (
     <div className={`flex flex-col ${isActive ? 'h-screen overflow-hidden bg-gradient-to-b from-background via-muted/60 to-background' : 'min-h-screen bg-background'}`}>
@@ -167,8 +188,9 @@ const Index = () => {
           </div>
         )}
 
+        {/* Error: ALL links unrecognized (no flow started) */}
         <AnimatePresence>
-          {error && (
+          {error && !showFlow && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -191,9 +213,15 @@ const Index = () => {
                 {unrecognizedUrls.length > 0 && (
                   <div className="space-y-1.5 mb-5">
                     {unrecognizedUrls.map((u, i) => (
-                      <div key={i} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-sm text-muted-foreground truncate">
+                      <div key={i} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-sm text-muted-foreground">
                         <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate">{u}</span>
+                        <span className="truncate flex-1">{u}</span>
+                        <button
+                          onClick={() => navigate(`/catalog?link=${encodeURIComponent(u)}`)}
+                          className="text-xs text-primary font-medium hover:underline shrink-0"
+                        >
+                          В каталог →
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -201,8 +229,8 @@ const Index = () => {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={() => {
-                      const linkParam = unrecognizedUrls[0] || '';
-                      navigate(`/catalog${linkParam ? `?link=${encodeURIComponent(linkParam)}` : ''}`);
+                      const links = unrecognizedUrls.map(u => encodeURIComponent(u)).join(',');
+                      navigate(`/catalog?link=${links}`);
                     }}
                     className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-primary text-primary-foreground text-base font-bold shadow-lg hover:opacity-90 transition-opacity"
                   >
@@ -222,6 +250,57 @@ const Index = () => {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Unrecognized links banner — shown alongside flow when some links were split out */}
+      <AnimatePresence>
+        {showUnrecognizedBanner && showFlow && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="px-4 relative z-20"
+          >
+            <div className="max-w-5xl mx-auto mb-3">
+              <div className="rounded-xl border border-accent bg-accent/30 backdrop-blur-sm p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-destructive" />
+                  <span className="text-sm font-semibold text-foreground">
+                    {unrecognizedUrls.length} {unrecognizedUrls.length === 1 ? 'ссылка не распознана' : 'ссылок не распознано'}
+                  </span>
+                </div>
+                <div className="space-y-1.5 mb-3">
+                  {unrecognizedUrls.map((u, i) => (
+                    <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-background/60 text-xs text-muted-foreground">
+                      <ExternalLink className="w-3 h-3 shrink-0" />
+                      <span className="truncate flex-1">{u}</span>
+                      <button
+                        onClick={() => navigate(`/catalog?link=${encodeURIComponent(u)}`)}
+                        className="text-xs text-primary font-medium hover:underline shrink-0"
+                      >
+                        В каталог
+                      </button>
+                      <button onClick={() => handleDismissUnrecognized(u)} className="text-muted-foreground hover:text-foreground shrink-0">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => {
+                    const links = unrecognizedUrls.map(u => encodeURIComponent(u)).join(',');
+                    navigate(`/catalog?link=${links}`);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  Все в каталог
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Content — fills remaining viewport */}
       <div className="flex-1 min-h-0 px-4 relative z-10 overflow-hidden">
