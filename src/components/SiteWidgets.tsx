@@ -14,9 +14,11 @@ interface FileUploadProps {
   preview: string | null;
   onFileChange: (file: File | null, preview: string | null) => void;
   accent?: string;
+  onBeforeScreenshot?: () => void;
+  onAfterScreenshot?: () => void;
 }
 
-const FileUpload = ({ file, preview, onFileChange, accent = "primary" }: FileUploadProps) => {
+const FileUpload = ({ file, preview, onFileChange, accent = "primary", onBeforeScreenshot, onAfterScreenshot }: FileUploadProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -59,6 +61,11 @@ const FileUpload = ({ file, preview, onFileChange, accent = "primary" }: FileUpl
 
   const takeScreenshot = async () => {
     try {
+      // Hide the widget modal before screenshot prompt
+      onBeforeScreenshot?.();
+      // Small delay to let the modal animate out
+      await new Promise(r => setTimeout(r, 300));
+
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: "monitor" } as any });
       const video = document.createElement("video");
       video.srcObject = stream;
@@ -76,8 +83,11 @@ const FileUpload = ({ file, preview, onFileChange, accent = "primary" }: FileUpl
           const f = new File([blob], `screenshot-${Date.now()}.png`, { type: "image/png" });
           handleFile(f);
         }
+        // Show the widget modal again
+        onAfterScreenshot?.();
       }, "image/png");
     } catch {
+      onAfterScreenshot?.();
       toast.error("Скриншот отменён или не поддерживается браузером");
     }
   };
@@ -157,6 +167,7 @@ const SiteWidgets = () => {
   const [bugreportEnabled, setBugreportEnabled] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [bugOpen, setBugOpen] = useState(false);
+  const [screenshotHidden, setScreenshotHidden] = useState(false);
 
   // Review form
   const [reviewName, setReviewName] = useState("");
@@ -254,7 +265,7 @@ const SiteWidgets = () => {
   if (!hasAnyWidget) return null;
 
   return (
-    <>
+    <div style={{ visibility: screenshotHidden ? 'hidden' : 'visible' }}>
       {/* Floating buttons */}
       <div className="fixed bottom-20 right-4 z-[9999] flex flex-col gap-2 items-end">
         {bugreportEnabled && (
@@ -331,6 +342,8 @@ const SiteWidgets = () => {
                     file={reviewFile}
                     preview={reviewPreview}
                     onFileChange={(f, p) => { setReviewFile(f); setReviewPreview(p); }}
+                    onBeforeScreenshot={() => setScreenshotHidden(true)}
+                    onAfterScreenshot={() => setScreenshotHidden(false)}
                   />
                 </div>
                 <Button onClick={submitReview} disabled={reviewSending || !reviewMessage.trim()} className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white">
@@ -382,6 +395,8 @@ const SiteWidgets = () => {
                     file={bugFile}
                     preview={bugPreview}
                     onFileChange={(f, p) => { setBugFile(f); setBugPreview(p); }}
+                    onBeforeScreenshot={() => setScreenshotHidden(true)}
+                    onAfterScreenshot={() => setScreenshotHidden(false)}
                   />
                 </div>
                 <div>
@@ -405,7 +420,7 @@ const SiteWidgets = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 };
 
