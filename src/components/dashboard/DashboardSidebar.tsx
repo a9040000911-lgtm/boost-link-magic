@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LayoutDashboard, ShoppingCart, FolderKanban, Settings, LogOut, Wallet, Shield } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, FolderKanban, Settings, LogOut, Wallet, Shield, MessageSquare } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,7 @@ const userMenuItems = [
   { title: "Заказы", url: "/dashboard/orders", icon: ShoppingCart },
   { title: "Транзакции", url: "/dashboard/transactions", icon: Wallet },
   { title: "Проекты", url: "/dashboard/projects", icon: FolderKanban },
+  { title: "Поддержка", url: "/dashboard/support", icon: MessageSquare },
   { title: "Настройки", url: "/dashboard/settings", icon: Settings },
 ];
 
