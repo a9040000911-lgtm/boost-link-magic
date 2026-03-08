@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
@@ -721,9 +722,10 @@ const AdminServices = () => {
                         const isBelowMin = markupPct !== null && markupPct < minMarkup;
 
                         return (
+                          <Tooltip key={svc.id}>
+                            <TooltipTrigger asChild>
                           <TableRow
-                            key={svc.id}
-                            className={`text-xs cursor-pointer hover:bg-muted/50 ${selectedIds.has(svc.id) ? "bg-primary/5" : ""} ${!svc.is_enabled ? "opacity-40" : ""} ${isOrphan ? "bg-destructive/5" : ""} ${isBelowMin ? "bg-destructive/10" : ""}`}
+                            className={`text-xs cursor-pointer hover:bg-muted/50 ${selectedIds.has(svc.id) ? "bg-primary/5" : ""} ${!svc.is_enabled ? "opacity-40" : ""} ${isOrphan ? "bg-destructive/5" : ""} ${isBelowMin ? "border-l-2 border-l-destructive bg-destructive/10" : ""}`}
                             onClick={() => openEditDialog(svc)}
                           >
                             <TableCell className="px-2" onClick={(e) => e.stopPropagation()}>
@@ -775,6 +777,15 @@ const AdminServices = () => {
                               <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
                             </TableCell>
                           </TableRow>
+                            </TooltipTrigger>
+                            {isBelowMin && (
+                              <TooltipContent side="top" className="text-xs max-w-[220px]">
+                                <p className="font-semibold text-destructive">⚠ Наценка ниже минимума!</p>
+                                <p>Текущая: {markupPct}% · Мин: {minMarkup}%</p>
+                                <p className="text-muted-foreground">Увеличьте цену или примените наценку</p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
                         );
                       })}
                     </TableBody>
