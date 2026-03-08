@@ -156,6 +156,7 @@ const AdminStaff = () => {
     setEditMember(member);
     setEditRole(member.role.split(", ")[0]);
     setEditPermissions([...member.permissions]);
+    setEditTelegramChatId(member.telegram_chat_id || "");
     setEditOpen(true);
   };
 
