@@ -58,7 +58,7 @@ const Index = () => {
   const isActive = showFlow || showSummary;
 
   return (
-    <div className={`flex flex-col hero-gradient ${isActive ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+    <div className={`flex flex-col ${isActive ? 'h-screen overflow-hidden bg-gradient-to-b from-background via-muted/60 to-background' : 'min-h-screen hero-gradient'}`}>
       {/* Hero — compact when flow/summary is active */}
       <div
         className={`flex flex-col items-center justify-center px-4 relative overflow-hidden shrink-0 transition-all duration-500 ${
