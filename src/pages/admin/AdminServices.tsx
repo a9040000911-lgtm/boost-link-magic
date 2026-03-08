@@ -260,38 +260,33 @@ const AdminServices = () => {
       </div>
 
       {/* Provider cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-3">
         {PROVIDERS.map((p) => {
           const pServices = providerServices.filter((s) => s.provider === p.key);
           return (
             <Card key={p.key} className="border-border/60">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">{p.label}</CardTitle>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => handleFetchBalance(p.key)}>
-                      <DollarSign className="h-3 w-3" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleSync(p.key)} disabled={syncing}>
-                      <RefreshCw className={`h-3 w-3 ${syncing ? "animate-spin" : ""}`} />
-                    </Button>
-                  </div>
+              <CardContent className="p-3 flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">{p.label}</p>
+                  <p className="text-xs text-muted-foreground">Услуг: {pServices.length}</p>
+                  {balances[p.key] && <Badge variant="outline" className="mt-1 text-[10px]">{balances[p.key]}</Badge>}
                 </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm">Услуг: <strong>{pServices.length}</strong></p>
-                {balances[p.key] && <Badge variant="outline" className="mt-2">{balances[p.key]}</Badge>}
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleFetchBalance(p.key)}>
+                    <DollarSign className="h-3 w-3" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleSync(p.key)} disabled={syncing}>
+                    <RefreshCw className={`h-3 w-3 ${syncing ? "animate-spin" : ""}`} />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           );
         })}
         <Card className="border-border/60">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Наш каталог</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold">{services.length} услуг</p>
-            <p className="text-sm text-muted-foreground">{services.filter((s) => s.is_enabled).length} включено</p>
+          <CardContent className="p-3">
+            <p className="font-medium text-sm">Наш каталог</p>
+            <p className="text-xs text-muted-foreground">{services.length} услуг, {services.filter((s) => s.is_enabled).length} вкл.</p>
           </CardContent>
         </Card>
       </div>
