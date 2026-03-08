@@ -7,7 +7,7 @@ import type { LinkOrder } from '@/components/MultiLinkFlow';
 import MarketingSection from '@/components/MarketingSection';
 import TestimonialsSection from '@/components/TestimonialsSection';
 import Footer from '@/components/Footer';
-import { detectPlatformWithDb, type DbLinkPattern } from '@/lib/smm-data';
+import { detectPlatformWithDb, type DbLinkPattern, type DbPlatform } from '@/lib/smm-data';
 import { supabase } from '@/integrations/supabase/client';
 import { Sparkles, Check, ExternalLink, Mail, PartyPopper, Zap, AlertTriangle, BookOpen, ArrowRight, X } from 'lucide-react';
 
@@ -22,17 +22,17 @@ const Index = () => {
   const [consentPD, setConsentPD] = useState(false);
   const [consentOffer, setConsentOffer] = useState(false);
   const [dbPatterns, setDbPatterns] = useState<DbLinkPattern[]>([]);
+  const [dbPlatforms, setDbPlatforms] = useState<DbPlatform[]>([]);
 
-  // Load DB patterns once on mount
+  // Load DB patterns + platforms once on mount
   useEffect(() => {
-    supabase
-      .from('link_patterns')
-      .select('*')
-      .eq('is_enabled', true)
-      .order('sort_order')
-      .then(({ data }) => {
-        if (data) setDbPatterns(data as unknown as DbLinkPattern[]);
-      });
+    Promise.all([
+      supabase.from('link_patterns').select('*').eq('is_enabled', true).order('sort_order'),
+      supabase.from('platforms').select('*').eq('is_enabled', true).order('sort_order'),
+    ]).then(([{ data: pats }, { data: plats }]) => {
+      if (pats) setDbPatterns(pats as unknown as DbLinkPattern[]);
+      if (plats) setDbPlatforms(plats as unknown as DbPlatform[]);
+    });
   }, []);
 
   const logUnrecognizedLinks = async (badUrls: string[]) => {
@@ -56,8 +56,8 @@ const Index = () => {
     setCompletedOrders(null);
 
     setTimeout(() => {
-      const valid = inputUrls.filter((u) => detectPlatformWithDb(u, dbPatterns) !== null);
-      const invalid = inputUrls.filter((u) => detectPlatformWithDb(u, dbPatterns) === null);
+      const valid = inputUrls.filter((u) => detectPlatformWithDb(u, dbPatterns, dbPlatforms) !== null);
+      const invalid = inputUrls.filter((u) => detectPlatformWithDb(u, dbPatterns, dbPlatforms) === null);
 
       if (valid.length === 0 && invalid.length > 0) {
         // All unrecognized

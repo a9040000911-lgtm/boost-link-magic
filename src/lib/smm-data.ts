@@ -57,6 +57,17 @@ export interface DbLinkPattern {
   is_enabled: boolean;
 }
 
+// DB platform type
+export interface DbPlatform {
+  id: string;
+  key: string;
+  name: string;
+  domains: string[];
+  icon: string | null;
+  color: string | null;
+  is_enabled: boolean;
+}
+
 // ──── Platform detection ────
 
 const platformPatterns: { platform: Platform; patterns: RegExp[] }[] = [
@@ -75,22 +86,28 @@ export function detectPlatform(url: string): Platform | null {
 }
 
 /**
- * Detect platform using DB patterns as secondary source.
- * Returns platform string from DB if hardcoded detection fails.
+ * Detect platform using DB platforms (domains) and DB patterns as secondary sources.
  */
-export function detectPlatformWithDb(url: string, dbPatterns: DbLinkPattern[]): Platform | null {
+export function detectPlatformWithDb(url: string, dbPatterns: DbLinkPattern[], dbPlatforms?: DbPlatform[]): Platform | null {
   // 1. Try hardcoded first
   const hardcoded = detectPlatform(url);
   if (hardcoded) return hardcoded;
 
-  // 2. Try DB patterns
+  // 2. Try DB platforms by domain matching
+  if (dbPlatforms) {
+    for (const plat of dbPlatforms) {
+      if (plat.domains.some(domain => url.toLowerCase().includes(domain.toLowerCase()))) {
+        return plat.key;
+      }
+    }
+  }
+
+  // 3. Try DB patterns
   for (const dp of dbPatterns) {
     try {
       const re = new RegExp(dp.pattern, 'i');
       if (re.test(url)) return dp.platform;
-    } catch {
-      // invalid regex in DB — skip
-    }
+    } catch {}
   }
   return null;
 }
