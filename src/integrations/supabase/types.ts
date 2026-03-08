@@ -1495,6 +1495,15 @@ export type Database = {
       }
       increment_ai_key_error: { Args: { key_id: string }; Returns: undefined }
       increment_ai_key_usage: { Args: { key_id: string }; Returns: undefined }
+      update_own_profile: {
+        Args: {
+          p_avatar_url?: string
+          p_bio?: string
+          p_display_name?: string
+          p_telegram_chat_id?: string
+        }
+        Returns: undefined
+      }
       validate_promocode: { Args: { p_code: string }; Returns: Json }
     }
     Enums: {
