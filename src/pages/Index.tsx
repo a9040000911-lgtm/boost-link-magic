@@ -154,9 +154,9 @@ const Index = () => {
                 key="summary"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="h-full flex items-center justify-center py-4"
+                className="h-full flex items-center justify-center py-2"
               >
-                <div className="relative w-full max-w-2xl max-h-full overflow-y-auto rounded-2xl border border-border/60 shadow-xl bg-card/95 backdrop-blur-xl p-6 text-center">
+                <div className="relative w-full max-w-2xl max-h-full rounded-2xl border border-border/60 shadow-xl bg-card/95 backdrop-blur-xl p-4 text-center overflow-hidden flex flex-col">
                   {/* Decorative gradient blobs */}
                   <motion.div
                     className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-gradient-to-br from-pink-400/30 via-rose-400/20 to-orange-300/20 blur-2xl pointer-events-none"
@@ -169,27 +169,12 @@ const Index = () => {
                     transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
                   />
 
-                  {/* Confetti-like sparkles */}
-                  <motion.div
-                    className="absolute top-4 left-6 text-amber-400"
-                    animate={{ y: [0, -8, 0], rotate: [0, 15, -15, 0], opacity: [0.6, 1, 0.6] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                  >
-                    <Sparkles className="w-4 h-4" />
-                  </motion.div>
-                  <motion.div
-                    className="absolute top-8 right-8 text-pink-400"
-                    animate={{ y: [0, -6, 0], rotate: [0, -20, 20, 0], opacity: [0.5, 1, 0.5] }}
-                    transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+                  {/* Floating sparkles */}
+                  <motion.div className="absolute top-3 right-4 text-amber-400 pointer-events-none"
+                    animate={{ y: [0, -5, 0], opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 3, repeat: Infinity }}
                   >
                     <Sparkles className="w-3 h-3" />
-                  </motion.div>
-                  <motion.div
-                    className="absolute bottom-16 right-6 text-violet-400"
-                    animate={{ y: [0, -5, 0], rotate: [0, 10, -10, 0], opacity: [0.4, 0.9, 0.4] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
-                  >
-                    <Zap className="w-3.5 h-3.5" />
                   </motion.div>
 
                   {/* Success icon */}
@@ -197,24 +182,24 @@ const Index = () => {
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ type: 'spring', bounce: 0.5 }}
-                    className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-500 via-rose-500 to-orange-400 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-pink-500/30 relative z-10"
+                    className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 via-rose-500 to-orange-400 flex items-center justify-center mx-auto mb-2 shadow-lg shadow-pink-500/30 relative z-10"
                   >
-                    <PartyPopper className="w-7 h-7 text-white" />
+                    <PartyPopper className="w-5 h-5 text-white" />
                   </motion.div>
 
                   <motion.h2
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="text-xl font-bold text-foreground mb-1 relative z-10"
+                    className="text-lg font-bold text-foreground mb-0.5 relative z-10"
                   >
                     🎉 Заказ сформирован!
                   </motion.h2>
-                  <p className="text-sm text-muted-foreground mb-4 relative z-10">
+                  <p className="text-xs text-muted-foreground mb-2 relative z-10">
                     {completedOrders.length} {completedOrders.length === 1 ? 'ссылка' : 'ссылок'} настроено
                   </p>
 
-                  <div className="space-y-2 text-left mb-4 max-h-[30vh] overflow-y-auto relative z-10">
+                  <div className="space-y-1.5 text-left mb-3 flex-1 min-h-0 overflow-y-auto relative z-10">
                     {completedOrders.map((order, i) => {
                       const price = parseFloat(order.service?.price?.replace(/[^\d.]/g, '') || '0');
                       const lineTotal = price * order.quantity;
@@ -270,7 +255,7 @@ const Index = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border border-primary/20 mb-4 relative z-10"
+                    className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border border-primary/20 mb-3 relative z-10 shrink-0"
                   >
                     <span className="text-sm font-semibold text-foreground flex items-center gap-2">
                       <Zap className="w-4 h-4 text-primary" />
@@ -290,11 +275,11 @@ const Index = () => {
                   </motion.div>
 
                   {/* Email input */}
-                  <div className="mb-4 relative z-10">
-                    <label className="text-sm font-medium text-foreground block mb-1.5 text-left">
+                  <div className="mb-3 relative z-10 shrink-0">
+                    <label className="text-xs font-medium text-foreground block mb-1 text-left">
                       Email для регистрации
                     </label>
-                    <div className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/50 border border-border focus-within:ring-2 focus-within:ring-primary/30 transition-shadow">
+                    <div className="flex items-center gap-2 p-2 rounded-xl bg-muted/50 border border-border focus-within:ring-2 focus-within:ring-primary/30 transition-shadow">
                       <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
                       <input
                         type="email"
@@ -306,12 +291,12 @@ const Index = () => {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 justify-center flex-wrap relative z-10">
+                  <div className="flex gap-2 justify-center flex-wrap relative z-10 shrink-0">
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.96 }}
                       onClick={() => { setCompletedOrders(null); setUrls(urls.length ? urls : completedOrders!.map(o => o.url)); }}
-                      className="px-5 py-2.5 rounded-xl bg-muted text-foreground text-sm font-medium"
+                      className="px-4 py-2 rounded-xl bg-muted text-foreground text-sm font-medium"
                     >
                       ← Назад
                     </motion.button>
@@ -319,7 +304,7 @@ const Index = () => {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.96 }}
                       onClick={handleReset}
-                      className="px-5 py-2.5 rounded-xl bg-muted text-foreground text-sm font-medium"
+                      className="px-4 py-2 rounded-xl bg-muted text-foreground text-sm font-medium"
                     >
                       Новый заказ
                     </motion.button>
@@ -327,7 +312,7 @@ const Index = () => {
                       whileHover={{ scale: 1.08, boxShadow: '0 8px 30px -5px hsl(335 85% 56% / 0.5)' }}
                       whileTap={{ scale: 0.96 }}
                       disabled={!email.includes('@')}
-                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary via-pink-500 to-rose-500 text-primary-foreground text-sm font-bold shadow-lg shadow-primary/25 transition-shadow disabled:opacity-40 disabled:shadow-none"
+                      className="px-5 py-2 rounded-xl bg-gradient-to-r from-primary via-pink-500 to-rose-500 text-primary-foreground text-sm font-bold shadow-lg shadow-primary/25 transition-shadow disabled:opacity-40 disabled:shadow-none"
                     >
                       🚀 Оплатить
                     </motion.button>
