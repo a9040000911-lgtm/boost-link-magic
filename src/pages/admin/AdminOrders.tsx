@@ -62,21 +62,14 @@ const AdminOrders = () => {
     const [ordersRes, psRes, sRes] = await Promise.all([
       supabase
         .from("orders")
-        .select("*, profiles!orders_user_id_fkey(display_name, id)")
+        .select("*")
         .order("created_at", { ascending: false })
         .limit(500),
       supabase.from("provider_services").select("id, name, provider, provider_service_id, rate, network"),
       supabase.from("services").select("id, name, description, network, price"),
     ]);
     
-    // If the join fails due to missing FK, load profiles separately
-    let finalOrders = ordersRes.data || [];
-    if (ordersRes.error) {
-      const plainOrders = await supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(500);
-      finalOrders = plainOrders.data || [];
-    }
-    
-    setOrders(finalOrders as Order[]);
+    setOrders((ordersRes.data || []) as Order[]);
     setProviderServices(psRes.data || []);
     setServices(sRes.data || []);
     setLoading(false);
