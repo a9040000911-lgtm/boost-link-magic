@@ -40,6 +40,7 @@ import DynamicPage from "./pages/DynamicPage";
 import Catalog from "./pages/Catalog";
 import LicenseGate from "./components/LicenseGate";
 import AdminLicenses from "./pages/admin/AdminLicenses";
+import AdminBots from "./pages/admin/AdminBots";
 
 const queryClient = new QueryClient();
 
@@ -84,6 +85,7 @@ const App = () => (
               <Route path="links" element={<AdminLinks />} />
               <Route path="docs" element={<AdminDocs />} />
               <Route path="licenses" element={<AdminLicenses />} />
+              <Route path="bots" element={<AdminBots />} />
             </Route>
             <Route path="/page/:slug" element={<DynamicPage />} />
             <Route path="*" element={<NotFound />} />

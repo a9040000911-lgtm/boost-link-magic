@@ -65,6 +65,87 @@ export type Database = {
         }
         Relationships: []
       }
+      bot_button_library: {
+        Row: {
+          action_type: string
+          action_value: string | null
+          category: string
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_system: boolean
+          label: string
+        }
+        Insert: {
+          action_type?: string
+          action_value?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id: string
+          is_system?: boolean
+          label: string
+        }
+        Update: {
+          action_type?: string
+          action_value?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_system?: boolean
+          label?: string
+        }
+        Relationships: []
+      }
+      bot_templates: {
+        Row: {
+          bot_type: string
+          buttons: Json
+          category: string
+          confirm_message: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          preview_image: string | null
+          settings: Json
+          sort_order: number
+          welcome_message: string
+        }
+        Insert: {
+          bot_type?: string
+          buttons?: Json
+          category?: string
+          confirm_message?: string
+          created_at?: string
+          description?: string | null
+          id: string
+          name: string
+          preview_image?: string | null
+          settings?: Json
+          sort_order?: number
+          welcome_message?: string
+        }
+        Update: {
+          bot_type?: string
+          buttons?: Json
+          category?: string
+          confirm_message?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          preview_image?: string | null
+          settings?: Json
+          sort_order?: number
+          welcome_message?: string
+        }
+        Relationships: []
+      }
       bug_reports: {
         Row: {
           attachment_name: string | null
@@ -1079,6 +1160,60 @@ export type Database = {
           subject?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      telegram_bots: {
+        Row: {
+          bot_type: string
+          buttons: Json
+          confirm_message: string
+          created_at: string
+          description: string | null
+          id: string
+          is_enabled: boolean
+          name: string
+          settings: Json
+          template_id: string | null
+          token: string
+          updated_at: string
+          webhook_active: boolean
+          webhook_url: string | null
+          welcome_message: string
+        }
+        Insert: {
+          bot_type?: string
+          buttons?: Json
+          confirm_message?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          name: string
+          settings?: Json
+          template_id?: string | null
+          token?: string
+          updated_at?: string
+          webhook_active?: boolean
+          webhook_url?: string | null
+          welcome_message?: string
+        }
+        Update: {
+          bot_type?: string
+          buttons?: Json
+          confirm_message?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          name?: string
+          settings?: Json
+          template_id?: string | null
+          token?: string
+          updated_at?: string
+          webhook_active?: boolean
+          webhook_url?: string | null
+          welcome_message?: string
         }
         Relationships: []
       }
