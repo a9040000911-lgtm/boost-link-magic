@@ -10,6 +10,7 @@ import {
   getServicesForCategory,
   getRecommendedCategoryIds,
   platformNames,
+  platformBranding,
   type Platform,
   type Category,
   type Service,
@@ -114,13 +115,12 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
             {orders.map((order, i) => (
               <motion.div
                 key={i}
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                  i === currentIndex
-                    ? 'bg-primary text-primary-foreground'
-                    : i < currentIndex || order.service
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${i === currentIndex
+                  ? 'bg-primary text-primary-foreground'
+                  : i < currentIndex || order.service
                     ? 'bg-primary/20 text-primary'
                     : 'bg-muted text-muted-foreground'
-                }`}
+                  }`}
               >
                 {i < currentIndex || order.service ? (
                   <Check className="w-3 h-3" />
@@ -133,33 +133,26 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
         </div>
 
         {(() => {
-          const platformColors: Record<string, { border: string; bg: string; text: string; shadow: string }> = {
-            instagram: { border: 'border-pink-400/50', bg: 'bg-gradient-to-r from-pink-500 via-rose-500 to-orange-400', text: 'text-pink-600', shadow: 'shadow-pink-500/20' },
-            youtube: { border: 'border-red-400/50', bg: 'bg-red-500', text: 'text-red-600', shadow: 'shadow-red-500/20' },
-            tiktok: { border: 'border-slate-600/50', bg: 'bg-gradient-to-r from-slate-800 to-slate-700', text: 'text-slate-700', shadow: 'shadow-slate-500/20' },
-            telegram: { border: 'border-sky-400/50', bg: 'bg-sky-500', text: 'text-sky-600', shadow: 'shadow-sky-500/20' },
-            vk: { border: 'border-blue-400/50', bg: 'bg-blue-600', text: 'text-blue-600', shadow: 'shadow-blue-500/20' },
-          };
-          const colors = platformColors[current.platform] || platformColors.telegram;
+          const platformColors = platformBranding[current.platform] || platformBranding.telegram;
           return (
             <motion.div
               key={currentIndex}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`p-4 flex items-center gap-4 rounded-xl bg-card border-2 ${colors.border} shadow-md ${colors.shadow}`}
+              className={`p-4 flex items-center gap-4 rounded-xl bg-card border-2 ${platformColors.border} shadow-md ${platformColors.shadow}`}
             >
-              <span className={`px-3 py-1.5 rounded-full ${colors.bg} text-white text-sm font-semibold inline-flex items-center gap-2`}>
+              <span className={`px-3 py-1.5 rounded-full ${platformColors.bg} text-white text-sm font-semibold inline-flex items-center gap-2`}>
                 <PlatformIcon platform={current.platform} className="w-4 h-4" />
                 {platformNames[current.platform]}
               </span>
               {current.analysis && (
-                <span className={`px-3 py-1 rounded-full bg-muted text-sm font-medium ${colors.text}`}>
+                <span className={`px-3 py-1 rounded-full bg-muted text-sm font-medium ${platformColors.text || platformColors.color}`}>
                   {current.analysis.label}
                   {current.analysis.username && <span className="opacity-60 ml-1">@{current.analysis.username}</span>}
                 </span>
               )}
               <span className={`text-base text-foreground font-medium truncate flex-1 flex items-center gap-2`}>
-                <ExternalLink className={`w-4 h-4 shrink-0 ${colors.text}`} />
+                <ExternalLink className={`w-4 h-4 shrink-0 ${platformColors.text || platformColors.color}`} />
                 {current.url}
               </span>
               <span className="text-sm text-muted-foreground shrink-0">
@@ -214,6 +207,7 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
                 categoryName={current.category.name}
                 onServiceSelect={handleServiceSelect}
                 selectedServiceId={current.service?.id ?? null}
+                branding={platformBranding[current.platform]}
               />
 
               {/* Quantity input — fixed overlay */}
@@ -231,72 +225,79 @@ const MultiLinkFlow = ({ urls, onComplete, onCancel }: MultiLinkFlowProps) => {
                       exit={{ opacity: 0, scale: 0.9, y: 10 }}
                       className="glass-card p-6 w-full max-w-md mx-4"
                     >
-                      <p className="text-xs text-muted-foreground mb-1 truncate">{current.service.name}</p>
-                      <label className="text-sm font-medium text-foreground block mb-3">
-                        Количество
-                      </label>
-                      <div className="flex items-center gap-3 mb-4">
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => handleQuantityChange(current.quantity - (current.service?.minOrder || 50))}
-                          className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </motion.button>
-                        <input
-                          type="number"
-                          value={current.quantity}
-                          onChange={(e) => handleQuantityChange(Number(e.target.value))}
-                          min={current.service.minOrder}
-                          max={current.service.maxOrder}
-                          className="flex-1 text-center text-2xl font-bold bg-muted/50 rounded-xl py-2 text-foreground outline-none focus:ring-2 focus:ring-primary/30"
-                        />
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => handleQuantityChange(current.quantity + (current.service?.minOrder || 50))}
-                          className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </motion.button>
-                      </div>
-                      <div className="flex items-center justify-between text-sm mb-5">
-                        <span className="text-muted-foreground">
-                          от {current.service.minOrder} до {current.service.maxOrder.toLocaleString()}
-                        </span>
-                        <motion.span
-                          key={total}
-                          initial={{ scale: 1.2 }}
-                          animate={{ scale: 1 }}
-                          className="text-lg font-bold text-primary"
-                        >
-                          {total.toFixed(1)}₽
-                        </motion.span>
-                      </div>
-                      <div className="flex gap-3">
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.96 }}
-                          onClick={() => {
-                            const updated = [...orders];
-                            updated[currentIndex] = { ...current, service: null };
-                            setOrders(updated);
-                          }}
-                          className="px-5 py-3 rounded-xl bg-muted text-foreground text-sm font-medium"
-                        >
-                          ← Назад
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.96 }}
-                          onClick={handleNext}
-                          className="flex-1 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:shadow-lg hover:shadow-primary/30 transition-shadow inline-flex items-center justify-center gap-2"
-                        >
-                          {isLastLink ? 'Завершить' : 'Следующая ссылка'}
-                          {isLastLink ? <Check className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
-                        </motion.button>
-                      </div>
+                      {(() => {
+                        const branding = platformBranding[current.platform];
+                        return (
+                          <>
+                            <p className="text-xs text-muted-foreground mb-1 truncate">{current.service.name}</p>
+                            <label className="text-sm font-medium text-foreground block mb-3">
+                              Количество
+                            </label>
+                            <div className="flex items-center gap-3 mb-4">
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => handleQuantityChange(current.quantity - (current.service?.minOrder || 50))}
+                                className={`w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-foreground hover:${branding?.bg || 'bg-primary'} hover:text-white transition-colors`}
+                              >
+                                <Minus className="w-4 h-4" />
+                              </motion.button>
+                              <input
+                                type="number"
+                                value={current.quantity}
+                                onChange={(e) => handleQuantityChange(Number(e.target.value))}
+                                min={current.service?.minOrder}
+                                max={current.service?.maxOrder}
+                                className="flex-1 text-center text-2xl font-bold bg-muted/50 rounded-xl py-2 text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                              />
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => handleQuantityChange(current.quantity + (current.service?.minOrder || 50))}
+                                className={`w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-foreground hover:${branding?.bg || 'bg-primary'} hover:text-white transition-colors`}
+                              >
+                                <Plus className="w-4 h-4" />
+                              </motion.button>
+                            </div>
+                            <div className="flex items-center justify-between text-sm mb-5">
+                              <span className="text-muted-foreground">
+                                от {current.service?.minOrder} до {current.service?.maxOrder.toLocaleString()}
+                              </span>
+                              <motion.span
+                                key={total}
+                                initial={{ scale: 1.2 }}
+                                animate={{ scale: 1 }}
+                                className={`text-lg font-bold ${branding?.color || 'text-primary'}`}
+                              >
+                                {total.toFixed(1)}₽
+                              </motion.span>
+                            </div>
+                            <div className="flex gap-3">
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.96 }}
+                                onClick={() => {
+                                  const updated = [...orders];
+                                  updated[currentIndex] = { ...current, service: null };
+                                  setOrders(updated);
+                                }}
+                                className="px-5 py-3 rounded-xl bg-muted text-foreground text-sm font-medium"
+                              >
+                                ← Назад
+                              </motion.button>
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.96 }}
+                                onClick={handleNext}
+                                className={`flex-1 px-6 py-3 rounded-xl ${branding?.bg || 'bg-primary'} text-white font-semibold text-sm hover:shadow-lg ${branding?.shadow || 'hover:shadow-primary/30'} transition-shadow inline-flex items-center justify-center gap-2`}
+                              >
+                                {isLastLink ? 'Завершить' : 'Следующая ссылка'}
+                                {isLastLink ? <Check className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                              </motion.button>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </motion.div>
                   </motion.div>
                 )}

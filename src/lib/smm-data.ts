@@ -107,7 +107,7 @@ export function detectPlatformWithDb(url: string, dbPatterns: DbLinkPattern[], d
     try {
       const re = new RegExp(dp.pattern, 'i');
       if (re.test(url)) return dp.platform;
-    } catch {}
+    } catch { }
   }
   return null;
 }
@@ -286,12 +286,56 @@ export const platformNames: Record<string, string> = {
   vk: 'ВКонтакте',
 };
 
-export const platformColors: Record<string, string> = {
-  instagram: '330 80% 60%',
-  youtube: '0 80% 55%',
-  tiktok: '170 80% 50%',
-  telegram: '200 80% 55%',
-  vk: '215 70% 55%',
+export interface PlatformBranding {
+  color: string;
+  bg: string;
+  border: string;
+  shadow: string;
+  lightBg: string;
+  ring: string;
+}
+
+export const platformBranding: Record<string, PlatformBranding> = {
+  instagram: {
+    color: 'text-pink-600',
+    bg: 'bg-gradient-to-r from-pink-500 via-rose-500 to-orange-400',
+    border: 'border-pink-400/50',
+    shadow: 'shadow-pink-500/20',
+    lightBg: 'bg-pink-50',
+    ring: 'ring-pink-500'
+  },
+  youtube: {
+    color: 'text-red-600',
+    bg: 'bg-red-500',
+    border: 'border-red-400/50',
+    shadow: 'shadow-red-500/20',
+    lightBg: 'bg-red-50',
+    ring: 'ring-red-500'
+  },
+  tiktok: {
+    color: 'text-slate-700',
+    bg: 'bg-gradient-to-r from-slate-800 to-slate-700',
+    border: 'border-slate-600/50',
+    shadow: 'shadow-slate-500/20',
+    lightBg: 'bg-slate-50',
+    ring: 'ring-slate-800'
+  },
+  telegram: {
+    color: 'text-sky-600',
+    bg: 'bg-sky-500',
+    border: 'border-sky-400/50',
+    shadow: 'shadow-sky-500/20',
+    lightBg: 'bg-sky-50',
+    ring: 'ring-sky-500'
+  },
+  vk: {
+    color: 'text-blue-600',
+    bg: 'bg-blue-600',
+    border: 'border-blue-400/50',
+    shadow: 'shadow-blue-500/20',
+    lightBg: 'bg-blue-50',
+    ring: 'ring-blue-600'
+  },
 };
 
 export const categoriesByPlatform: Record<Platform, Category[]> = {

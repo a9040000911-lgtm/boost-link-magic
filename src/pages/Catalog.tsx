@@ -46,32 +46,20 @@ const guaranteeMeta: Record<string, { label: string; icon: typeof Shield; color:
 const getSpeedMeta = (s: string) => speedMeta[s] || speedMeta.medium;
 const getGuaranteeMeta = (g: string) => guaranteeMeta[g] || guaranteeMeta.none;
 
-const networkConfig: {
-  key: string;
-  label: string;
-  icon: string;
-  color: string;
-  bg: string;
-  border: string;
-  shadow: string;
-  lightBg: string;
-  ring: string;
-}[] = [
-    { key: "Instagram", label: "Instagram", icon: "instagram", color: "text-pink-500", bg: "bg-gradient-to-r from-pink-500 to-purple-500", border: "border-pink-400", shadow: "shadow-pink-500/25", lightBg: "bg-pink-500/10", ring: "ring-pink-500/20" },
-    { key: "YouTube", label: "YouTube", icon: "youtube", color: "text-red-600", bg: "bg-red-600", border: "border-red-400", shadow: "shadow-red-600/25", lightBg: "bg-red-600/10", ring: "ring-red-600/20" },
-    { key: "TikTok", label: "TikTok", icon: "tiktok", color: "text-foreground", bg: "bg-foreground", border: "border-foreground/60", shadow: "shadow-foreground/20", lightBg: "bg-foreground/5", ring: "ring-foreground/10" },
-    { key: "Telegram", label: "Telegram", icon: "telegram", color: "text-sky-500", bg: "bg-sky-500", border: "border-sky-400", shadow: "shadow-sky-500/25", lightBg: "bg-sky-500/10", ring: "ring-sky-500/20" },
-    { key: "VK", label: "ВКонтакте", icon: "vk", color: "text-blue-500", bg: "bg-blue-500", border: "border-blue-400", shadow: "shadow-blue-500/25", lightBg: "bg-blue-500/10", ring: "ring-blue-500/20" },
-    { key: "Twitter", label: "Twitter / X", icon: "twitter", color: "text-foreground", bg: "bg-foreground", border: "border-foreground/60", shadow: "shadow-foreground/20", lightBg: "bg-foreground/5", ring: "ring-foreground/10" },
-    { key: "Facebook", label: "Facebook", icon: "facebook", color: "text-blue-600", bg: "bg-blue-600", border: "border-blue-500", shadow: "shadow-blue-600/25", lightBg: "bg-blue-600/10", ring: "ring-blue-600/20" },
-    { key: "Twitch", label: "Twitch", icon: "twitch", color: "text-purple-500", bg: "bg-purple-500", border: "border-purple-400", shadow: "shadow-purple-500/25", lightBg: "bg-purple-500/10", ring: "ring-purple-500/20" },
-    { key: "Odnoklassniki", label: "Одноклассники", icon: "odnoklassniki", color: "text-orange-500", bg: "bg-orange-500", border: "border-orange-400", shadow: "shadow-orange-500/25", lightBg: "bg-orange-500/10", ring: "ring-orange-500/20" },
-    { key: "Likee", label: "Likee", icon: "likee", color: "text-rose-500", bg: "bg-gradient-to-r from-rose-500 to-pink-400", border: "border-rose-400", shadow: "shadow-rose-500/25", lightBg: "bg-rose-500/10", ring: "ring-rose-500/20" },
-    { key: "Dzen", label: "Дзен", icon: "dzen", color: "text-yellow-600", bg: "bg-yellow-600", border: "border-yellow-400", shadow: "shadow-yellow-600/25", lightBg: "bg-yellow-600/10", ring: "ring-yellow-600/20" },
-    { key: "MAX", label: "MAX", icon: "max", color: "text-indigo-500", bg: "bg-indigo-500", border: "border-indigo-400", shadow: "shadow-indigo-500/25", lightBg: "bg-indigo-500/10", ring: "ring-indigo-500/20" },
-    { key: "Spotify", label: "Spotify", icon: "spotify", color: "text-green-500", bg: "bg-green-500", border: "border-green-400", shadow: "shadow-green-500/25", lightBg: "bg-green-500/10", ring: "ring-green-500/20" },
-    { key: "Traffic", label: "Трафик", icon: "globe", color: "text-emerald-500", bg: "bg-emerald-500", border: "border-emerald-400", shadow: "shadow-emerald-500/25", lightBg: "bg-emerald-500/10", ring: "ring-emerald-500/20" },
-  ];
+import {
+  categoriesByPlatform,
+  getServicesForCategory,
+  platformBranding,
+  platformNames,
+  type Platform
+} from '@/lib/smm-data';
+
+const networkConfig = Object.keys(platformBranding).map(key => ({
+  key,
+  label: platformNames[key],
+  icon: key.toLowerCase(),
+  ...platformBranding[key]
+}));
 
 /* ─── Tariff Explainer — detailed ─── */
 const TariffExplainer = ({ onClose, netConfig }: { onClose: () => void; netConfig?: typeof networkConfig[0] }) => (
