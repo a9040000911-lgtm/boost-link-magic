@@ -40,28 +40,38 @@ const guaranteeMeta: Record<string, { label: string; icon: typeof Shield; color:
   "7d": { label: "7 дней", icon: Shield, color: "text-blue-500" },
   "30d": { label: "30 дней", icon: ShieldCheck, color: "text-emerald-500" },
   "60d": { label: "60 дней", icon: ShieldCheck, color: "text-green-500" },
-  lifetime: { label: "Навсегда", icon: ShieldCheck, color: "text-primary" },
+  lifetime: { label: "Навсегда", icon: ShieldCheck, color: "PLATFORM_COLOR" },
 };
 
 const getSpeedMeta = (s: string) => speedMeta[s] || speedMeta.medium;
 const getGuaranteeMeta = (g: string) => guaranteeMeta[g] || guaranteeMeta.none;
 
-const networkConfig: { key: string; label: string; icon: string; color: string; bg: string; border: string; shadow: string }[] = [
-  { key: "Instagram", label: "Instagram", icon: "instagram", color: "text-pink-500", bg: "bg-gradient-to-r from-pink-500 to-purple-500", border: "border-pink-400", shadow: "shadow-pink-500/25" },
-  { key: "YouTube", label: "YouTube", icon: "youtube", color: "text-red-500", bg: "bg-red-500", border: "border-red-400", shadow: "shadow-red-500/25" },
-  { key: "TikTok", label: "TikTok", icon: "tiktok", color: "text-foreground", bg: "bg-foreground", border: "border-foreground/60", shadow: "shadow-foreground/20" },
-  { key: "Telegram", label: "Telegram", icon: "telegram", color: "text-sky-500", bg: "bg-sky-500", border: "border-sky-400", shadow: "shadow-sky-500/25" },
-  { key: "VK", label: "ВКонтакте", icon: "vk", color: "text-blue-500", bg: "bg-blue-500", border: "border-blue-400", shadow: "shadow-blue-500/25" },
-  { key: "Twitter", label: "Twitter / X", icon: "twitter", color: "text-foreground", bg: "bg-foreground", border: "border-foreground/60", shadow: "shadow-foreground/20" },
-  { key: "Facebook", label: "Facebook", icon: "facebook", color: "text-blue-600", bg: "bg-blue-600", border: "border-blue-500", shadow: "shadow-blue-600/25" },
-  { key: "Twitch", label: "Twitch", icon: "twitch", color: "text-purple-500", bg: "bg-purple-500", border: "border-purple-400", shadow: "shadow-purple-500/25" },
-  { key: "Odnoklassniki", label: "Одноклассники", icon: "odnoklassniki", color: "text-orange-500", bg: "bg-orange-500", border: "border-orange-400", shadow: "shadow-orange-500/25" },
-  { key: "Likee", label: "Likee", icon: "likee", color: "text-rose-500", bg: "bg-gradient-to-r from-rose-500 to-pink-400", border: "border-rose-400", shadow: "shadow-rose-500/25" },
-  { key: "Dzen", label: "Дзен", icon: "dzen", color: "text-yellow-500", bg: "bg-yellow-500", border: "border-yellow-400", shadow: "shadow-yellow-500/25" },
-  { key: "MAX", label: "MAX", icon: "max", color: "text-indigo-500", bg: "bg-indigo-500", border: "border-indigo-400", shadow: "shadow-indigo-500/25" },
-  { key: "Spotify", label: "Spotify", icon: "spotify", color: "text-green-500", bg: "bg-green-500", border: "border-green-400", shadow: "shadow-green-500/25" },
-  { key: "Traffic", label: "Трафик", icon: "globe", color: "text-emerald-500", bg: "bg-emerald-500", border: "border-emerald-400", shadow: "shadow-emerald-500/25" },
-];
+const networkConfig: {
+  key: string;
+  label: string;
+  icon: string;
+  color: string;
+  bg: string;
+  border: string;
+  shadow: string;
+  lightBg: string;
+  ring: string;
+}[] = [
+    { key: "Instagram", label: "Instagram", icon: "instagram", color: "text-pink-500", bg: "bg-gradient-to-r from-pink-500 to-purple-500", border: "border-pink-400", shadow: "shadow-pink-500/25", lightBg: "bg-pink-500/10", ring: "ring-pink-500/20" },
+    { key: "YouTube", label: "YouTube", icon: "youtube", color: "text-red-600", bg: "bg-red-600", border: "border-red-400", shadow: "shadow-red-600/25", lightBg: "bg-red-600/10", ring: "ring-red-600/20" },
+    { key: "TikTok", label: "TikTok", icon: "tiktok", color: "text-foreground", bg: "bg-foreground", border: "border-foreground/60", shadow: "shadow-foreground/20", lightBg: "bg-foreground/5", ring: "ring-foreground/10" },
+    { key: "Telegram", label: "Telegram", icon: "telegram", color: "text-sky-500", bg: "bg-sky-500", border: "border-sky-400", shadow: "shadow-sky-500/25", lightBg: "bg-sky-500/10", ring: "ring-sky-500/20" },
+    { key: "VK", label: "ВКонтакте", icon: "vk", color: "text-blue-500", bg: "bg-blue-500", border: "border-blue-400", shadow: "shadow-blue-500/25", lightBg: "bg-blue-500/10", ring: "ring-blue-500/20" },
+    { key: "Twitter", label: "Twitter / X", icon: "twitter", color: "text-foreground", bg: "bg-foreground", border: "border-foreground/60", shadow: "shadow-foreground/20", lightBg: "bg-foreground/5", ring: "ring-foreground/10" },
+    { key: "Facebook", label: "Facebook", icon: "facebook", color: "text-blue-600", bg: "bg-blue-600", border: "border-blue-500", shadow: "shadow-blue-600/25", lightBg: "bg-blue-600/10", ring: "ring-blue-600/20" },
+    { key: "Twitch", label: "Twitch", icon: "twitch", color: "text-purple-500", bg: "bg-purple-500", border: "border-purple-400", shadow: "shadow-purple-500/25", lightBg: "bg-purple-500/10", ring: "ring-purple-500/20" },
+    { key: "Odnoklassniki", label: "Одноклассники", icon: "odnoklassniki", color: "text-orange-500", bg: "bg-orange-500", border: "border-orange-400", shadow: "shadow-orange-500/25", lightBg: "bg-orange-500/10", ring: "ring-orange-500/20" },
+    { key: "Likee", label: "Likee", icon: "likee", color: "text-rose-500", bg: "bg-gradient-to-r from-rose-500 to-pink-400", border: "border-rose-400", shadow: "shadow-rose-500/25", lightBg: "bg-rose-500/10", ring: "ring-rose-500/20" },
+    { key: "Dzen", label: "Дзен", icon: "dzen", color: "text-yellow-600", bg: "bg-yellow-600", border: "border-yellow-400", shadow: "shadow-yellow-600/25", lightBg: "bg-yellow-600/10", ring: "ring-yellow-600/20" },
+    { key: "MAX", label: "MAX", icon: "max", color: "text-indigo-500", bg: "bg-indigo-500", border: "border-indigo-400", shadow: "shadow-indigo-500/25", lightBg: "bg-indigo-500/10", ring: "ring-indigo-500/20" },
+    { key: "Spotify", label: "Spotify", icon: "spotify", color: "text-green-500", bg: "bg-green-500", border: "border-green-400", shadow: "shadow-green-500/25", lightBg: "bg-green-500/10", ring: "ring-green-500/20" },
+    { key: "Traffic", label: "Трафик", icon: "globe", color: "text-emerald-500", bg: "bg-emerald-500", border: "border-emerald-400", shadow: "shadow-emerald-500/25", lightBg: "bg-emerald-500/10", ring: "ring-emerald-500/20" },
+  ];
 
 /* ─── Tariff Explainer — detailed ─── */
 const TariffExplainer = ({ onClose, netConfig }: { onClose: () => void; netConfig?: typeof networkConfig[0] }) => (
@@ -389,8 +399,9 @@ const Catalog = () => {
   const SpeedBadge = ({ speed, compact = false }: { speed: string; compact?: boolean }) => {
     const m = getSpeedMeta(speed);
     const Icon = m.icon;
+    const netConfig = activeNetConfig;
     return (
-      <span className={`inline-flex items-center gap-1 ${compact ? 'text-[10px]' : 'text-[11px]'} ${m.color}`}>
+      <span className={`inline-flex items-center gap-1 ${compact ? 'text-[10px]' : 'text-[11px]'} ${netConfig ? netConfig.color : m.color}`}>
         <Icon className={compact ? "w-2.5 h-2.5" : "w-3 h-3"} />
         {!compact && m.label}
       </span>
@@ -400,8 +411,10 @@ const Catalog = () => {
   const GuaranteeBadge = ({ guarantee, compact = false }: { guarantee: string; compact?: boolean }) => {
     const m = getGuaranteeMeta(guarantee);
     const Icon = m.icon;
+    const netConfig = activeNetConfig;
+    const colorClass = m.color === "PLATFORM_COLOR" ? (netConfig?.color || "text-primary") : m.color;
     return (
-      <span className={`inline-flex items-center gap-1 ${compact ? 'text-[10px]' : 'text-[11px]'} ${m.color}`}>
+      <span className={`inline-flex items-center gap-1 ${compact ? 'text-[10px]' : 'text-[11px]'} ${colorClass}`}>
         <Icon className={compact ? "w-2.5 h-2.5" : "w-3 h-3"} />
         {!compact && m.label}
       </span>
@@ -422,12 +435,12 @@ const Catalog = () => {
     <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* Pre-fill banner */}
       {prefillLink && (
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-primary/10 border-b border-primary/20 px-4 py-2 shrink-0">
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className={`${activeNetConfig?.lightBg || 'bg-primary/10'} border-b ${activeNetConfig?.border || 'border-primary/20'} px-4 py-2 shrink-0`}>
           <div className="max-w-7xl mx-auto flex items-center gap-3 text-sm">
-            <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
-              <Link2 className="w-3.5 h-3.5 text-primary" />
+            <div className={`w-7 h-7 rounded-lg ${activeNetConfig?.lightBg || 'bg-primary/20'} flex items-center justify-center shrink-0`}>
+              <Link2 className={`w-3.5 h-3.5 ${activeNetConfig?.color || 'text-primary'}`} />
             </div>
-            <p className="text-xs text-muted-foreground truncate">Ссылка <span className="text-primary font-medium">{prefillLink}</span> подставлена</p>
+            <p className="text-xs text-muted-foreground truncate">Ссылка <span className={`${activeNetConfig?.color || 'text-primary'} font-medium`}>{prefillLink}</span> подставлена</p>
           </div>
         </motion.div>
       )}
@@ -674,7 +687,7 @@ const Catalog = () => {
                               >
                                 {/* Badges top-right */}
                                 {isPopular && !isSelected && !compareMode && (
-                                  <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-primary/15 text-primary text-xs font-bold flex items-center gap-1">
+                                  <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-full ${activeNetConfig?.lightBg || 'bg-primary/15'} ${activeNetConfig?.color || 'text-primary'} text-xs font-bold flex items-center gap-1`}>
                                     <Sparkles className="w-3.5 h-3.5" /> Хит
                                   </div>
                                 )}
@@ -707,10 +720,10 @@ const Catalog = () => {
 
                                 {/* Requirements — prominent */}
                                 <div className="flex flex-wrap gap-2 mb-3">
-                                  <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${activeNetConfig?.color || 'text-primary'} bg-primary/10`}>
+                                  <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${activeNetConfig?.color || 'text-primary'} ${activeNetConfig?.lightBg || 'bg-primary/10'}`}>
                                     от {service.min_quantity.toLocaleString()} шт
                                   </span>
-                                  <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${activeNetConfig?.color || 'text-primary'} bg-primary/10`}>
+                                  <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${activeNetConfig?.color || 'text-primary'} ${activeNetConfig?.lightBg || 'bg-primary/10'}`}>
                                     до {service.max_quantity.toLocaleString()} шт
                                   </span>
                                 </div>
@@ -765,16 +778,16 @@ const Catalog = () => {
                       </div>
                       {/* Description in order form */}
                       {selectedService.description && (
-                        <p className="text-xs text-muted-foreground leading-relaxed mt-2 p-2 rounded-lg bg-muted/30 border border-border/30">
+                        <p className={`text-xs text-muted-foreground leading-relaxed mt-2 p-2 rounded-lg ${activeNetConfig?.lightBg || 'bg-muted/30'} border ${activeNetConfig?.border?.replace('border-', 'border-') || 'border-border/30'} opacity-80`}>
                           {selectedService.description}
                         </p>
                       )}
                       {/* Requirements reminder */}
                       <div className="flex gap-2 mt-2">
-                        <span className={`text-[10px] font-medium ${activeNetConfig?.color || 'text-primary'} bg-primary/10 px-2 py-0.5 rounded-md`}>
+                        <span className={`text-[10px] font-medium ${activeNetConfig?.color || 'text-primary'} ${activeNetConfig?.lightBg || 'bg-primary/10'} px-2 py-0.5 rounded-md`}>
                           от {selectedService.min_quantity.toLocaleString()}
                         </span>
-                        <span className={`text-[10px] font-medium ${activeNetConfig?.color || 'text-primary'} bg-primary/10 px-2 py-0.5 rounded-md`}>
+                        <span className={`text-[10px] font-medium ${activeNetConfig?.color || 'text-primary'} ${activeNetConfig?.lightBg || 'bg-primary/10'} px-2 py-0.5 rounded-md`}>
                           до {selectedService.max_quantity.toLocaleString()}
                         </span>
                       </div>
@@ -851,7 +864,7 @@ const Catalog = () => {
                     <button
                       onClick={handleOrder}
                       disabled={!link.trim() || (checkboxSettings.show_offer_checkbox && !consentOffer) || (checkboxSettings.show_policy_checkbox && !consentPD) || ordering}
-                      className={`w-full py-3 rounded-xl ${activeNetConfig?.bg || 'bg-gradient-to-r from-primary to-secondary'} text-white font-bold text-sm shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/20'} hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shrink-0`}
+                      className={`w-full py-3 rounded-xl ${activeNetConfig?.bg || 'bg-gradient-to-r from-primary to-secondary'} text-white font-bold text-sm shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/20'} hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2 shrink-0 group`}
                     >
                       {ordering ? (
                         <span className="flex items-center gap-2">
