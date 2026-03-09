@@ -308,6 +308,12 @@ const Catalog = () => {
     return filtered;
   }, [services, activeNetwork, activeCategory, search]);
 
+  const compareServices = useMemo(() => {
+    if (compareIds.length === 0) return [] as CatalogService[];
+    const byId = new Map(services.map((s) => [s.id, s] as const));
+    return compareIds.map((id) => byId.get(id)).filter(Boolean) as CatalogService[];
+  }, [compareIds, services]);
+
   const handleNetworkChange = (net: string) => {
     setActiveNetwork(net);
     setSelectedService(null);
