@@ -565,7 +565,7 @@ const Catalog = () => {
                             <thead>
                               <tr className="bg-muted/40 border-b border-border/40">
                                 <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Услуга</th>
-                                <th className="text-right px-3 py-2 font-semibold text-muted-foreground w-20">Цена/шт</th>
+                                <th className="text-right px-3 py-2 font-semibold text-muted-foreground w-28">Цена / 1000</th>
                                 <th className="text-center px-2 py-2 font-semibold text-muted-foreground w-20 hidden sm:table-cell">Скорость</th>
                                 <th className="text-center px-2 py-2 font-semibold text-muted-foreground w-20 hidden sm:table-cell">Гарантия</th>
                                 <th className="text-right px-3 py-2 font-semibold text-muted-foreground w-14 hidden lg:table-cell">Мин</th>
@@ -576,7 +576,6 @@ const Catalog = () => {
                               {categoryServices.map((service) => {
                                 const isSelected = selectedService?.id === service.id;
                                 const isPopular = service.price === minPrice && categoryServices.length > 1;
-                                const pricePerUnit = service.price / 1000;
                                 return (
                                   <tr
                                     key={service.id}
@@ -600,7 +599,7 @@ const Catalog = () => {
                                     </td>
                                     <td className="px-3 py-2 text-right font-bold whitespace-nowrap">
                                       <span className={isPopular ? (activeNetConfig?.color || 'text-primary') : ''}>
-                                        {fmtPrice(pricePerUnit)} ₽
+                                        {fmtPrice(service.price)} ₽
                                       </span>
                                     </td>
                                     <td className="px-2 py-2 text-center hidden sm:table-cell"><SpeedBadge speed={service.speed} /></td>
@@ -618,7 +617,6 @@ const Catalog = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                           {categoryServices.map((service, i) => {
                             const isSelected = selectedService?.id === service.id;
-                            const pricePerUnit = service.price / 1000;
                             const isPopular = service.price === minPrice && categoryServices.length > 1;
                             return (
                               <motion.button
@@ -683,7 +681,7 @@ const Catalog = () => {
                                       ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
                                       : 'bg-muted text-foreground'
                                   }`}>
-                                    {fmtPrice(pricePerUnit)} ₽ / шт
+                                    {fmtPrice(service.price)} ₽ / 1000 шт
                                   </span>
                                 </div>
                               </motion.button>
@@ -718,7 +716,7 @@ const Catalog = () => {
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Выбрано</p>
                       <h3 className="text-sm font-bold text-foreground line-clamp-2">{selectedService.name}</h3>
                       <p className={`text-lg font-bold mt-1 ${activeNetConfig?.color || 'text-primary'}`}>
-                        {fmtPrice(selectedService.price / 1000)} ₽ <span className="text-xs font-normal text-muted-foreground">/ шт</span>
+                        {fmtPrice(selectedService.price)} ₽ <span className="text-xs font-normal text-muted-foreground">/ 1000 шт</span>
                       </p>
                       {/* Speed & Guarantee */}
                       <div className="flex items-center gap-3 mt-1.5">
@@ -860,7 +858,7 @@ const Catalog = () => {
                   </div>
                 </div>
                 <span className={`text-sm font-bold ${activeNetConfig?.color || 'text-primary'}`}>
-                  {fmtPrice(selectedService.price / 1000)} ₽/шт
+                  {fmtPrice(selectedService.price)} ₽/1000
                 </span>
               </div>
 
