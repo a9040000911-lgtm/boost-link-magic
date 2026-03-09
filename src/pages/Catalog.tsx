@@ -908,7 +908,7 @@ const Catalog = () => {
       {/* ─── Mobile sticky order form ─── */}
       {/* Uses bottom-14 to stay above widget bar (56px) */}
       <AnimatePresence>
-        {selectedService && (
+        {selectedService && !compareMode && (
           <motion.div
             initial={{ y: 100 }}
             animate={{ y: 0 }}
