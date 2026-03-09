@@ -194,7 +194,12 @@ const Catalog = () => {
   const [activeNetwork, setActiveNetwork] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedService, setSelectedService] = useState<CatalogService | null>(null);
+
+  // Compare (selection + modal)
   const [compareMode, setCompareMode] = useState(false);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [showCompare, setShowCompare] = useState(false);
+
   const [showExplainer, setShowExplainer] = useState(false);
   const [warningAccepted, setWarningAccepted] = useState<Record<string, boolean>>({});
   const [showWarning, setShowWarning] = useState(false);
