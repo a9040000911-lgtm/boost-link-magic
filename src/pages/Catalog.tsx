@@ -371,10 +371,46 @@ const Catalog = () => {
 
   const acceptWarning = () => {
     if (selectedService) {
-      setWarningAccepted(prev => ({ ...prev, [selectedService.id]: true }));
+      setWarningAccepted((prev) => ({ ...prev, [selectedService.id]: true }));
     }
     setShowWarning(false);
   };
+
+  // Compare behavior
+  const MAX_COMPARE = 2;
+
+  useEffect(() => {
+    if (!compareMode) {
+      setCompareIds([]);
+      setShowCompare(false);
+    }
+  }, [compareMode]);
+
+  useEffect(() => {
+    // Switching network/category invalidates comparison context
+    setCompareIds([]);
+    setShowCompare(false);
+  }, [activeNetwork, activeCategory]);
+
+  useEffect(() => {
+    if (showCompare && compareIds.length !== MAX_COMPARE) setShowCompare(false);
+  }, [showCompare, compareIds.length]);
+
+  const toggleCompareId = (serviceId: string) => {
+    setCompareIds((prev) => {
+      if (prev.includes(serviceId)) return prev.filter((id) => id !== serviceId);
+      if (prev.length >= MAX_COMPARE) {
+        toast({
+          title: "Лимит сравнения",
+          description: `Можно сравнить только ${MAX_COMPARE} услуги`,
+        });
+        return prev;
+      }
+      return [...prev, serviceId];
+    });
+  };
+
+  const clearCompare = () => setCompareIds([]);
 
   /* ─── Speed/Guarantee badges (reusable) ─── */
   const SpeedBadge = ({ speed, compact = false }: { speed: string; compact?: boolean }) => {
