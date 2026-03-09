@@ -19,12 +19,15 @@ const Auth = () => {
   const [forgotMode, setForgotMode] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
 
+  // Pre-fill email from URL if present
+  const emailFromUrl = searchParams.get("email") || "";
+
   // Login state
-  const [loginEmail, setLoginEmail] = useState("");
+  const [loginEmail, setLoginEmail] = useState(emailFromUrl);
   const [loginPassword, setLoginPassword] = useState("");
 
   // Register state
-  const [regEmail, setRegEmail] = useState("");
+  const [regEmail, setRegEmail] = useState(emailFromUrl);
   const [regPassword, setRegPassword] = useState("");
   const [regName, setRegName] = useState("");
 
