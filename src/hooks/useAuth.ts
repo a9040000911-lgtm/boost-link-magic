@@ -8,12 +8,15 @@ async function ensureProfile(user: User) {
     (user.email ? user.email.split("@")[0] : null);
 
   // If the auth trigger is missing, we still guarantee a profile row exists.
-  await supabase
-    .from("profiles")
-    .upsert({ id: user.id, display_name: displayName }, { onConflict: "id" })
-    .then(() => undefined)
-    .catch(() => undefined);
+  try {
+    await supabase
+      .from("profiles")
+      .upsert({ id: user.id, display_name: displayName }, { onConflict: "id" });
+  } catch {
+    // non-critical
+  }
 }
+
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
