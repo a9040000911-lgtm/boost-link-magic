@@ -565,7 +565,7 @@ const Catalog = () => {
                             <thead>
                               <tr className="bg-muted/40 border-b border-border/40">
                                 <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Услуга</th>
-                                <th className="text-right px-3 py-2 font-semibold text-muted-foreground w-20">Цена/шт</th>
+                                <th className="text-right px-3 py-2 font-semibold text-muted-foreground w-28">Цена / 1000</th>
                                 <th className="text-center px-2 py-2 font-semibold text-muted-foreground w-20 hidden sm:table-cell">Скорость</th>
                                 <th className="text-center px-2 py-2 font-semibold text-muted-foreground w-20 hidden sm:table-cell">Гарантия</th>
                                 <th className="text-right px-3 py-2 font-semibold text-muted-foreground w-14 hidden lg:table-cell">Мин</th>
@@ -576,7 +576,6 @@ const Catalog = () => {
                               {categoryServices.map((service) => {
                                 const isSelected = selectedService?.id === service.id;
                                 const isPopular = service.price === minPrice && categoryServices.length > 1;
-                                const pricePerUnit = service.price / 1000;
                                 return (
                                   <tr
                                     key={service.id}
@@ -600,7 +599,7 @@ const Catalog = () => {
                                     </td>
                                     <td className="px-3 py-2 text-right font-bold whitespace-nowrap">
                                       <span className={isPopular ? (activeNetConfig?.color || 'text-primary') : ''}>
-                                        {fmtPrice(pricePerUnit)} ₽
+                                        {fmtPrice(service.price)} ₽
                                       </span>
                                     </td>
                                     <td className="px-2 py-2 text-center hidden sm:table-cell"><SpeedBadge speed={service.speed} /></td>
