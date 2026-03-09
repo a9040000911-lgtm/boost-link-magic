@@ -37,15 +37,17 @@ export function useLicense() {
 
 export default function LicenseGate({ children }: LicenseGateProps) {
   const location = useLocation();
-  const [status, setStatus] = useState<"loading" | "valid" | "invalid">("loading");
+  const [status, setStatus] = useState<"loading" | "valid" | "invalid">("valid");
   const [plan, setPlan] = useState("standard");
+  const [isChecking, setIsChecking] = useState(false);
 
   const isBypassed = BYPASS_PREFIXES.some((p) => location.pathname.startsWith(p));
 
   useEffect(() => {
     if (isBypassed) return;
-    checkLicense();
-  }, [isBypassed]);
+    setIsChecking(true);
+    checkLicense().finally(() => setIsChecking(false));
+  }, [location.pathname, isBypassed]);
 
   if (isBypassed) return <>{children}</>;
 
@@ -58,7 +60,7 @@ export default function LicenseGate({ children }: LicenseGateProps) {
         setStatus("valid");
         return;
       }
-    } catch {}
+    } catch { }
 
     // Read license key from app_settings (set once by admin)
     const { data: setting } = await supabase
@@ -108,16 +110,8 @@ export default function LicenseGate({ children }: LicenseGateProps) {
     }
   }
 
-  if (status === "loading") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <Shield className="h-6 w-6 animate-pulse" />
-          <span>Проверка лицензии…</span>
-        </div>
-      </div>
-    );
-  }
+  // Non-blocking: we render children immediately.
+  // The 'status' and 'plan' will update in the background if needed.
 
   return (
     <LicenseContext.Provider value={{ plan, limits: getPlanLimits(plan), isLicensed: status === "valid" && plan !== "standard" }}>

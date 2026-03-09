@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkLicense } from "../_shared/license.ts";
 
 const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') || '*';
 
@@ -14,6 +15,13 @@ const json = (body: object, status = 200) =>
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // === HARDENED LICENSE VERIFICATION ===
+  const { valid, error: licError } = await checkLicense(req);
+  if (!valid) {
+    console.error(`[License Blocked] Domain: ${req.headers.get('origin') || 'Unknown'}, Error: ${licError}`);
+    return json({ error: `License invalid: ${licError}. Please check settings.`, license_error: true }, 403);
   }
 
   try {

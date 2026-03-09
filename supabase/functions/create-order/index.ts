@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkLicense } from "../_shared/license.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,6 +13,13 @@ const json = (body: object, status = 200) =>
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // === HARDENED LICENSE VERIFICATION ===
+  const { valid, error: licError, plan: licPlan } = await checkLicense(req);
+  if (!valid) {
+    console.error(`[License Blocked] Domain: ${req.headers.get('origin') || 'Unknown'}, Error: ${licError}`);
+    return json({ error: `License invalid: ${licError}. Please check settings.`, license_error: true }, 403);
   }
 
   try {
@@ -63,16 +71,7 @@ serve(async (req) => {
       enterprise: { maxOrdersPerMonth: 0, maxOrderAmount: 0 },
     };
 
-    // Get active license
-    const { data: activeLicense } = await adminClient
-      .from('licenses')
-      .select('plan, is_active, expires_at')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const currentPlan = activeLicense?.plan || 'standard';
+    const currentPlan = licPlan || 'standard';
     const defaults = PLAN_DEFAULTS[currentPlan] || PLAN_DEFAULTS.standard;
 
     // Read limits from app_settings
@@ -394,7 +393,7 @@ serve(async (req) => {
 
       // Cleanup old idempotency keys periodically (1% chance per request)
       if (Math.random() < 0.01) {
-        await adminClient.rpc('cleanup_idempotency_keys').catch(() => {});
+        await adminClient.rpc('cleanup_idempotency_keys').catch(() => { });
       }
 
       return json({
