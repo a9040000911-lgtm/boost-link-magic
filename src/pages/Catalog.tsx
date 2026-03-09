@@ -576,7 +576,17 @@ const Catalog = () => {
                     <span className="hidden sm:inline">Чем отличаются?</span>
                   </button>
                   <button
-                    onClick={() => setCompareMode(!compareMode)}
+                    onClick={() => {
+                      setShowExplainer(false);
+                      setCompareMode((v) => {
+                        const next = !v;
+                        if (!next) {
+                          setCompareIds([]);
+                          setShowCompare(false);
+                        }
+                        return next;
+                      });
+                    }}
                     className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
                       compareMode
                         ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
