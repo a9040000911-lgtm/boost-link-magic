@@ -53,7 +53,7 @@ const Index = () => {
           parse_mode: 'HTML',
         },
       });
-    } catch {}
+    } catch { }
   };
 
   const handleSubmit = (inputUrls: string[]) => {
@@ -117,9 +117,8 @@ const Index = () => {
     <div className={`flex flex-col ${isActive ? 'h-screen overflow-hidden' : 'min-h-screen bg-background'}`}>
       {/* Hero — compact when flow/summary is active */}
       <div
-        className={`flex flex-col items-center justify-center px-4 relative overflow-hidden shrink-0 transition-all duration-500 hero-gradient ${
-          isActive ? 'pt-6 pb-6' : 'pt-24 pb-32'
-        }`}
+        className={`flex flex-col items-center justify-center px-4 relative overflow-hidden shrink-0 transition-all duration-500 hero-gradient ${isActive ? 'pt-6 pb-6' : 'pt-24 pb-32'
+          }`}
       >
         {!isActive && (
           <>
@@ -234,7 +233,7 @@ const Index = () => {
                   <div>
                     <h3 className="text-base md:text-lg font-bold text-foreground mb-1.5">{error}</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      Возможно, формат ссылки новый или платформа пока не поддерживается автоматически. 
+                      Возможно, формат ссылки новый или платформа пока не поддерживается автоматически.
                       Вы можете выбрать услугу вручную в каталоге — ваша ссылка будет подставлена автоматически.
                     </p>
                   </div>
@@ -525,15 +524,19 @@ const Index = () => {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0 }}
                         >
-                          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-                            <div className="flex items-center gap-2 mb-2">
+                          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 relative overflow-hidden">
+                            {/* Subtle background glow */}
+                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl" />
+
+                            <div className="relative flex items-center gap-2 mb-2">
                               <Lock className="w-4 h-4 text-primary" />
                               <span className="text-sm font-semibold text-foreground">
-                                Аккаунт с {email} уже существует
+                                Проверка аккаунта
                               </span>
                             </div>
-                            <p className="text-xs text-muted-foreground mb-3">
-                              Введите пароль для входа или восстановите доступ через почту
+                            <p className="relative text-xs text-muted-foreground mb-3 leading-relaxed">
+                              Система предполагает, что у <b>{email}</b> есть аккаунт.
+                              Введите пароль или создайте новый аккаунт, если произошла ошибка.
                             </p>
                             <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-muted/50 border border-border mb-3">
                               <KeyRound className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -546,10 +549,10 @@ const Index = () => {
                                 className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm"
                               />
                             </div>
-                            <div className="flex gap-3">
+                            <div className="flex gap-3 mb-4">
                               <button
                                 onClick={() => { setLoginMode(false); setPassword(''); setResetSent(false); }}
-                                className="px-5 py-2.5 rounded-xl bg-muted text-foreground text-sm font-medium"
+                                className="px-4 py-2.5 rounded-xl bg-muted text-foreground text-xs font-medium hover:bg-accent transition-colors"
                               >
                                 ← Назад
                               </button>
@@ -567,25 +570,38 @@ const Index = () => {
                                   toast.success('Вход выполнен!');
                                   navigate('/dashboard/orders?pending=1');
                                 }}
-                                className="flex-1 px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary to-rose-500 text-primary-foreground text-sm font-bold shadow-lg disabled:opacity-40 inline-flex items-center justify-center gap-2"
+                                className="flex-1 px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary to-rose-500 text-primary-foreground text-sm font-bold shadow-lg disabled:opacity-40 inline-flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
                               >
                                 <Sparkles className="w-4 h-4" />
                                 {authLoading ? 'Загрузка...' : 'Войти и оплатить'}
                               </button>
                             </div>
-                            <button
-                              disabled={resetSent}
-                              onClick={async () => {
-                                await supabase.auth.resetPasswordForEmail(email, {
-                                  redirectTo: `${window.location.origin}/reset-password`,
-                                });
-                                setResetSent(true);
-                                toast.success('Ссылка для сброса пароля отправлена на ' + email);
-                              }}
-                              className="mt-3 text-xs text-primary hover:underline disabled:opacity-50"
-                            >
-                              {resetSent ? '✓ Ссылка отправлена' : 'Забыли пароль? Восстановить →'}
-                            </button>
+
+                            <div className="flex flex-col gap-2 border-t border-border/40 pt-3">
+                              <div className="flex items-center justify-between">
+                                <button
+                                  disabled={resetSent}
+                                  onClick={async () => {
+                                    await supabase.auth.resetPasswordForEmail(email, {
+                                      redirectTo: `${window.location.origin}/reset-password`,
+                                    });
+                                    setResetSent(true);
+                                    toast.success('Ссылка для сброса пароля отправлена на ' + email);
+                                  }}
+                                  className="text-[10px] text-primary hover:underline disabled:opacity-50 font-medium"
+                                >
+                                  {resetSent ? '✓ Ссылка отправлена' : 'Забыли пароль?'}
+                                </button>
+
+                                <button
+                                  onClick={() => navigate(`/auth?email=${encodeURIComponent(email)}&mode=register`)}
+                                  className="text-[10px] text-muted-foreground hover:text-primary transition-colors font-semibold flex items-center gap-1"
+                                >
+                                  <PartyPopper className="w-3 h-3" />
+                                  Я новый пользователь
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </motion.div>
                       )}
