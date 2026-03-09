@@ -6,8 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { User, Lock } from "lucide-react";
+import { User, Lock, Trash2 } from "lucide-react";
 
 const DashboardSettings = () => {
   const { user } = useAuth();
@@ -15,14 +26,35 @@ const DashboardSettings = () => {
   const [saving, setSaving] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     if (!user) return;
+
     const fetchProfile = async () => {
-      const { data } = await supabase.from("profiles").select("display_name").eq("id", user.id).single();
-      if (data) setDisplayName(data.display_name || "");
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!error && data) {
+        setDisplayName(data.display_name || "");
+        return;
+      }
+
+      // If profile row is missing, create it (auth trigger may be отсутствовать)
+      const fallbackName =
+        (user.user_metadata as any)?.display_name ??
+        (user.email ? user.email.split("@")[0] : "");
+
+      await supabase
+        .from("profiles")
+        .upsert({ id: user.id, display_name: fallbackName }, { onConflict: "id" });
+      setDisplayName(fallbackName || "");
     };
-    fetchProfile();
+
+    void fetchProfile();
   }, [user]);
 
   const handleSaveProfile = async () => {
@@ -47,6 +79,25 @@ const DashboardSettings = () => {
       setNewPassword("");
     }
     setChangingPassword(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+
+    setDeletingAccount(true);
+    const { data, error } = await supabase.functions.invoke("delete-account", {
+      body: { confirm: true },
+    });
+
+    if (error || (data as any)?.error) {
+      toast.error((error as any)?.message || (data as any)?.error || "Ошибка удаления аккаунта");
+      setDeletingAccount(false);
+      return;
+    }
+
+    toast.success("Аккаунт удалён");
+    await supabase.auth.signOut();
+    setDeletingAccount(false);
   };
 
   return (
@@ -105,6 +156,43 @@ const DashboardSettings = () => {
           >
             {changingPassword ? "Смена..." : "Сменить пароль"}
           </Button>
+
+          <Separator />
+
+          <div className="space-y-2">
+            <Label>Удаление аккаунта</Label>
+            <p className="text-sm text-muted-foreground">
+              Аккаунт будет мягко удалён: ваши данные останутся доступными только поддержке, а вы сможете
+              зарегистрироваться заново с тем же email как новый пользователь.
+            </p>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={deletingAccount}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {deletingAccount ? "Удаление..." : "Удалить аккаунт"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Удалить аккаунт?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Это действие необратимо для текущего аккаунта: вы выйдете из системы, а повторная
+                    регистрация создаст новый аккаунт без доступа к старым данным.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deletingAccount}>Отмена</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteAccount}
+                    disabled={deletingAccount}
+                  >
+                    Удалить
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </CardContent>
       </Card>
     </div>
