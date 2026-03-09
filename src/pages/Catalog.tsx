@@ -990,6 +990,123 @@ const Catalog = () => {
         )}
       </AnimatePresence>
 
+      {/* ─── Compare bar + modal ─── */}
+      <AnimatePresence>
+        {compareMode && (
+          <motion.div
+            initial={{ y: 32, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 32, opacity: 0 }}
+            className="fixed left-0 right-0 bottom-14 md:bottom-4 z-40"
+          >
+            <div className="max-w-7xl mx-auto px-4">
+              <div className="rounded-2xl border border-border/60 bg-card/95 backdrop-blur-md shadow-lg p-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-foreground">Сравнение услуг</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Выбрано: <span className="font-semibold text-foreground">{compareIds.length}</span> / {MAX_COMPARE}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={clearCompare}
+                    className="px-3 py-2 rounded-xl bg-muted text-foreground text-xs font-semibold hover:bg-muted/80 transition-colors"
+                    disabled={compareIds.length === 0}
+                  >
+                    Очистить
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (compareIds.length !== MAX_COMPARE) {
+                        toast({ title: "Выберите 2 услуги", description: "Чтобы открыть сравнение, отметьте две услуги в таблице." });
+                        return;
+                      }
+                      setShowCompare(true);
+                    }}
+                    className="px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors disabled:opacity-40"
+                    disabled={compareIds.length !== MAX_COMPARE}
+                  >
+                    Сравнить
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showCompare && compareServices.length === MAX_COMPARE && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowCompare(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.97, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.97, y: 10 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-5xl rounded-2xl border border-border/60 bg-card shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border/60">
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-foreground">Сравнение</h3>
+                  <p className="text-xs text-muted-foreground line-clamp-1">Описание, требования, цена и параметры</p>
+                </div>
+                <button
+                  onClick={() => setShowCompare(false)}
+                  className="p-2 rounded-xl hover:bg-muted transition-colors"
+                  aria-label="Закрыть"
+                >
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+              </div>
+
+              <div className="p-5 max-h-[78vh] overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                  {compareServices.map((s) => (
+                    <div key={s.id} className="rounded-2xl border border-border/60 p-4">
+                      <p className="text-xs text-muted-foreground mb-1">Услуга</p>
+                      <p className="text-sm font-bold text-foreground mb-1">{s.name}</p>
+                      <p className="text-lg font-bold text-foreground">{fmtPrice(s.price)} ₽ <span className="text-xs font-normal text-muted-foreground">/ 1000</span></p>
+                      <div className="flex items-center gap-3 mt-2">
+                        <SpeedBadge speed={s.speed} />
+                        <GuaranteeBadge guarantee={s.guarantee} />
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        <span className="text-[11px] text-muted-foreground">Мин: <span className="font-semibold text-foreground">{s.min_quantity.toLocaleString()}</span></span>
+                        <span className="text-[11px] text-muted-foreground">Макс: <span className="font-semibold text-foreground">{s.max_quantity.toLocaleString()}</span></span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-[180px_1fr_1fr] gap-3 text-sm">
+                  <div className="text-xs font-semibold text-muted-foreground md:pt-2">Описание</div>
+                  <div className="rounded-2xl border border-border/60 p-4 text-sm text-muted-foreground whitespace-pre-wrap">
+                    {compareServices[0].description || "—"}
+                  </div>
+                  <div className="rounded-2xl border border-border/60 p-4 text-sm text-muted-foreground whitespace-pre-wrap">
+                    {compareServices[1].description || "—"}
+                  </div>
+
+                  <div className="text-xs font-semibold text-muted-foreground md:pt-2">Предупреждение</div>
+                  <div className="rounded-2xl border border-border/60 p-4 text-sm text-muted-foreground whitespace-pre-wrap">
+                    {compareServices[0].warning_text || "—"}
+                  </div>
+                  <div className="rounded-2xl border border-border/60 p-4 text-sm text-muted-foreground whitespace-pre-wrap">
+                    {compareServices[1].warning_text || "—"}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ─── Warning Modal ─── */}
       <AnimatePresence>
         {showWarning && selectedService?.warning_text && (
