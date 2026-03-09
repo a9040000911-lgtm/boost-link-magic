@@ -617,7 +617,6 @@ const Catalog = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                           {categoryServices.map((service, i) => {
                             const isSelected = selectedService?.id === service.id;
-                            const pricePerUnit = service.price / 1000;
                             const isPopular = service.price === minPrice && categoryServices.length > 1;
                             return (
                               <motion.button
@@ -682,7 +681,7 @@ const Catalog = () => {
                                       ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
                                       : 'bg-muted text-foreground'
                                   }`}>
-                                    {fmtPrice(pricePerUnit)} ₽ / шт
+                                    {fmtPrice(service.price)} ₽ / 1000 шт
                                   </span>
                                 </div>
                               </motion.button>
