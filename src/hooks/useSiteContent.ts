@@ -9,6 +9,7 @@ const SITE_KEYS = [
   "site_brand_name", "site_brand_tagline",
   "site_social_telegram", "site_social_whatsapp",
   "site_footer_disclaimer",
+  "site_reviews",
 ];
 
 const DEFAULTS: Record<string, string> = {
@@ -38,6 +39,13 @@ const DEFAULTS: Record<string, string> = {
   site_social_telegram: "https://t.me/smmpanel",
   site_social_whatsapp: "https://wa.me/79001234567",
   site_footer_disclaimer: "Meta Platforms Inc. (Facebook, Instagram) признана экстремистской организацией и запрещена на территории Российской Федерации.",
+  site_reviews: JSON.stringify([
+    { name: "Алексей В.", rating: 5, message: "Лучший сервис по накрутке, что я пробовал. Всё быстро и качественно!", platform: "telegram" },
+    { name: "Мария К.", rating: 5, message: "Очень удобный интерфейс. Ссылка распознается мгновенно, не нужно ничего выбирать вручную.", platform: "instagram" },
+    { name: "Иван С.", rating: 4, message: "Поддержка ответила за 5 минут. Помогли разобраться с заказом. Рекомендую!", platform: "vk" },
+    { name: "Елена Р.", rating: 5, message: "Цены адекватные, результат виден сразу. Буду пользоваться постоянно.", platform: "youtube" },
+    { name: "Дмитрий П.", rating: 5, message: "Заказывал подписчиков в Telegram, прилетели за час. Без списаний!", platform: "telegram" },
+  ]),
 };
 
 export interface SiteContent {
@@ -55,6 +63,7 @@ export interface SiteContent {
   socialTelegram: string;
   socialWhatsapp: string;
   footerDisclaimer: string;
+  reviews: { name: string; rating: number; message: string; platform: string }[];
 }
 
 function parseJSON<T>(raw: string, fallback: T): T {
@@ -89,6 +98,7 @@ export function useSiteContent() {
           socialTelegram: s.site_social_telegram,
           socialWhatsapp: s.site_social_whatsapp,
           footerDisclaimer: s.site_footer_disclaimer,
+          reviews: parseJSON(s.site_reviews, []),
         });
         setLoading(false);
       });

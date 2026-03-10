@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import PlatformIcon from "@/components/PlatformIcon";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import SiteHeader from "@/components/SiteHeader";
 
 interface CatalogService {
   id: string;
@@ -198,6 +199,9 @@ const Catalog = () => {
   const [showExplainer, setShowExplainer] = useState(false);
   const [warningAccepted, setWarningAccepted] = useState<Record<string, boolean>>({});
   const [showWarning, setShowWarning] = useState(false);
+  const [showGuideline, setShowGuideline] = useState(false);
+  const [currentGuideline, setCurrentGuideline] = useState<{ content: string } | null>(null);
+  const [dismissedGuidelines, setDismissedGuidelines] = useState<Set<string>>(new Set());
 
   const prefillLink = searchParams.get('link') || '';
   const [link, setLink] = useState(prefillLink);
@@ -242,6 +246,37 @@ const Catalog = () => {
     loadCheckboxSettings();
   }, []);
 
+  // Auto-fill email from user session
+  useEffect(() => {
+    if (user?.email && !email) {
+      setEmail(user.email);
+    }
+  }, [user, email]);
+
+  // Restore pending order after silent login
+  useEffect(() => {
+    const isRestoring = searchParams.get("restoring_order") === "true";
+    if (isRestoring && user) {
+      const stored = localStorage.getItem("pending_order");
+      if (stored) {
+        try {
+          const pending = JSON.parse(stored);
+          // Only restore if it's the same email or recently created (within 1 hour)
+          if (pending.email === user.email && (Date.now() - pending.timestamp < 3600000)) {
+            setLink(pending.link);
+            setQuantity(pending.quantity);
+
+            // Automatically trigger order creation
+            handleCreateOrderAfterLogin(pending.link, pending.quantity, pending.serviceId);
+          }
+          localStorage.removeItem("pending_order");
+        } catch (e) {
+          console.error("Failed to restore pending order", e);
+        }
+      }
+    }
+  }, [user, searchParams, services]);
+
   useEffect(() => {
     const fetchServices = async () => {
       const { data } = await supabase
@@ -250,16 +285,27 @@ const Catalog = () => {
         .eq("is_enabled", true)
         .order("network")
         .order("category")
-        .order("name");
-      const items = (data || []) as CatalogService[];
+      const items = (data || []).map((s: any) => {
+        let net = s.network?.toLowerCase() || 'default';
+        if (net === 'odnoklassniki') net = 'ok';
+        return { ...s, network: net };
+      }) as CatalogService[];
+
       setServices(items);
       setLoading(false);
 
       if (items.length > 0) {
+        // Find the first network that has branding config
         const firstNet = networkConfig.find((n) => items.some((s) => s.network === n.key));
         if (firstNet) {
           setActiveNetwork(firstNet.key);
           const cats = [...new Set(items.filter((s) => s.network === firstNet.key).map((s) => s.category))];
+          if (cats.length > 0) setActiveCategory(cats[0]);
+        } else if (items.length > 0) {
+          // Fallback if no matching branding found
+          const fallbackNet = items[0].network;
+          setActiveNetwork(fallbackNet);
+          const cats = [...new Set(items.filter((s) => s.network === fallbackNet).map((s) => s.category))];
           if (cats.length > 0) setActiveCategory(cats[0]);
         }
       }
@@ -327,8 +373,28 @@ const Catalog = () => {
   const minPrice = categoryServices.length > 0 ? Math.min(...categoryServices.map(s => s.price)) : 0;
 
   const handleOrder = async () => {
-    if (!user) { navigate("/auth"); return; }
     if (!selectedService || !link.trim() || ordering) return;
+
+    if (!user) {
+      if (!email.trim() || !email.includes('@')) {
+        toast({ title: "Требуется Email", description: "Пожалуйста, введите корректный email для связи по заказу", variant: "destructive" });
+        return;
+      }
+
+      // Guest flow: Silent Onboarding
+      const pendingOrder = {
+        serviceId: selectedService.id,
+        link: link.trim(),
+        quantity,
+        email: email.trim(),
+        timestamp: Date.now()
+      };
+      localStorage.setItem("pending_order", JSON.stringify(pendingOrder));
+
+      toast({ title: "Создаем кабинет", description: "Почти готово! Мы создаем ваш личный кабинет для управления заказом." });
+      navigate(`/auth?onboarding=true&email=${encodeURIComponent(email)}`);
+      return;
+    }
 
     setOrdering(true);
     try {
@@ -341,21 +407,49 @@ const Catalog = () => {
       if (data?.deduplicated) {
         toast({ title: "Заказ уже создан", description: "Повторный запрос проигнорирован" });
       } else {
-        toast({ title: "✅ Заказ оформлен!", description: `${selectedService.name} × ${quantity} — ${fmtPrice(Number(data.price))}₽` });
+        toast({ title: "Заказ принят", description: "Мы начали работу над вашим заказом" });
+        setLink("");
       }
-      setLink(""); setConsentOffer(false); setConsentPD(false);
-    } catch (e: any) {
-      toast({ title: "Ошибка", description: e.message || "Ошибка при создании заказа", variant: "destructive" });
-    } finally { setOrdering(false); }
+    } catch (error: any) {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    } finally {
+      setOrdering(false);
+      // If order was created successfully, we should probably redirect or show a bigger success
+      // Let's assume the toast is enough for now, but ensure it's prominent
+    }
+  };
+
+  const handleCreateOrderAfterLogin = async (link: string, quantity: number, serviceId: string) => {
+    setOrdering(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-order", {
+        body: { service_id: serviceId, link, quantity },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "✨ Заказ успешно создан!",
+        description: `Номер вашего заказа: ${data.order_id || 'в обработке'}. Теперь он отобразится в вашем кабинете.`,
+        duration: 10000
+      });
+      navigate('/dashboard/orders');
+    } catch (error: any) {
+      toast({ title: "Ошибка создания заказа", description: error.message, variant: "destructive" });
+    } finally {
+      setOrdering(false);
+    }
   };
 
   const selectService = (service: CatalogService) => {
+    setSelectedService(service);
+    setQuantity(Math.max(service.min_quantity, 10));
+
     if (compareMode) {
       toggleCompareService(service);
       return;
     }
-    setSelectedService(service);
-    setQuantity(Math.max(service.min_quantity, 10));
+
     // Show warning if service has one and user hasn't accepted it yet
     if (service.warning_text && !warningAccepted[service.id]) {
       setShowWarning(true);
@@ -381,6 +475,36 @@ const Catalog = () => {
       setWarningAccepted(prev => ({ ...prev, [selectedService.id]: true }));
     }
     setShowWarning(false);
+  };
+
+  useEffect(() => {
+    const fetchGuideline = async () => {
+      if (!activeNetwork || !activeCategory) return;
+
+      const guidelineKey = `${activeNetwork}-${activeCategory}`;
+      if (dismissedGuidelines.has(guidelineKey)) return;
+
+      const { data, error } = await supabase
+        .from('category_guidelines' as any)
+        .select('content')
+        .eq('platform', activeNetwork)
+        .eq('category', activeCategory)
+        .maybeSingle();
+
+      if (data && !error) {
+        setCurrentGuideline(data as { content: string });
+        setShowGuideline(true);
+      }
+    };
+
+    fetchGuideline();
+  }, [activeNetwork, activeCategory, dismissedGuidelines]);
+
+  const dismissGuideline = () => {
+    if (activeNetwork && activeCategory) {
+      setDismissedGuidelines(prev => new Set(prev).add(`${activeNetwork}-${activeCategory}`));
+    }
+    setShowGuideline(false);
   };
 
   /* ─── Speed/Guarantee badges (reusable) ─── */
@@ -420,7 +544,8 @@ const Catalog = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-background scrollbar-none pt-16 overflow-x-hidden">
+      <SiteHeader />
       {/* Pre-fill banner */}
       {prefillLink && (
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className={`${activeNetConfig?.lightBg || 'bg-primary/10'} border-b ${activeNetConfig?.border || 'border-primary/20'} px-4 py-2 shrink-0`}>
@@ -433,10 +558,10 @@ const Catalog = () => {
         </motion.div>
       )}
 
-      {/* Header with prominent search */}
+      {/* Header — compact */}
       <div className="border-b border-border/60 bg-card/50 shrink-0">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-4 py-2">
+          <div className="flex items-center gap-2">
             <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
               <ArrowLeft className="w-4 h-4" /> <span className="hidden sm:inline">На главную</span>
             </Link>
@@ -453,30 +578,28 @@ const Catalog = () => {
         </div>
       </div>
 
-      {/* Platform Icons — ultra-smooth animation */}
+      {/* Platform Icons — centered wrap */}
       <div className="border-b border-border/40 bg-muted/20 shrink-0">
         <div className="max-w-7xl mx-auto px-4 py-2">
-          <div className="flex flex-wrap gap-1.5 justify-center items-center">
+          <div className="flex flex-wrap gap-2 justify-center items-center">
             {availableNetworks.map((net) => {
               const isActive = activeNetwork === net.key;
               return (
                 <button
                   key={net.key}
                   onClick={() => handleNetworkChange(net.key)}
-                  className={`relative transition-all duration-300 ease-out ${isActive
-                    ? `inline-flex items-center gap-2 px-4 py-2.5 rounded-xl ${net.bg} text-white shadow-lg ${net.shadow} scale-105`
-                    : "w-11 h-11 rounded-xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border hover:shadow-sm scale-100"
+                  className={`transition-all duration-300 ${isActive
+                    ? `inline-flex items-center gap-2 px-4 py-2 rounded-xl ${net.bg} text-white shadow-md scale-105`
+                    : "w-10 h-10 rounded-xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground"
                     }`}
                   title={net.label}
                 >
-                  <div className="flex items-center gap-2">
-                    <PlatformIcon platform={net.icon} className="w-7 h-7" />
-                    {isActive && (
-                      <span className="text-sm font-semibold hidden sm:inline whitespace-nowrap">
-                        {net.label}
-                      </span>
-                    )}
-                  </div>
+                  <PlatformIcon platform={net.icon} className={isActive ? "w-6 h-6" : "w-5 h-5"} />
+                  {isActive && (
+                    <span className="text-xs font-bold whitespace-nowrap">
+                      {net.label}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -515,15 +638,15 @@ const Catalog = () => {
 
             {/* Center — Service List */}
             <div className="flex-1 min-w-0 flex flex-col min-h-0">
-              {/* Mobile category pills */}
+              {/* Mobile category pills — centered wrap */}
               <div className="md:hidden mb-2 shrink-0">
-                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                <div className="flex flex-wrap gap-1.5 justify-center scrollbar-none">
                   {categories.map((cat) => (
                     <button
                       key={cat}
                       onClick={() => handleCategoryChange(cat)}
-                      className={`px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors border ${activeCategory === cat
-                        ? `${activeNetConfig?.bg || 'bg-primary'} text-white border-transparent`
+                      className={`px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all border ${activeCategory === cat
+                        ? `${activeNetConfig?.bg || 'bg-primary'} text-white border-transparent shadow-sm`
                         : "bg-muted text-muted-foreground border-transparent"
                         }`}
                     >{cat}</button>
@@ -790,14 +913,23 @@ const Catalog = () => {
                       </div>
                     </div>
 
-                    {/* Email */}
-                    <div className="shrink-0">
-                      <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Email</label>
-                      <div className="relative">
-                        <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
-                        <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" className="pl-8 h-9 text-sm bg-muted/30 border-border/40" />
+                    {/* Email - Hidden for logged-in users to reduce friction */}
+                    {!user && (
+                      <div className="shrink-0">
+                        <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Email</label>
+                        <div className="relative">
+                          <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
+                          <Input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="you@email.com"
+                            className={`pl-8 h-9 text-sm bg-muted/30 border ${activeNetConfig?.border || 'border-border/40'}`}
+                          />
+                        </div>
+                        <p className="text-[9px] text-muted-foreground mt-1">Используется для уведомлений о статусе заказа</p>
                       </div>
-                    </div>
+                    )}
 
                     {/* Quantity */}
                     <div className="shrink-0">
@@ -886,7 +1018,7 @@ const Catalog = () => {
             initial={{ y: 100 }}
             animate={{ y: 0 }}
             exit={{ y: 100 }}
-            className="md:hidden fixed bottom-14 left-0 right-0 z-40 border-t border-border/60 bg-card/95 backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.15)]"
+            className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border/60 bg-card/95 backdrop-blur-md shadow-[0_-8px_30px_rgba(0,0,0,0.15)] pb-safe"
           >
             <div className="px-3 pt-3 pb-2 space-y-2">
               {/* Selected service mini-info */}
@@ -1071,6 +1203,55 @@ const Catalog = () => {
                     </div>
                   )}
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Category Guideline Modal ─── */}
+      <AnimatePresence>
+        {showGuideline && currentGuideline && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+            onClick={dismissGuideline}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className={`relative max-w-lg w-full rounded-3xl bg-card border border-border/40 p-8 shadow-2xl overflow-hidden`}
+            >
+              {/* Background gradient hint */}
+              <div className={`absolute -top-24 -right-24 w-48 h-48 rounded-full blur-3xl opacity-20 ${activeNetConfig?.bg || 'bg-primary'}`} />
+
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className={`w-12 h-12 rounded-2xl ${activeNetConfig?.bg || 'bg-primary/10'} border ${activeNetConfig?.border || 'border-primary/20'} flex items-center justify-center`}>
+                    <Info className={`w-6 h-6 ${activeNetConfig?.color || 'text-primary'}`} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold">Правила оформления</h3>
+                    <p className="text-sm text-muted-foreground">Пожалуйста, прочтите перед заказом</p>
+                  </div>
+                </div>
+
+                <div className="prose prose-sm prose-invert max-w-none mb-8">
+                  <div className="text-muted-foreground space-y-4 whitespace-pre-line leading-relaxed border-l-2 border-primary/30 pl-4 py-1">
+                    {currentGuideline.content}
+                  </div>
+                </div>
+
+                <button
+                  onClick={dismissGuideline}
+                  className={`w-full py-4 rounded-2xl ${activeNetConfig?.bg || 'bg-primary'} text-white font-bold text-sm shadow-xl ${activeNetConfig?.shadow || 'shadow-primary/20'} hover:scale-[1.02] active:scale-[0.98] transition-all`}
+                >
+                  Я ознакомлен(а)
+                </button>
               </div>
             </motion.div>
           </motion.div>

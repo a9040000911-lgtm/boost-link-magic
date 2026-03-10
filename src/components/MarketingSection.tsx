@@ -14,7 +14,7 @@ const MarketingSection = () => {
   const { stats, features, featuresTitle, featuresSubtitle, ctaTitle, ctaText, ctaButton } = content;
 
   return (
-    <section className="py-20 px-4 bg-background">
+    <section className="pt-24 pb-20 px-4 bg-background">
       <div className="max-w-5xl mx-auto">
         {/* Stats */}
         <motion.div
