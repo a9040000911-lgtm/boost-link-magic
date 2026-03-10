@@ -46,7 +46,7 @@ const TestimonialsSection = () => {
   };
 
   return (
-    <section className="py-24 px-4 bg-background relative overflow-hidden">
+    <section id="testimonials" className="py-24 relative overflow-hidden">
       {/* Background Decor */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[100px] -translate-y-1/2" />
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-secondary/5 rounded-full blur-[100px] translate-y-1/2" />
@@ -163,8 +163,8 @@ const TestimonialsSection = () => {
                 key={i}
                 onClick={() => setCurrent(i)}
                 className={`w-2 h-2 rounded-full transition-all duration-500 ${i === current
-                    ? 'w-10 bg-primary shadow-lg shadow-primary/20'
-                    : 'bg-muted-foreground/20 hover:bg-muted-foreground/40'
+                  ? 'w-10 bg-primary shadow-lg shadow-primary/20'
+                  : 'bg-muted-foreground/20 hover:bg-muted-foreground/40'
                   }`}
               />
             ))}

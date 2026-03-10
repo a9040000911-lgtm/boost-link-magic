@@ -33,60 +33,107 @@ const SiteHeader = () => {
     const isHomePage = location.pathname === '/';
     const isCatalogPage = location.pathname === '/catalog';
 
+    const scrollToReviews = () => {
+        if (!isHomePage) {
+            navigate('/?scroll=testimonials');
+            return;
+        }
+        const element = document.getElementById('testimonials');
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+
     return (
         <header
-            className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 px-4 py-3 ${scrolled ? 'bg-background/80 backdrop-blur-lg border-b border-border/40 shadow-sm' : 'bg-transparent border-none shadow-none'
+            className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 px-4 py-4 ${scrolled ? 'bg-background/80 backdrop-blur-xl border-b border-white/10 shadow-lg' : 'bg-transparent border-none shadow-none'
                 }`}
         >
             <div className="max-w-7xl mx-auto flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    {!isHomePage && (
-                        <button
-                            onClick={() => navigate('/')}
-                            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all active:scale-95 md:hidden"
-                        >
-                            <Home className="w-5 h-5" />
-                        </button>
-                    )}
+                {/* Left: Branding */}
+                <div className="flex items-center gap-8">
                     <div
                         onClick={() => navigate('/')}
-                        className="cursor-pointer flex items-center gap-2"
+                        className="cursor-pointer flex items-center gap-2.5 group"
                     >
-                        <div className={`w-8 h-8 rounded-lg bg-primary hidden md:flex items-center justify-center shadow-lg shadow-primary/20`}>
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 ${scrolled
+                                ? 'bg-primary shadow-lg shadow-primary/20 rotate-0 group-hover:rotate-12'
+                                : 'bg-white/10 backdrop-blur-md border border-white/20 group-hover:bg-white/20'
+                            }`}>
                             <Sparkles className="w-5 h-5 text-white" />
                         </div>
-                        <span className={`text-xl font-black tracking-tighter ${scrolled ? 'text-foreground' : 'text-white'} hidden sm:block`}>
-                            COOLLIKE
-                        </span>
+                        <div className="flex flex-col -gap-1">
+                            <span className={`text-xl font-black tracking-tighter transition-colors ${scrolled ? 'text-foreground' : 'text-white'}`}>
+                                COOLLIKE
+                            </span>
+                            <div className="flex items-center gap-1.5 grayscale opacity-70">
+                                <span className="relative flex h-1.5 w-1.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+                                </span>
+                                <span className={`text-[10px] font-medium uppercase tracking-widest ${scrolled ? 'text-muted-foreground' : 'text-white/60'}`}>
+                                    Live: 142
+                                </span>
+                            </div>
+                        </div>
                     </div>
+
+                    {/* Desktop Navigation (Center-left) */}
+                    <nav className="hidden lg:flex items-center gap-6">
+                        <button
+                            onClick={() => navigate('/catalog')}
+                            className={`text-sm font-semibold transition-colors hover:text-primary ${scrolled ? 'text-muted-foreground' : 'text-white/70'}`}
+                        >
+                            Каталог
+                        </button>
+                        <button
+                            onClick={scrollToReviews}
+                            className={`text-sm font-semibold transition-colors hover:text-primary ${scrolled ? 'text-muted-foreground' : 'text-white/70'}`}
+                        >
+                            Отзывы
+                        </button>
+                        <button
+                            onClick={() => navigate('/dashboard?tab=referrals')}
+                            className={`text-sm font-semibold transition-colors hover:text-primary ${scrolled ? 'text-muted-foreground' : 'text-white/70'}`}
+                        >
+                            Рефералы
+                        </button>
+                        <button
+                            onClick={() => navigate('/support')}
+                            className={`text-sm font-semibold transition-colors hover:text-primary ${scrolled ? 'text-muted-foreground' : 'text-white/70'}`}
+                        >
+                            Поддержка
+                        </button>
+                    </nav>
                 </div>
 
-                <div className="flex items-center gap-2">
+                {/* Right: Actions */}
+                <div className="flex items-center gap-3">
                     {!isCatalogPage && (
                         <button
                             onClick={() => navigate('/catalog')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 ${scrolled
-                                ? 'bg-primary/10 text-primary hover:bg-primary/20'
-                                : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
+                            className={`hidden sm:flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95 ${scrolled
+                                ? 'bg-primary/5 text-primary hover:bg-primary/10 border border-primary/20'
+                                : 'bg-white/5 text-white hover:bg-white/10 border border-white/10 backdrop-blur-md'
                                 }`}
                         >
                             <LayoutGrid className="w-3.5 h-3.5" />
-                            <span>Каталог</span>
+                            <span>Выбрать услугу</span>
                         </button>
                     )}
 
                     <button
                         onClick={() => navigate(session ? '/dashboard' : '/auth')}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all active:scale-95 group shadow-lg ${scrolled
-                            ? 'bg-primary text-white hover:bg-primary/90'
-                            : 'bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20'
+                        className={`flex items-center gap-2.5 px-4 py-2 rounded-full transition-all active:scale-95 group shadow-lg ${scrolled
+                            ? 'bg-primary text-white hover:bg-primary/90 shadow-primary/20'
+                            : 'bg-white text-black hover:bg-white/90'
                             }`}
                     >
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${scrolled ? 'bg-white/20' : 'bg-primary/20 group-hover:bg-primary/30'
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${scrolled ? 'bg-white/20' : 'bg-black/5'
                             }`}>
                             {session ? <User className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
                         </div>
-                        <span className="text-xs font-bold pr-1">{session ? 'Кабинет' : 'Вход'}</span>
+                        <span className="text-xs font-heavy tracking-wide uppercase">{session ? 'Кабинет' : 'Войти'}</span>
                     </button>
                 </div>
             </div>
