@@ -39,14 +39,22 @@ const AdminUsers = () => {
 
   const loadData = async () => {
     setLoading(true);
-    const { data: profilesData } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
-    setProfiles((profilesData || []) as Profile[]);
 
-    const { data: orders } = await supabase.from("orders").select("user_id, price");
-    if (orders) {
+    // Run all queries in parallel
+    const [profilesRes, ordersRes] = await Promise.all([
+      supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+      // Get order counts and sums in a single query
+      supabase.from("orders").select("user_id, price"),
+    ]);
+
+    const profilesData = profilesRes.data || [];
+    setProfiles(profilesData as Profile[]);
+
+    // Aggregate orders on client (more efficient than N+1 queries)
+    if (ordersRes.data) {
       const counts: Record<string, number> = {};
       const sums: Record<string, number> = {};
-      orders.forEach((o) => {
+      ordersRes.data.forEach((o) => {
         counts[o.user_id] = (counts[o.user_id] || 0) + 1;
         sums[o.user_id] = (sums[o.user_id] || 0) + Number(o.price);
       });
@@ -54,15 +62,15 @@ const AdminUsers = () => {
       setOrderSums(sums);
     }
 
-    if (profilesData && profilesData.length > 0) {
-      try {
-        const { data } = await supabase.functions.invoke("admin-user-management", {
-          body: { action: "list_users_auth", user_id: "bulk", user_ids: profilesData.map((p: any) => p.id) },
-        });
+    // Fetch auth data in parallel (non-blocking)
+    if (profilesData.length > 0) {
+      supabase.functions.invoke("admin-user-management", {
+        body: { action: "list_users_auth", user_id: "bulk", user_ids: profilesData.map((p: any) => p.id) },
+      }).then(({ data }) => {
         if (data && typeof data === "object" && !data.error) {
           setAuthMap(data);
         }
-      } catch (_) { /* non-critical */ }
+      }).catch(() => { /* non-critical */ });
     }
 
     setLoading(false);

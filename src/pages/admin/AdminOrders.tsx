@@ -34,6 +34,9 @@ interface Order {
   refunded_by: string | null;
   created_at: string;
   updated_at: string;
+  order_number?: number;
+  // Joined data
+  profiles?: { display_name: string | null; avatar_url: string | null } | null;
 }
 
 const statusLabels: Record<string, string> = {
@@ -80,7 +83,11 @@ const AdminOrders = () => {
   const loadData = async () => {
     setLoading(true);
     const [ordersRes, psRes, sRes] = await Promise.all([
-      supabase.from("orders").select("*").order("created_at", { ascending: false }),
+      // Use JOIN to fetch profiles in a single query
+      supabase.from("orders").select(`
+        *,
+        profiles:user_id(display_name, avatar_url)
+      `).order("created_at", { ascending: false }),
       supabase.from("provider_services").select("id, name, provider, provider_service_id, rate, network, category"),
       supabase.from("services").select("id, name, description, network, price, category"),
     ]);
@@ -92,28 +99,22 @@ const AdminOrders = () => {
 
   const [profilesMap, setProfilesMap] = useState<Record<string, { name: string; email?: string }>>({});
 
+  // Build profiles map from joined data and fetch emails in background
   useEffect(() => {
     if (orders.length === 0) return;
+
+    // First, build map from joined profiles data (already fetched)
+    const initialMap: Record<string, { name: string; email?: string }> = {};
+    orders.forEach((o) => {
+      const profile = (o as any).profiles;
+      initialMap[o.user_id] = {
+        name: profile?.display_name || o.user_id.slice(0, 8),
+      };
+    });
+    setProfilesMap(initialMap);
+
+    // Then fetch emails in background (non-blocking)
     const userIds = [...new Set(orders.map((o) => o.user_id))];
-
-    // Fetch display names
-    supabase
-      .from("profiles")
-      .select("id, display_name")
-      .in("id", userIds)
-      .then(({ data }) => {
-        const map: Record<string, { name: string; email?: string }> = {};
-        data?.forEach((p) => {
-          map[p.id] = { name: p.display_name || p.id.slice(0, 8) };
-        });
-        setProfilesMap((prev) => {
-          const merged = { ...prev };
-          Object.entries(map).forEach(([id, val]) => { merged[id] = { ...merged[id], ...val }; });
-          return merged;
-        });
-      });
-
-    // Fetch emails
     supabase.functions.invoke("admin-user-management", {
       body: { action: "list_users_auth", user_id: "bulk", user_ids: userIds },
     }).then(({ data }) => {
@@ -121,7 +122,7 @@ const AdminOrders = () => {
         setProfilesMap((prev) => {
           const merged = { ...prev };
           Object.entries(data).forEach(([id, info]: [string, any]) => {
-            merged[id] = { ...merged[id], name: merged[id]?.name || id.slice(0, 8), email: info?.email };
+            merged[id] = { ...merged[id], email: info?.email };
           });
           return merged;
         });
