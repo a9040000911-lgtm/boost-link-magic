@@ -354,7 +354,12 @@ const Catalog = () => {
       } else {
         toast({ title: "✅ Заказ оформлен!", description: `${selectedService.name} × ${quantity} — ${fmtPrice(Number(data.price))}₽` });
       }
-      setLink(""); setConsentOffer(false); setConsentPD(false);
+      // Redirect to success page with order details
+      if (data?.order_id) {
+        navigate(`/order/success?order_id=${data.order_id}&balance=${data.new_balance || 0}`);
+      } else {
+        navigate("/dashboard/orders");
+      }
     } catch (e: any) {
       toast({ title: "Ошибка", description: e.message || "Ошибка при создании заказа", variant: "destructive" });
     } finally { setOrdering(false); }

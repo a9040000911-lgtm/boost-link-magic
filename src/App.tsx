@@ -52,6 +52,7 @@ import AdminSiteContent from "./pages/admin/AdminSiteContent";
 import AdminMarketing from "./pages/admin/AdminMarketing";
 import DashboardBonuses from "./pages/dashboard/DashboardBonuses";
 import DashboardRules from "./pages/dashboard/DashboardRules";
+import OrderSuccess from "./pages/OrderSuccess";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +72,7 @@ const App = () => (
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/order/success" element={<OrderSuccess />} />
             <Route path="/dashboard" element={<Dashboard />}>
               <Route index element={<DashboardOverview />} />
               <Route path="orders" element={<DashboardOrders />} />
