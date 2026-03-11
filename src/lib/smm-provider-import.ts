@@ -356,10 +356,10 @@ export class ServiceClassifier {
       /discord/i, /дискорд/i, /discord\.gg/i, /discord\.com/i
     ], priority: 65 },
     
-    // VK - careful with "vk" in other words
+    // VK - careful with "vk" in other words, NO \b for Cyrillic!
     { id: 'vk', patterns: [
       /\bvk\s/i, /vkontakte/i, /вконтакте/i, /vk\.com/i, /vk\.ru/i,
-      /\bвк\s/i, /\bвк\b/i
+      /вк\s/i, /^вк\b/i, /\sвк\b/i
     ], priority: 60 },
     
     // Facebook
@@ -387,7 +387,8 @@ export class ServiceClassifier {
     
     // Kick
     { id: 'kick', patterns: [
-      /kick\.com/i, /кик\s*стрим/i, /\bkick\s*stream/i
+      /kick\.com/i, /кик\s*стрим/i, /\bkick\s*stream/i,
+      /\bkick\b/i, /кик\s*подпис/i, /кик\s*канал/i
     ], priority: 35 },
     
     // Threads
@@ -446,7 +447,7 @@ export class ServiceClassifier {
       /личн.*сообщ/i, /массов.*рассыл/i, /whatsapp.*message/i
     ], priority: 102 },
     
-    // Premium/Subscription
+    // Premium/Subscription - check before followers
     { id: 'premium', patterns: [
       /premium/i, /премиум/i, /подписк/i, /subscription/i,
       /subscriber/i, /vip/i
@@ -458,6 +459,11 @@ export class ServiceClassifier {
       /star.*telegram/i, /звезд/i, /\bcoin/i, /коин/i,
       /bit/i, /cheer/i, /tip/i, /чаев/i
     ], priority: 100 },
+    
+    // Monthly listeners (Spotify) - check before plays
+    { id: 'monthly_listeners', patterns: [
+      /месячн.*слушател/i, /monthly.*listener/i, /слушател.*месячн/i
+    ], priority: 98 },
     
     // Followers
     { id: 'followers', patterns: [
