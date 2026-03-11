@@ -1,3 +1,13 @@
+/**
+ * SMM Data Module
+ * Main export file for SMM-related types, classifiers, and analyzers
+ * 
+ * Re-exports from:
+ * - smm-provider-import.ts (Provider API, Service Classifier)
+ * - link-analyzer.ts (Link Analysis, URL Normalization)
+ * - unified-categories.ts (Network & Activity definitions)
+ */
+
 export type Platform = 'instagram' | 'youtube' | 'tiktok' | 'telegram' | 'vk' | string;
 
 export type LinkType =
@@ -22,7 +32,7 @@ export interface LinkAnalysis {
   contentId?: string;
   label: string;
   raw: string;
-  categoryId?: string; // optional DB category mapping
+  categoryId?: string;
 }
 
 export interface Category {
@@ -354,3 +364,51 @@ export function getServicesForCategory(categoryId: string): Service[] {
     { id: 'def3', name: 'Pro', description: 'Максимальное качество и гарантия', price: '4₽', minOrder: 50, maxOrder: 10000, speed: '200/час' },
   ];
 }
+
+// =============================================================================
+// RE-EXPORT FROM NEW MODULES
+// =============================================================================
+
+export {
+  ProviderAPIClient,
+  ServiceClassifier,
+  NETWORK_NAMES,
+  NETWORK_COLORS,
+  NETWORK_ICONS,
+  ACTIVITY_NAMES,
+  type ProviderConfig,
+  type ProviderService,
+  type ImportedService,
+  type ImportResult,
+  SOCIAL_NETWORKS,
+  ACTIVITY_TYPES,
+} from './smm-provider-import';
+
+export {
+  LinkAnalyzer as EnhancedLinkAnalyzer,
+  getServiceRequirements,
+  isValidForNetwork,
+  getSupportedNetworks,
+  getLinkTypesForNetwork,
+  type LinkAnalysisResult,
+  type LinkChoice,
+  type ServiceRequirement,
+  type ServiceLinkRequirement,
+} from './link-analyzer';
+
+export {
+  SOCIAL_NETWORKS_LIST,
+  ACTIVITY_TYPES_LIST,
+  NETWORK_ACTIVITIES,
+  getNetworkById,
+  getActivityById,
+  getPopularNetworks,
+  getActivitiesForNetwork,
+  detectNetworkFromUrl,
+  getNetworkName,
+  getActivityName,
+  NETWORK_NAMES_RU,
+  ACTIVITY_NAMES_RU,
+  type SocialNetwork,
+  type ActivityType,
+} from './unified-categories';
