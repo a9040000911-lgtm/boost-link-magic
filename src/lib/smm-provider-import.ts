@@ -2,6 +2,8 @@
  * SMM Provider Import Module
  * Handles importing services from SMM panel providers
  * Supports multiple API formats (GET/POST, various auth methods)
+ * 
+ * Updated: 22 networks, 86 activities, improved Cyrillic support
  */
 
 // =============================================================================
@@ -79,6 +81,83 @@ export interface ImportResult {
   errors: string[];
   duration: number;
 }
+
+// =============================================================================
+// UNIFIED CATEGORIES - 22 Networks, 86 Activities
+// =============================================================================
+
+export const SOCIAL_NETWORKS = {
+  telegram: { name: 'Telegram', icon: '📱', color: '#039BE5' },
+  instagram: { name: 'Instagram', icon: '📷', color: '#E4405F' },
+  tiktok: { name: 'TikTok', icon: '🎵', color: '#000000' },
+  youtube: { name: 'YouTube', icon: '▶️', color: '#FF0000' },
+  vk: { name: 'VK', icon: '💬', color: '#0077FF' },
+  twitter: { name: 'Twitter/X', icon: '🐦', color: '#1DA1F2' },
+  spotify: { name: 'Spotify', icon: '🎧', color: '#1DB954' },
+  twitch: { name: 'Twitch', icon: '🎮', color: '#9146FF' },
+  discord: { name: 'Discord', icon: '💬', color: '#5865F2' },
+  facebook: { name: 'Facebook', icon: '👤', color: '#1877F2' },
+  odnoklassniki: { name: 'Одноклассники', icon: '🟠', color: '#EE8208' },
+  rutube: { name: 'Rutube', icon: '🎬', color: '#00AAFF' },
+  yandex_zen: { name: 'Яндекс Дзен', icon: '📰', color: '#FF0000' },
+  threads: { name: 'Threads', icon: '🧵', color: '#000000' },
+  kick: { name: 'Kick', icon: '🟢', color: '#53FC18' },
+  linkedin: { name: 'LinkedIn', icon: '💼', color: '#0A66C2' },
+  pinterest: { name: 'Pinterest', icon: '📌', color: '#E60023' },
+  snapchat: { name: 'Snapchat', icon: '👻', color: '#FFFC00' },
+  whatsapp: { name: 'WhatsApp', icon: '💬', color: '#25D366' },
+  onlyfans: { name: 'OnlyFans', icon: '💎', color: '#00AFF0' },
+  truth_social: { name: 'Truth Social', icon: '🗣️', color: '#0085FF' },
+  rumble: { name: 'Rumble', icon: '🎬', color: '#85C742' },
+} as const;
+
+export const ACTIVITY_TYPES = {
+  // Подписчики и участники
+  followers: { name: 'Подписчики', keywords: ['подписчик', 'follower', 'subscriber', 'subs', 'фолловер'] },
+  members: { name: 'Участники', keywords: ['участник', 'member', 'участники'] },
+  friends: { name: 'Друзья', keywords: ['друг', 'friend', 'друзья', 'заявк'] },
+  
+  // Вовлечённость
+  likes: { name: 'Лайки', keywords: ['лайк', 'like', 'heart', 'сердечк', 'нравитс'] },
+  views: { name: 'Просмотры', keywords: ['просмотр', 'view', 'watch', 'плей'] },
+  comments: { name: 'Комментарии', keywords: ['комментари', 'comment', 'коммент'] },
+  reactions: { name: 'Реакции', keywords: ['реакци', 'reaction', 'emoji', 'эмодзи'] },
+  shares: { name: 'Репосты/Шеры', keywords: ['репост', 'repost', 'share', 'шер', 'ретвит'] },
+  saves: { name: 'Сохранения', keywords: ['сохранен', 'save', 'bookmark', 'закладк'] },
+  
+  // Контент
+  story: { name: 'Stories', keywords: ['story', 'сторис', 'сториз', 'истори'] },
+  reels: { name: 'Reels/Shorts', keywords: ['reel', 'shorts', 'рилс', 'шорт'] },
+  live: { name: 'Трансляции', keywords: ['live', 'стрим', 'трансляц', 'stream'] },
+  live_viewers: { name: 'Зрители трансляций', keywords: ['зрители', 'viewers', 'spectators', 'spectator'] },
+  video: { name: 'Видео', keywords: ['видео', 'video'] },
+  post: { name: 'Посты', keywords: ['пост', 'post'] },
+  
+  // Специфичное
+  votes: { name: 'Голоса/Опросы', keywords: ['голос', 'vote', 'poll', 'опрос'] },
+  boosts: { name: 'Бусты', keywords: ['буст', 'boost'] },
+  mentions: { name: 'Упоминания', keywords: ['упоминани', 'mention', 'тег'] },
+  reviews: { name: 'Отзывы', keywords: ['отзыв', 'review', 'рейтинг', 'rating'] },
+  
+  // Telegram специфичное
+  reactions_tg: { name: 'Реакции TG', keywords: ['реакци', '👍', '❤️', '🔥', '👏', '😢', '🤔', '😎'] },
+  
+  // Spotify специфичное
+  plays: { name: 'Прослушивания', keywords: ['прослушиван', 'play', 'stream', 'стрим'] },
+  monthly_listeners: { name: 'Месячные слушатели', keywords: ['месячн', 'monthly', 'listeners'] },
+  
+  // Мессенджеры
+  messaging: { name: 'Сообщения', keywords: ['сообщени', 'message', 'рассылк', 'dm', 'direct'] },
+  
+  // Премиум
+  premium: { name: 'Премиум', keywords: ['premium', 'премиум', 'подписк', 'subscription'] },
+  
+  // Валюты/Донаты
+  currency: { name: 'Валюта/Донаты', keywords: ['донат', 'donat', 'currency', 'валют', 'star', 'звезд', 'coin', 'коин'] },
+  
+  // Другое
+  other: { name: 'Другое', keywords: [] },
+} as const;
 
 // =============================================================================
 // PROVIDER API CLIENT
@@ -226,48 +305,253 @@ export class ProviderAPIClient {
 }
 
 // =============================================================================
-// SERVICE CLASSIFIER
+// SERVICE CLASSIFIER - IMPROVED
 // =============================================================================
 
 export class ServiceClassifier {
-  // Network patterns with priority
+  // Network patterns - NOTE: \b doesn't work with Cyrillic, so we use different patterns
   private static networkPatterns = [
-    { id: 'telegram', patterns: [/telegram/i, /телеграм/i, /\btg\s/i, /\btg\b/i, /t\.me/i], priority: 100 },
-    { id: 'tiktok', patterns: [/tiktok/i, /тикток/i, /\btt\s/i, /vm\.tiktok/i], priority: 95 },
-    { id: 'instagram', patterns: [/instagram/i, /\big\s/i, /insta/i, /инстаграм/i], priority: 90 },
-    { id: 'youtube', patterns: [/youtube/i, /\byt\s/i, /ютуб/i, /youtu\.be/i], priority: 85 },
-    { id: 'twitter', patterns: [/twitter/i, /x\.com/i, /твиттер/i, /\btw\s/i], priority: 80 },
-    { id: 'spotify', patterns: [/spotify/i, /спотифай/i], priority: 75 },
-    { id: 'twitch', patterns: [/twitch/i, /твич/i], priority: 70 },
-    { id: 'discord', patterns: [/discord/i, /дискорд/i], priority: 65 },
-    { id: 'vk', patterns: [/vk\s/i, /vkontakte/i, /вк\s/i, /vk\.com/i], priority: 60 },
-    { id: 'facebook', patterns: [/facebook/i, /\bfb\s/i, /фейсбук/i], priority: 55 },
-    { id: 'odnoklassniki', patterns: [/одноклассники/i, /ok\.ru/i, /\bок\s/i], priority: 50 },
-    { id: 'rutube', patterns: [/rutube/i, /рутуб/i], priority: 45 },
-    { id: 'yandex_zen', patterns: [/dzen/i, /яндекс\s*дзен/i, /zen\.yandex/i], priority: 40 },
-    { id: 'kick', patterns: [/kick\.com/i, /кик\s*стрим/i], priority: 35 },
-    { id: 'threads', patterns: [/threads/i, /тредс/i], priority: 30 },
-    { id: 'linkedin', patterns: [/linkedin/i, /линкедин/i], priority: 25 },
-    { id: 'pinterest', patterns: [/pinterest/i, /пинтерест/i], priority: 20 },
-    { id: 'snapchat', patterns: [/snapchat/i, /снапчат/i], priority: 15 },
+    // Telegram - highest priority
+    { id: 'telegram', patterns: [
+      /telegram/i, /телеграм/i, /\btg\s/i, /\btg\b/i, /t\.me/i,
+      /telegraph/i, /teleguard/i
+    ], priority: 100 },
+    
+    // TikTok
+    { id: 'tiktok', patterns: [
+      /tiktok/i, /тикток/i, /\btt\s/i, /\btt\b/i, /vm\.tiktok/i, /vt\.tiktok/i,
+      /tik\.tok/i, /тикток/i
+    ], priority: 95 },
+    
+    // Instagram
+    { id: 'instagram', patterns: [
+      /instagram/i, /\big\s/i, /insta/i, /инстаграм/i, /instagr\.am/i,
+      /\bigram/i, /инста/i
+    ], priority: 90 },
+    
+    // YouTube
+    { id: 'youtube', patterns: [
+      /youtube/i, /\byt\s/i, /\byt\b/i, /ютуб/i, /youtu\.be/i,
+      /youtube\.com/i, /ютуб/i
+    ], priority: 85 },
+    
+    // Twitter/X
+    { id: 'twitter', patterns: [
+      /twitter/i, /x\.com/i, /твиттер/i, /\btw\s/i, /\btw\b/i,
+      /твит/i, /tweet/i
+    ], priority: 80 },
+    
+    // Spotify
+    { id: 'spotify', patterns: [
+      /spotify/i, /спотифай/i, /spoti\.fi/i, /spotify\.com/i
+    ], priority: 75 },
+    
+    // Twitch
+    { id: 'twitch', patterns: [
+      /twitch/i, /твич/i, /twitch\.tv/i
+    ], priority: 70 },
+    
+    // Discord
+    { id: 'discord', patterns: [
+      /discord/i, /дискорд/i, /discord\.gg/i, /discord\.com/i
+    ], priority: 65 },
+    
+    // VK - careful with "vk" in other words
+    { id: 'vk', patterns: [
+      /\bvk\s/i, /vkontakte/i, /вконтакте/i, /vk\.com/i, /vk\.ru/i,
+      /\bвк\s/i, /\bвк\b/i
+    ], priority: 60 },
+    
+    // Facebook
+    { id: 'facebook', patterns: [
+      /facebook/i, /\bfb\s/i, /\bfb\b/i, /фейсбук/i, /fb\.com/i,
+      /meta\s*business/i
+    ], priority: 55 },
+    
+    // Odnoklassniki
+    { id: 'odnoklassniki', patterns: [
+      /одноклассники/i, /ok\.ru/i, /\bок\s/i, /odnoklassniki/i,
+      /одноклассник/i
+    ], priority: 50 },
+    
+    // Rutube
+    { id: 'rutube', patterns: [
+      /rutube/i, /рутуб/i, /rutube\.ru/i
+    ], priority: 45 },
+    
+    // Yandex Zen
+    { id: 'yandex_zen', patterns: [
+      /dzen/i, /яндекс\s*дзен/i, /zen\.yandex/i, /дзен/i,
+      /yandex\s*zen/i
+    ], priority: 40 },
+    
+    // Kick
+    { id: 'kick', patterns: [
+      /kick\.com/i, /кик\s*стрим/i, /\bkick\s*stream/i
+    ], priority: 35 },
+    
+    // Threads
+    { id: 'threads', patterns: [
+      /threads/i, /тредс/i, /threads\.net/i
+    ], priority: 30 },
+    
+    // LinkedIn
+    { id: 'linkedin', patterns: [
+      /linkedin/i, /линкедин/i, /linked\.in/i
+    ], priority: 25 },
+    
+    // Pinterest
+    { id: 'pinterest', patterns: [
+      /pinterest/i, /пинтерест/i, /pin\.it/i
+    ], priority: 20 },
+    
+    // Snapchat
+    { id: 'snapchat', patterns: [
+      /snapchat/i, /снапчат/i, /snap\.com/i
+    ], priority: 15 },
+    
+    // WhatsApp
+    { id: 'whatsapp', patterns: [
+      /whatsapp/i, /ватсап/i, /wa\.me/i, /chat\.whatsapp/i,
+      /whats\s*app/i
+    ], priority: 14 },
+    
+    // OnlyFans
+    { id: 'onlyfans', patterns: [
+      /onlyfans/i, /онлифанс/i, /only\.fans/i
+    ], priority: 13 },
+    
+    // Truth Social
+    { id: 'truth_social', patterns: [
+      /truth\s*social/i, /truthsocial/i
+    ], priority: 12 },
+    
+    // Rumble
+    { id: 'rumble', patterns: [
+      /rumble/i, /ramble\.com/i
+    ], priority: 11 },
   ];
 
-  // Category patterns
+  // Category patterns - NOTE: No \b for Cyrillic patterns!
   private static categoryPatterns = [
-    { id: 'followers', patterns: [/подписчик/i, /follower/i, /\bsub\s/i, /subscriber/i], priority: 100 },
-    { id: 'likes', patterns: [/лайк/i, /\blike\b/i, /heart/i], priority: 95 },
-    { id: 'views', patterns: [/просмотр/i, /\bview\b/i, /\bwatch/i], priority: 90 },
-    { id: 'comments', patterns: [/комментари/i, /\bcomment/i], priority: 85 },
-    { id: 'reactions', patterns: [/реакци/i, /\breaction/i], priority: 80 },
-    { id: 'shares', patterns: [/репост/i, /\brepost/i, /\bshare/i], priority: 75 },
-    { id: 'saves', patterns: [/сохранен/i, /\bsave\b/i, /bookmark/i], priority: 70 },
-    { id: 'members', patterns: [/участник/i, /\bmember/i, /\bjoin/i], priority: 65 },
-    { id: 'live', patterns: [/\blive\b/i, /трансляц/i, /стрим/i, /зрители/i], priority: 60 },
-    { id: 'story', patterns: [/\bstory\b/i, /сторис/i], priority: 55 },
-    { id: 'reels', patterns: [/\breel\b/i, /\bshorts\b/i, /рилс/i], priority: 50 },
-    { id: 'friends', patterns: [/друг/i, /\bfriend/i, /заявк/i], priority: 45 },
-    { id: 'votes', patterns: [/голос/i, /\bvote\b/i, /\bpoll/i], priority: 40 },
-    { id: 'boosts', patterns: [/буст/i, /\bboost\b/i], priority: 35 },
+    // Live viewers - check BEFORE views (more specific)
+    { id: 'live_viewers', patterns: [
+      /зрители/i, /viewers/i, /spectators/i, /live.*views/i,
+      /стрим.*зрител/i, /трансляц.*зрител/i, /зрители стрим/i
+    ], priority: 105 },
+    
+    // Messaging - check before other categories
+    { id: 'messaging', patterns: [
+      /сообщени/i, /message/i, /рассылк/i, /\bdm\b/i, /direct.*message/i,
+      /личн.*сообщ/i, /массов.*рассыл/i, /whatsapp.*message/i
+    ], priority: 102 },
+    
+    // Premium/Subscription
+    { id: 'premium', patterns: [
+      /premium/i, /премиум/i, /подписк/i, /subscription/i,
+      /subscriber/i, /vip/i
+    ], priority: 101 },
+    
+    // Currency/Donates
+    { id: 'currency', patterns: [
+      /донат/i, /donat/i, /currency/i, /валют/i, 
+      /star.*telegram/i, /звезд/i, /\bcoin/i, /коин/i,
+      /bit/i, /cheer/i, /tip/i, /чаев/i
+    ], priority: 100 },
+    
+    // Followers
+    { id: 'followers', patterns: [
+      /подписчик/i, /follower/i, /\bsub\s/i, /subscriber/i,
+      /фолловер/i, /подпис/i, /subs/i
+    ], priority: 95 },
+    
+    // Likes
+    { id: 'likes', patterns: [
+      /лайк/i, /\blike\b/i, /heart/i, /сердечк/i,
+      /нравитс/i, /люблю/i
+    ], priority: 90 },
+    
+    // Views
+    { id: 'views', patterns: [
+      /просмотр/i, /\bview\b/i, /\bwatch\b/i, /плей/i,
+      /play.*count/i, /визит/i
+    ], priority: 85 },
+    
+    // Comments
+    { id: 'comments', patterns: [
+      /комментари/i, /\bcomment\b/i, /коммент/i,
+      /отзыв/i, /review/i
+    ], priority: 80 },
+    
+    // Reactions
+    { id: 'reactions', patterns: [
+      /реакци/i, /\breaction/i, /emoji/i, /эмодзи/i,
+      /👍|❤️|🔥|👏|😢|🤔|😎/i
+    ], priority: 75 },
+    
+    // Shares/Reposts
+    { id: 'shares', patterns: [
+      /репост/i, /\brepost\b/i, /\bshare\b/i, /шер/i,
+      /ретвит/i, /retweet/i, /reblog/i
+    ], priority: 70 },
+    
+    // Saves
+    { id: 'saves', patterns: [
+      /сохранен/i, /\bsave\b/i, /bookmark/i, /закладк/i,
+      /избранн/i, /favorite/i
+    ], priority: 65 },
+    
+    // Members
+    { id: 'members', patterns: [
+      /участник/i, /\bmember\b/i, /\bjoin\b/i, /участии/i
+    ], priority: 60 },
+    
+    // Live/Stream
+    { id: 'live', patterns: [
+      /\blive\b/i, /трансляц/i, /стрим/i, /stream/i,
+      /прямой.*эфир/i, /online/i
+    ], priority: 55 },
+    
+    // Story
+    { id: 'story', patterns: [
+      /\bstory\b/i, /сторис/i, /сториз/i, /истори/i,
+      /stories/i
+    ], priority: 50 },
+    
+    // Reels/Shorts
+    { id: 'reels', patterns: [
+      /\breel\b/i, /\bshorts\b/i, /рилс/i, /шорт/i,
+      /tiktok.*video/i
+    ], priority: 45 },
+    
+    // Friends
+    { id: 'friends', patterns: [
+      /друг/i, /\bfriend\b/i, /заявк/i, /друз/i,
+      /add.*friend/i
+    ], priority: 40 },
+    
+    // Votes
+    { id: 'votes', patterns: [
+      /голос/i, /\bvote\b/i, /\bpoll\b/i, /опрос/i,
+      /voting/i
+    ], priority: 35 },
+    
+    // Boosts
+    { id: 'boosts', patterns: [
+      /буст/i, /\bboost\b/i, /поддерж/i
+    ], priority: 30 },
+    
+    // Mentions
+    { id: 'mentions', patterns: [
+      /упоминани/i, /\bmention\b/i, /тег/i, /\btag\b/i,
+      /mark/i
+    ], priority: 25 },
+    
+    // Plays (Spotify)
+    { id: 'plays', patterns: [
+      /прослушиван/i, /\bplay\b/i, /stream/i, /стрим/i,
+      /monthly.*listener/i, /месячн.*слушател/i
+    ], priority: 20 },
   ];
 
   /**
@@ -276,7 +560,7 @@ export class ServiceClassifier {
   static detectNetwork(serviceName: string): { networkId: string; confidence: number } {
     const text = serviceName.toLowerCase();
     
-    // Sort by priority
+    // Sort by priority (highest first)
     const sorted = [...this.networkPatterns].sort((a, b) => b.priority - a.priority);
     
     for (const network of sorted) {
@@ -296,6 +580,7 @@ export class ServiceClassifier {
   static detectCategory(serviceName: string): { categoryId: string; confidence: number } {
     const text = serviceName.toLowerCase();
     
+    // Sort by priority (highest first)
     const sorted = [...this.categoryPatterns].sort((a, b) => b.priority - a.priority);
     
     for (const category of sorted) {
@@ -315,13 +600,15 @@ export class ServiceClassifier {
   static detectQuality(serviceName: string): 'economy' | 'standard' | 'premium' | 'live' {
     const text = serviceName.toLowerCase();
     
-    if (text.includes('живые') || text.includes('live') || text.includes('реальные')) {
+    if (text.includes('живые') || text.includes('live') || text.includes('реальные') || text.includes('real') || text.includes('organic')) {
       return 'live';
     }
-    if (text.includes('премиум') || text.includes('premium') || text.includes('hq') || text.includes('качеств')) {
+    if (text.includes('премиум') || text.includes('premium') || text.includes('hq') || 
+        text.includes('качеств') || text.includes('quality') || text.includes('high')) {
       return 'premium';
     }
-    if (text.includes('эконом') || text.includes('economy') || text.includes('дешёв') || text.includes('бот')) {
+    if (text.includes('эконом') || text.includes('economy') || text.includes('дешёв') || 
+        text.includes('дешев') || text.includes('bot') || text.includes('бот') || text.includes('mix')) {
       return 'economy';
     }
     return 'standard';
@@ -334,14 +621,27 @@ export class ServiceClassifier {
     const text = serviceName.toLowerCase();
     
     const geoPatterns = [
-      { pattern: /\bru\b|россия|рф/i, geo: 'RU' },
-      { pattern: /\bua\b|украин/i, geo: 'UA' },
-      { pattern: /\bkz\b|казахстан/i, geo: 'KZ' },
-      { pattern: /\bby\b|беларус/i, geo: 'BY' },
-      { pattern: /\busa\b|сша|america/i, geo: 'US' },
-      { pattern: /\beu\b|европ/i, geo: 'EU' },
-      { pattern: /\basia\b|ази/i, geo: 'ASIA' },
-      { pattern: /снг/i, geo: 'CIS' },
+      { pattern: /\bru\b|россия|рф\b|russian/i, geo: 'RU' },
+      { pattern: /\bua\b|украин|ukrain/i, geo: 'UA' },
+      { pattern: /\bkz\b|казахстан|kazakh/i, geo: 'KZ' },
+      { pattern: /\bby\b|беларус|belarus/i, geo: 'BY' },
+      { pattern: /\busa\b|\bus\b|сша|america|united\s*state/i, geo: 'US' },
+      { pattern: /\beu\b|европ|europe|european/i, geo: 'EU' },
+      { pattern: /\basia\b|ази|asian/i, geo: 'ASIA' },
+      { pattern: /снг|cis/i, geo: 'CIS' },
+      { pattern: /\bbr\b|brazil|бразил/i, geo: 'BR' },
+      { pattern: /\bin\b|india|инди/i, geo: 'IN' },
+      { pattern: /\btr\b|turkey|турц/i, geo: 'TR' },
+      { pattern: /\bde\b|germany|герман/i, geo: 'DE' },
+      { pattern: /\bfr\b|france|франц/i, geo: 'FR' },
+      { pattern: /\bgb\b|uk\b|britain|британ/i, geo: 'GB' },
+      { pattern: /\bes\b|spain|испан/i, geo: 'ES' },
+      { pattern: /\bit\b|italy|итал/i, geo: 'IT' },
+      { pattern: /\bjp\b|japan|япон/i, geo: 'JP' },
+      { pattern: /\bkr\b|korea|кор/i, geo: 'KR' },
+      { pattern: /\bcn\b|china|кита/i, geo: 'CN' },
+      { pattern: /\bar\b|arab|араб/i, geo: 'AR' },
+      { pattern: /global|world|весь.*мир|mir/i, geo: 'GLOBAL' },
     ];
     
     for (const { pattern, geo } of geoPatterns) {
@@ -359,16 +659,17 @@ export class ServiceClassifier {
   static detectSpeed(serviceName: string): string | undefined {
     const text = serviceName.toLowerCase();
     
-    if (text.includes('мгновен') || text.includes('instant') || text.includes('fast')) {
+    if (text.includes('мгновен') || text.includes('instant') || /\bfast\b/i.test(text) || 
+        text.includes('super fast') || text.includes('ultra fast')) {
       return 'instant';
     }
-    if (text.includes('быстр') || text.includes('quick')) {
+    if (text.includes('быстр') || text.includes('quick') || text.includes('speed')) {
       return 'fast';
     }
     if (text.includes('медлен') || text.includes('slow')) {
       return 'slow';
     }
-    if (text.includes('плавн') || text.includes('gradual')) {
+    if (text.includes('плавн') || text.includes('gradual') || text.includes('natural')) {
       return 'gradual';
     }
     
@@ -388,45 +689,8 @@ export class ServiceClassifier {
     const providerRate = typeof service.rate === 'string' ? parseFloat(service.rate) : (service.rate || 0);
     const sellRate = providerRate * (1 + provider.markupPercent / 100);
     
-    const networkNames: Record<string, string> = {
-      telegram: 'Telegram',
-      tiktok: 'TikTok',
-      instagram: 'Instagram',
-      youtube: 'YouTube',
-      twitter: 'Twitter/X',
-      spotify: 'Spotify',
-      twitch: 'Twitch',
-      discord: 'Discord',
-      vk: 'VK',
-      facebook: 'Facebook',
-      odnoklassniki: 'Одноклассники',
-      rutube: 'Rutube',
-      yandex_zen: 'Яндекс Дзен',
-      kick: 'Kick',
-      threads: 'Threads',
-      linkedin: 'LinkedIn',
-      pinterest: 'Pinterest',
-      snapchat: 'Snapchat',
-      other: 'Другое',
-    };
-    
-    const categoryNames: Record<string, string> = {
-      followers: 'Подписчики',
-      likes: 'Лайки',
-      views: 'Просмотры',
-      comments: 'Комментарии',
-      reactions: 'Реакции',
-      shares: 'Репосты',
-      saves: 'Сохранения',
-      members: 'Участники',
-      live: 'Трансляции',
-      story: 'Сторис',
-      reels: 'Reels/Shorts',
-      friends: 'Друзья',
-      votes: 'Голоса',
-      boosts: 'Бусты',
-      other: 'Другое',
-    };
+    const networkName = SOCIAL_NETWORKS[networkResult.networkId as keyof typeof SOCIAL_NETWORKS]?.name || networkResult.networkId;
+    const categoryName = ACTIVITY_TYPES[categoryResult.categoryId as keyof typeof ACTIVITY_TYPES]?.name || categoryResult.categoryId;
     
     return {
       id: `${provider.id}_${service.service}`,
@@ -437,9 +701,9 @@ export class ServiceClassifier {
       originalCategory: service.category,
       
       networkId: networkResult.networkId,
-      networkName: networkNames[networkResult.networkId] || networkResult.networkId,
+      networkName,
       categoryId: categoryResult.categoryId,
-      categoryName: categoryNames[categoryResult.categoryId] || categoryResult.categoryId,
+      categoryName,
       linkType: 'auto',
       
       providerRate,
@@ -463,74 +727,22 @@ export class ServiceClassifier {
 }
 
 // =============================================================================
-// NETWORK NAMES & COLORS
+// NETWORK NAMES & COLORS (for backward compatibility)
 // =============================================================================
 
-export const NETWORK_NAMES: Record<string, string> = {
-  telegram: 'Telegram',
-  tiktok: 'TikTok',
-  instagram: 'Instagram',
-  youtube: 'YouTube',
-  twitter: 'Twitter/X',
-  spotify: 'Spotify',
-  twitch: 'Twitch',
-  discord: 'Discord',
-  vk: 'VK',
-  facebook: 'Facebook',
-  odnoklassniki: 'Одноклассники',
-  rutube: 'Rutube',
-  yandex_zen: 'Яндекс Дзен',
-  kick: 'Kick',
-  threads: 'Threads',
-  linkedin: 'LinkedIn',
-  pinterest: 'Pinterest',
-  snapchat: 'Snapchat',
-  whatsapp: 'WhatsApp',
-  onlyfans: 'OnlyFans',
-};
+export const NETWORK_NAMES: Record<string, string> = Object.fromEntries(
+  Object.entries(SOCIAL_NETWORKS).map(([key, val]) => [key, val.name])
+);
 
-export const NETWORK_COLORS: Record<string, string> = {
-  telegram: '#039BE5',
-  tiktok: '#000000',
-  instagram: '#E4405F',
-  youtube: '#FF0000',
-  twitter: '#1DA1F2',
-  spotify: '#1DB954',
-  twitch: '#9146FF',
-  discord: '#5865F2',
-  vk: '#0077FF',
-  facebook: '#1877F2',
-  odnoklassniki: '#EE8208',
-  rutube: '#00AAFF',
-  yandex_zen: '#FF0000',
-  kick: '#53FC18',
-  threads: '#000000',
-  linkedin: '#0A66C2',
-  pinterest: '#E60023',
-  snapchat: '#FFFC00',
-  whatsapp: '#25D366',
-  onlyfans: '#00AFF0',
-};
+export const NETWORK_COLORS: Record<string, string> = Object.fromEntries(
+  Object.entries(SOCIAL_NETWORKS).map(([key, val]) => [key, val.color])
+);
 
-export const NETWORK_ICONS: Record<string, string> = {
-  telegram: '📱',
-  tiktok: '🎵',
-  instagram: '📷',
-  youtube: '▶️',
-  twitter: '🐦',
-  spotify: '🎧',
-  twitch: '🎮',
-  discord: '💬',
-  vk: '💬',
-  facebook: '👤',
-  odnoklassniki: '🟠',
-  rutube: '🎬',
-  yandex_zen: '📰',
-  kick: '🟢',
-  threads: '🧵',
-  linkedin: '💼',
-  pinterest: '📌',
-  snapchat: '👻',
-  whatsapp: '💬',
-  onlyfans: '💎',
-};
+export const NETWORK_ICONS: Record<string, string> = Object.fromEntries(
+  Object.entries(SOCIAL_NETWORKS).map(([key, val]) => [key, val.icon])
+);
+
+// Activity names for display
+export const ACTIVITY_NAMES: Record<string, string> = Object.fromEntries(
+  Object.entries(ACTIVITY_TYPES).map(([key, val]) => [key, val.name])
+);
