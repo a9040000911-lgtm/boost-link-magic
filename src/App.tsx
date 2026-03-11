@@ -50,8 +50,12 @@ import AdminAPI from "./pages/admin/AdminAPI";
 import Contact from "./pages/Contact";
 import AdminSiteContent from "./pages/admin/AdminSiteContent";
 import AdminMarketing from "./pages/admin/AdminMarketing";
+import AdminReferrals from "./pages/admin/AdminReferrals";
 import DashboardBonuses from "./pages/dashboard/DashboardBonuses";
 import DashboardRules from "./pages/dashboard/DashboardRules";
+import ReferralsPage from "./pages/dashboard/ReferralsPage";
+import About from "./pages/About";
+import FAQ from "./pages/FAQ";
 
 const queryClient = new QueryClient();
 
@@ -60,13 +64,15 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <LicenseGate>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/catalog" element={<Catalog />} />
             <Route path="/glossary" element={<Glossary />} />
             <Route path="/academy" element={<Academy />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/faq" element={<FAQ />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/auth" element={<Auth />} />
@@ -81,6 +87,7 @@ const App = () => (
               <Route path="bonuses" element={<DashboardBonuses />} />
               <Route path="rules" element={<DashboardRules />} />
               <Route path="support" element={<DashboardSupport />} />
+              <Route path="referrals" element={<ReferralsPage />} />
             </Route>
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
@@ -108,6 +115,7 @@ const App = () => (
               <Route path="api" element={<AdminAPI />} />
               <Route path="site-content" element={<AdminSiteContent />} />
               <Route path="marketing" element={<AdminMarketing />} />
+              <Route path="referrals" element={<AdminReferrals />} />
             </Route>
             <Route path="/page/:slug" element={<DynamicPage />} />
             <Route path="*" element={<NotFound />} />

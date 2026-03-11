@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkLicense } from "../_shared/license.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,30 +15,23 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // === HARDENED LICENSE VERIFICATION ===
+  const { valid, error: licError, userId } = await checkLicense(req);
+  if (!valid) {
+    console.error(`[License Blocked] Domain: ${req.headers.get('origin') || 'Unknown'}, Error: ${licError}`);
+    return json({ error: `License invalid: ${licError}. Please check settings.`, license_error: true }, 403);
+  }
+
+  if (!userId) {
+    return json({ error: 'Unauthorized' }, 401);
+  }
+
   try {
     const { code } = await req.json();
 
     if (!code || typeof code !== 'string' || code.length !== 6) {
       return json({ error: 'Введите 6-значный код' }, 400);
     }
-
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return json({ error: 'Unauthorized' }, 401);
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
-      return json({ error: 'Unauthorized' }, 401);
-    }
-    const userId = claimsData.claims.sub;
 
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL')!,

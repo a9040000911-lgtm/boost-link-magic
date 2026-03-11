@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkLicense } from "../_shared/license.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,6 +13,17 @@ const json = (body: object, status = 200) =>
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // === HARDENED LICENSE VERIFICATION ===
+  const { valid, error: licError, plan: licPlan, userId, userEmail } = await checkLicense(req);
+  if (!valid) {
+    console.error(`[License Blocked] Domain: ${req.headers.get('origin') || 'Unknown'}, Error: ${licError}`);
+    return json({ error: `License invalid: ${licError}. Please check settings.`, license_error: true }, 403);
+  }
+
+  if (!userId) {
+    return json({ error: 'Unauthorized' }, 401);
   }
 
   try {
@@ -32,24 +44,6 @@ serve(async (req) => {
       return json({ error: 'Invalid link format' }, 400);
     }
 
-    // === AUTH ===
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return json({ error: 'Unauthorized' }, 401);
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
-      return json({ error: 'Unauthorized' }, 401);
-    }
-    const userId = claimsData.claims.sub;
 
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -63,16 +57,7 @@ serve(async (req) => {
       enterprise: { maxOrdersPerMonth: 0, maxOrderAmount: 0 },
     };
 
-    // Get active license
-    const { data: activeLicense } = await adminClient
-      .from('licenses')
-      .select('plan, is_active, expires_at')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const currentPlan = activeLicense?.plan || 'standard';
+    const currentPlan = licPlan || 'standard';
     const defaults = PLAN_DEFAULTS[currentPlan] || PLAN_DEFAULTS.standard;
 
     // Read limits from app_settings
@@ -394,7 +379,7 @@ serve(async (req) => {
 
       // Cleanup old idempotency keys periodically (1% chance per request)
       if (Math.random() < 0.01) {
-        await adminClient.rpc('cleanup_idempotency_keys').catch(() => {});
+        await adminClient.rpc('cleanup_idempotency_keys').catch(() => { });
       }
 
       return json({

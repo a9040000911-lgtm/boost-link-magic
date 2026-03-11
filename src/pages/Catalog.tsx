@@ -11,6 +11,9 @@ import { Input } from "@/components/ui/input";
 import PlatformIcon from "@/components/PlatformIcon";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import SiteHeader from "@/components/SiteHeader";
+import SEO from "@/components/SEO";
+import { getMetaTitle, getMetaDescription } from "@/lib/seo";
 
 interface CatalogService {
   id: string;
@@ -24,6 +27,7 @@ interface CatalogService {
   speed: string;
   guarantee: string;
   warning_text: string | null;
+  link_type: string | null;
 }
 
 /* ─── Speed & Guarantee display helpers ─── */
@@ -40,28 +44,26 @@ const guaranteeMeta: Record<string, { label: string; icon: typeof Shield; color:
   "7d": { label: "7 дней", icon: Shield, color: "text-blue-500" },
   "30d": { label: "30 дней", icon: ShieldCheck, color: "text-emerald-500" },
   "60d": { label: "60 дней", icon: ShieldCheck, color: "text-green-500" },
-  lifetime: { label: "Навсегда", icon: ShieldCheck, color: "text-primary" },
+  lifetime: { label: "Навсегда", icon: ShieldCheck, color: "PLATFORM_COLOR" },
 };
 
 const getSpeedMeta = (s: string) => speedMeta[s] || speedMeta.medium;
 const getGuaranteeMeta = (g: string) => guaranteeMeta[g] || guaranteeMeta.none;
 
-const networkConfig: { key: string; label: string; icon: string; color: string; bg: string; border: string; shadow: string }[] = [
-  { key: "Instagram", label: "Instagram", icon: "instagram", color: "text-pink-500", bg: "bg-gradient-to-r from-pink-500 to-purple-500", border: "border-pink-400", shadow: "shadow-pink-500/25" },
-  { key: "YouTube", label: "YouTube", icon: "youtube", color: "text-red-500", bg: "bg-red-500", border: "border-red-400", shadow: "shadow-red-500/25" },
-  { key: "TikTok", label: "TikTok", icon: "tiktok", color: "text-foreground", bg: "bg-foreground", border: "border-foreground/60", shadow: "shadow-foreground/20" },
-  { key: "Telegram", label: "Telegram", icon: "telegram", color: "text-sky-500", bg: "bg-sky-500", border: "border-sky-400", shadow: "shadow-sky-500/25" },
-  { key: "VK", label: "ВКонтакте", icon: "vk", color: "text-blue-500", bg: "bg-blue-500", border: "border-blue-400", shadow: "shadow-blue-500/25" },
-  { key: "Twitter", label: "Twitter / X", icon: "twitter", color: "text-foreground", bg: "bg-foreground", border: "border-foreground/60", shadow: "shadow-foreground/20" },
-  { key: "Facebook", label: "Facebook", icon: "facebook", color: "text-blue-600", bg: "bg-blue-600", border: "border-blue-500", shadow: "shadow-blue-600/25" },
-  { key: "Twitch", label: "Twitch", icon: "twitch", color: "text-purple-500", bg: "bg-purple-500", border: "border-purple-400", shadow: "shadow-purple-500/25" },
-  { key: "Odnoklassniki", label: "Одноклассники", icon: "odnoklassniki", color: "text-orange-500", bg: "bg-orange-500", border: "border-orange-400", shadow: "shadow-orange-500/25" },
-  { key: "Likee", label: "Likee", icon: "likee", color: "text-rose-500", bg: "bg-gradient-to-r from-rose-500 to-pink-400", border: "border-rose-400", shadow: "shadow-rose-500/25" },
-  { key: "Dzen", label: "Дзен", icon: "dzen", color: "text-yellow-500", bg: "bg-yellow-500", border: "border-yellow-400", shadow: "shadow-yellow-500/25" },
-  { key: "MAX", label: "MAX", icon: "max", color: "text-indigo-500", bg: "bg-indigo-500", border: "border-indigo-400", shadow: "shadow-indigo-500/25" },
-  { key: "Spotify", label: "Spotify", icon: "spotify", color: "text-green-500", bg: "bg-green-500", border: "border-green-400", shadow: "shadow-green-500/25" },
-  { key: "Traffic", label: "Трафик", icon: "globe", color: "text-emerald-500", bg: "bg-emerald-500", border: "border-emerald-400", shadow: "shadow-emerald-500/25" },
-];
+import {
+  categoriesByPlatform,
+  getServicesForCategory,
+  platformBranding,
+  platformNames,
+  type Platform
+} from '@/lib/smm-data';
+
+const networkConfig = Object.keys(platformBranding).map(key => ({
+  key,
+  label: platformNames[key],
+  icon: key.toLowerCase(),
+  ...platformBranding[key]
+}));
 
 /* ─── Tariff Explainer — detailed ─── */
 const TariffExplainer = ({ onClose, netConfig }: { onClose: () => void; netConfig?: typeof networkConfig[0] }) => (
@@ -197,12 +199,14 @@ const Catalog = () => {
 
   // Compare (selection + modal)
   const [compareMode, setCompareMode] = useState(false);
-  const [compareIds, setCompareIds] = useState<string[]>([]);
-  const [showCompare, setShowCompare] = useState(false);
-
+  const [compareServices, setCompareServices] = useState<CatalogService[]>([]);
+  const [showCompareModal, setShowCompareModal] = useState(false);
   const [showExplainer, setShowExplainer] = useState(false);
   const [warningAccepted, setWarningAccepted] = useState<Record<string, boolean>>({});
   const [showWarning, setShowWarning] = useState(false);
+  const [showGuideline, setShowGuideline] = useState(false);
+  const [currentGuideline, setCurrentGuideline] = useState<{ content: string } | null>(null);
+  const [dismissedGuidelines, setDismissedGuidelines] = useState<Set<string>>(new Set());
 
   const prefillLink = searchParams.get('link') || '';
   const [link, setLink] = useState(prefillLink);
@@ -227,7 +231,7 @@ const Catalog = () => {
         .from("app_settings")
         .select("key, value")
         .in("key", ["show_offer_checkbox", "show_policy_checkbox", "offer_default_checked", "policy_default_checked"]);
-      
+
       if (data) {
         const settings: Record<string, boolean> = {};
         data.forEach((r: any) => {
@@ -247,24 +251,66 @@ const Catalog = () => {
     loadCheckboxSettings();
   }, []);
 
+  // Auto-fill email from user session
+  useEffect(() => {
+    if (user?.email && !email) {
+      setEmail(user.email);
+    }
+  }, [user, email]);
+
+  // Restore pending order after silent login
+  useEffect(() => {
+    const isRestoring = searchParams.get("restoring_order") === "true";
+    if (isRestoring && user) {
+      const stored = localStorage.getItem("pending_order");
+      if (stored) {
+        try {
+          const pending = JSON.parse(stored);
+          // Only restore if it's the same email or recently created (within 1 hour)
+          if (pending.email === user.email && (Date.now() - pending.timestamp < 3600000)) {
+            setLink(pending.link);
+            setQuantity(pending.quantity);
+
+            // Automatically trigger order creation
+            handleCreateOrderAfterLogin(pending.link, pending.quantity, pending.serviceId);
+          }
+          localStorage.removeItem("pending_order");
+        } catch (e) {
+          console.error("Failed to restore pending order", e);
+        }
+      }
+    }
+  }, [user, searchParams, services]);
+
   useEffect(() => {
     const fetchServices = async () => {
       const { data } = await supabase
         .from("services")
-        .select("id, name, description, price, min_quantity, max_quantity, category, network, speed, guarantee, warning_text")
+        .select("id, name, description, price, min_quantity, max_quantity, category, network, speed, guarantee, warning_text, link_type")
         .eq("is_enabled", true)
         .order("network")
         .order("category")
-        .order("name");
-      const items = (data || []) as CatalogService[];
+      const items = (data || []).map((s: any) => {
+        let net = s.network?.toLowerCase() || 'default';
+        if (net === 'odnoklassniki') net = 'ok';
+        return { ...s, network: net };
+      }) as CatalogService[];
+
       setServices(items);
       setLoading(false);
 
       if (items.length > 0) {
+        // Find the first network that has branding config
         const firstNet = networkConfig.find((n) => items.some((s) => s.network === n.key));
         if (firstNet) {
           setActiveNetwork(firstNet.key);
           const cats = [...new Set(items.filter((s) => s.network === firstNet.key).map((s) => s.category))];
+          if (cats.length > 0) setActiveCategory(cats[0]);
+        } else if (items.length > 0) {
+          // Fallback if no matching branding found
+          const fallbackNet = items[0].network;
+          setActiveNetwork(fallbackNet);
+          const cats = [...new Set(items.filter((s) => s.network === fallbackNet).map((s) => s.category))];
           if (cats.length > 0) setActiveCategory(cats[0]);
         }
       }
@@ -293,9 +339,59 @@ const Catalog = () => {
     return [...new Set(filtered.map((s) => s.category))].sort();
   }, [services, activeNetwork, search]);
 
+  const getLinkType = (url: string, network: string): string => {
+    if (!url) return "unknown";
+    const lowUrl = url.toLowerCase();
+    
+    if (network === "telegram" || network === "tg") {
+      // t.me/channel/123 or telegram.me/channel/123 -> post
+      // t.me/channel -> profile
+      if (lowUrl.includes("t.me/") || lowUrl.includes("telegram.me/")) {
+        const path = lowUrl.split("t.me/")[1] || lowUrl.split("telegram.me/")[1];
+        if (path && path.split("/").filter(Boolean).length >= 2) return "post";
+        return "profile";
+      }
+    }
+    
+    if (network === "instagram" || network === "ig") {
+      if (lowUrl.includes("/p/") || lowUrl.includes("/reels/") || lowUrl.includes("/tv/")) return "post";
+      if (lowUrl.includes("/stories/")) return "story";
+      return "profile";
+    }
+
+    if (network === "youtube" || network === "yt") {
+      if (lowUrl.includes("/watch") || lowUrl.includes("youtu.be/") || lowUrl.includes("/shorts/")) return "video";
+      return "profile";
+    }
+
+    if (network === "tiktok" || network === "tt") {
+      if (lowUrl.includes("/video/")) return "video";
+      return "profile";
+    }
+
+    return "unknown";
+  };
+
+  const detectedLinkType = useMemo(() => {
+    if (!link || !activeNetwork) return "unknown";
+    return getLinkType(link, activeNetwork);
+  }, [link, activeNetwork]);
+
+  const [showAllServices, setShowAllServices] = useState(false);
+
   const categoryServices = useMemo(() => {
     if (!activeNetwork || !activeCategory) return [];
     let filtered = services.filter((s) => s.network === activeNetwork && s.category === activeCategory);
+    
+    // Smart Filter by Link Type
+    if (link.trim() && detectedLinkType !== "unknown" && !showAllServices) {
+      const typeFiltered = filtered.filter(s => s.link_type === detectedLinkType || !s.link_type || s.link_type === "unknown");
+      // Only apply filter if it actually hides something, or if specifically for TG views
+      if (typeFiltered.length > 0 && typeFiltered.length < filtered.length) {
+        filtered = typeFiltered;
+      }
+    }
+
     if (search.trim()) {
       const q = search.toLowerCase();
       filtered = filtered.filter(
@@ -306,17 +402,12 @@ const Catalog = () => {
       );
     }
     return filtered;
-  }, [services, activeNetwork, activeCategory, search]);
-
-  const compareServices = useMemo(() => {
-    if (compareIds.length === 0) return [] as CatalogService[];
-    const byId = new Map(services.map((s) => [s.id, s] as const));
-    return compareIds.map((id) => byId.get(id)).filter(Boolean) as CatalogService[];
-  }, [compareIds, services]);
+  }, [services, activeNetwork, activeCategory, search, link, detectedLinkType, showAllServices]);
 
   const handleNetworkChange = (net: string) => {
     setActiveNetwork(net);
     setSelectedService(null);
+    setShowAllServices(false); // Reset filter when changing network
     const cats = [...new Set(services.filter((s) => s.network === net).map((s) => s.category))].sort();
     setActiveCategory(cats[0] || null);
   };
@@ -324,6 +415,7 @@ const Catalog = () => {
   const handleCategoryChange = (cat: string) => {
     setActiveCategory(cat);
     setSelectedService(null);
+    setShowAllServices(false); // Reset filter when changing category
   };
 
   useEffect(() => {
@@ -338,8 +430,28 @@ const Catalog = () => {
   const minPrice = categoryServices.length > 0 ? Math.min(...categoryServices.map(s => s.price)) : 0;
 
   const handleOrder = async () => {
-    if (!user) { navigate("/auth"); return; }
     if (!selectedService || !link.trim() || ordering) return;
+
+    if (!user) {
+      if (!email.trim() || !email.includes('@')) {
+        toast({ title: "Требуется Email", description: "Пожалуйста, введите корректный email для связи по заказу", variant: "destructive" });
+        return;
+      }
+
+      // Guest flow: Silent Onboarding
+      const pendingOrder = {
+        serviceId: selectedService.id,
+        link: link.trim(),
+        quantity,
+        email: email.trim(),
+        timestamp: Date.now()
+      };
+      localStorage.setItem("pending_order", JSON.stringify(pendingOrder));
+
+      toast({ title: "Создаем кабинет", description: "Почти готово! Мы создаем ваш личный кабинет для управления заказом." });
+      navigate(`/auth?onboarding=true&email=${encodeURIComponent(email)}`);
+      return;
+    }
 
     setOrdering(true);
     try {
@@ -352,21 +464,67 @@ const Catalog = () => {
       if (data?.deduplicated) {
         toast({ title: "Заказ уже создан", description: "Повторный запрос проигнорирован" });
       } else {
-        toast({ title: "✅ Заказ оформлен!", description: `${selectedService.name} × ${quantity} — ${fmtPrice(Number(data.price))}₽` });
+        toast({ title: "Заказ принят", description: "Мы начали работу над вашим заказом" });
+        setLink("");
       }
-      setLink(""); setConsentOffer(false); setConsentPD(false);
-    } catch (e: any) {
-      toast({ title: "Ошибка", description: e.message || "Ошибка при создании заказа", variant: "destructive" });
-    } finally { setOrdering(false); }
+    } catch (error: any) {
+      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    } finally {
+      setOrdering(false);
+      // If order was created successfully, we should probably redirect or show a bigger success
+      // Let's assume the toast is enough for now, but ensure it's prominent
+    }
+  };
+
+  const handleCreateOrderAfterLogin = async (link: string, quantity: number, serviceId: string) => {
+    setOrdering(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-order", {
+        body: { service_id: serviceId, link, quantity },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "✨ Заказ успешно создан!",
+        description: `Номер вашего заказа: ${data.order_id || 'в обработке'}. Теперь он отобразится в вашем кабинете.`,
+        duration: 10000
+      });
+      navigate('/dashboard/orders');
+    } catch (error: any) {
+      toast({ title: "Ошибка создания заказа", description: error.message, variant: "destructive" });
+    } finally {
+      setOrdering(false);
+    }
   };
 
   const selectService = (service: CatalogService) => {
+    if (compareMode) {
+      toggleCompareService(service);
+      return;
+    }
+
     setSelectedService(service);
     setQuantity(Math.max(service.min_quantity, 10));
+
     // Show warning if service has one and user hasn't accepted it yet
     if (service.warning_text && !warningAccepted[service.id]) {
       setShowWarning(true);
     }
+  };
+
+  const toggleCompareService = (service: CatalogService) => {
+    setCompareServices(prev => {
+      const isAlreadyIn = prev.some(s => s.id === service.id);
+      if (isAlreadyIn) {
+        return prev.filter(s => s.id !== service.id);
+      }
+      if (prev.length >= 4) {
+        toast({ title: "Лимит сравнения", description: "Можно сравнивать до 4 услуг одновременно", variant: "destructive" });
+        return prev;
+      }
+      return [...prev, service];
+    });
   };
 
   const acceptWarning = () => {
@@ -376,48 +534,53 @@ const Catalog = () => {
     setShowWarning(false);
   };
 
-  // Compare behavior
-  const MAX_COMPARE = 2;
-
   useEffect(() => {
     if (!compareMode) {
-      setCompareIds([]);
-      setShowCompare(false);
+      setCompareServices([]);
     }
   }, [compareMode]);
 
   useEffect(() => {
     // Switching network/category invalidates comparison context
-    setCompareIds([]);
-    setShowCompare(false);
+    setCompareServices([]);
   }, [activeNetwork, activeCategory]);
 
   useEffect(() => {
-    if (showCompare && compareIds.length !== MAX_COMPARE) setShowCompare(false);
-  }, [showCompare, compareIds.length]);
+    const fetchGuideline = async () => {
+      if (!activeNetwork || !activeCategory) return;
 
-  const toggleCompareId = (serviceId: string) => {
-    setCompareIds((prev) => {
-      if (prev.includes(serviceId)) return prev.filter((id) => id !== serviceId);
-      if (prev.length >= MAX_COMPARE) {
-        toast({
-          title: "Лимит сравнения",
-          description: `Можно сравнить только ${MAX_COMPARE} услуги`,
-        });
-        return prev;
+      const guidelineKey = `${activeNetwork}-${activeCategory}`;
+      if (dismissedGuidelines.has(guidelineKey)) return;
+
+      const { data, error } = await supabase
+        .from('category_guidelines' as any)
+        .select('content')
+        .eq('platform', activeNetwork)
+        .eq('category', activeCategory)
+        .maybeSingle();
+
+      if (data && !error) {
+        setCurrentGuideline(data as unknown as { content: string });
+        setShowGuideline(true);
       }
-      return [...prev, serviceId];
-    });
+    };
+
+    fetchGuideline();
+  }, [activeNetwork, activeCategory, dismissedGuidelines]);
+
+  const dismissGuideline = () => {
+    if (activeNetwork && activeCategory) {
+      setDismissedGuidelines(prev => new Set(prev).add(`${activeNetwork}-${activeCategory}`));
+    }
+    setShowGuideline(false);
   };
-
-  const clearCompare = () => setCompareIds([]);
-
   /* ─── Speed/Guarantee badges (reusable) ─── */
   const SpeedBadge = ({ speed, compact = false }: { speed: string; compact?: boolean }) => {
     const m = getSpeedMeta(speed);
     const Icon = m.icon;
+    const netConfig = activeNetConfig;
     return (
-      <span className={`inline-flex items-center gap-1 ${compact ? 'text-[10px]' : 'text-[11px]'} ${m.color}`}>
+      <span className={`inline-flex items-center gap-1 ${compact ? 'text-[10px]' : 'text-[11px]'} ${netConfig ? netConfig.color : m.color}`}>
         <Icon className={compact ? "w-2.5 h-2.5" : "w-3 h-3"} />
         {!compact && m.label}
       </span>
@@ -427,8 +590,10 @@ const Catalog = () => {
   const GuaranteeBadge = ({ guarantee, compact = false }: { guarantee: string; compact?: boolean }) => {
     const m = getGuaranteeMeta(guarantee);
     const Icon = m.icon;
+    const netConfig = activeNetConfig;
+    const colorClass = m.color === "PLATFORM_COLOR" ? (netConfig?.color || "text-primary") : m.color;
     return (
-      <span className={`inline-flex items-center gap-1 ${compact ? 'text-[10px]' : 'text-[11px]'} ${m.color}`}>
+      <span className={`inline-flex items-center gap-1 ${compact ? 'text-[10px]' : 'text-[11px]'} ${colorClass}`}>
         <Icon className={compact ? "w-2.5 h-2.5" : "w-3 h-3"} />
         {!compact && m.label}
       </span>
@@ -446,23 +611,40 @@ const Catalog = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-background scrollbar-none pt-16 overflow-x-hidden">
+      <SEO 
+        title={getMetaTitle(
+          activeCategory ? "service" : (activeNetwork ? "platform" : "catalog"), 
+          { 
+            platform: activeNetwork ? (platformNames[activeNetwork] || activeNetwork) : undefined, 
+            service: activeCategory || undefined 
+          }
+        )} 
+        description={getMetaDescription(
+          activeCategory ? "service" : (activeNetwork ? "platform" : "catalog"), 
+          { 
+            platform: activeNetwork ? (platformNames[activeNetwork] || activeNetwork) : undefined, 
+            service: activeCategory || undefined 
+          }
+        )} 
+      />
+      <SiteHeader />
       {/* Pre-fill banner */}
       {prefillLink && (
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-primary/10 border-b border-primary/20 px-4 py-2 shrink-0">
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className={`${activeNetConfig?.lightBg || 'bg-primary/10'} border-b ${activeNetConfig?.border || 'border-primary/20'} px-4 py-2 shrink-0`}>
           <div className="max-w-7xl mx-auto flex items-center gap-3 text-sm">
-            <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
-              <Link2 className="w-3.5 h-3.5 text-primary" />
+            <div className={`w-7 h-7 rounded-lg ${activeNetConfig?.lightBg || 'bg-primary/20'} flex items-center justify-center shrink-0`}>
+              <Link2 className={`w-3.5 h-3.5 ${activeNetConfig?.color || 'text-primary'}`} />
             </div>
-            <p className="text-xs text-muted-foreground truncate">Ссылка <span className="text-primary font-medium">{prefillLink}</span> подставлена</p>
+            <p className="text-xs text-muted-foreground truncate">Ссылка <span className={`${activeNetConfig?.color || 'text-primary'} font-medium`}>{prefillLink}</span> подставлена</p>
           </div>
         </motion.div>
       )}
 
-      {/* Header with prominent search */}
+      {/* Header — compact */}
       <div className="border-b border-border/60 bg-card/50 shrink-0">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-4 py-2">
+          <div className="flex items-center gap-2">
             <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
               <ArrowLeft className="w-4 h-4" /> <span className="hidden sm:inline">На главную</span>
             </Link>
@@ -479,35 +661,32 @@ const Catalog = () => {
         </div>
       </div>
 
-      {/* Platform Icons — ultra-smooth animation */}
+      {/* Platform Icons — centered wrap */}
       <div className="border-b border-border/40 bg-muted/20 shrink-0">
         <div className="max-w-7xl mx-auto px-4 py-2">
-            <div className="flex flex-wrap gap-1.5 justify-center items-center">
-              {availableNetworks.map((net) => {
-                const isActive = activeNetwork === net.key;
-                return (
-                  <button
-                    key={net.key}
-                    onClick={() => handleNetworkChange(net.key)}
-                    className={`relative transition-all duration-300 ease-out ${
-                      isActive
-                        ? `inline-flex items-center gap-2 px-4 py-2.5 rounded-xl ${net.bg} text-white shadow-lg ${net.shadow} scale-105`
-                        : "w-11 h-11 rounded-xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border hover:shadow-sm scale-100"
+          <div className="flex flex-wrap gap-2 justify-center items-center">
+            {availableNetworks.map((net) => {
+              const isActive = activeNetwork === net.key;
+              return (
+                <button
+                  key={net.key}
+                  onClick={() => handleNetworkChange(net.key)}
+                  className={`transition-all duration-300 ${isActive
+                    ? `inline-flex items-center gap-2 px-4 py-2 rounded-xl ${net.bg} text-white shadow-md scale-105`
+                    : "w-10 h-10 rounded-xl bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground"
                     }`}
-                    title={net.label}
-                  >
-                    <div className="flex items-center gap-2">
-                      <PlatformIcon platform={net.icon} className="w-7 h-7" />
-                      {isActive && (
-                        <span className="text-sm font-semibold hidden sm:inline whitespace-nowrap">
-                          {net.label}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                  title={net.label}
+                >
+                  <PlatformIcon platform={net.icon} className={isActive ? "w-6 h-6" : "w-5 h-5"} />
+                  {isActive && (
+                    <span className="text-xs font-bold whitespace-nowrap">
+                      {net.label}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -527,11 +706,10 @@ const Catalog = () => {
                     <button
                       key={cat}
                       onClick={() => handleCategoryChange(cat)}
-                      className={`w-full flex items-center justify-between gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all text-left ${
-                        activeCategory === cat
-                          ? `bg-card ${activeNetConfig?.color || 'text-primary'} border ${activeNetConfig?.border || 'border-primary/20'} shadow-sm`
-                          : "text-foreground/80 hover:bg-muted/60 border border-transparent"
-                      }`}
+                      className={`w-full flex items-center justify-between gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all text-left ${activeCategory === cat
+                        ? `bg-card ${activeNetConfig?.color || 'text-primary'} border ${activeNetConfig?.border || 'border-primary/20'} shadow-sm`
+                        : "text-foreground/80 hover:bg-muted/60 border border-transparent"
+                        }`}
                     >
                       <span className="truncate">{cat}</span>
                       <span className={`text-xs shrink-0 ${activeCategory === cat ? "opacity-70" : "text-muted-foreground/50"}`}>{count}</span>
@@ -543,18 +721,17 @@ const Catalog = () => {
 
             {/* Center — Service List */}
             <div className="flex-1 min-w-0 flex flex-col min-h-0">
-              {/* Mobile category pills */}
+              {/* Mobile category pills — centered wrap */}
               <div className="md:hidden mb-2 shrink-0">
-                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                <div className="flex flex-wrap gap-1.5 justify-center scrollbar-none">
                   {categories.map((cat) => (
                     <button
                       key={cat}
                       onClick={() => handleCategoryChange(cat)}
-                      className={`px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors border ${
-                        activeCategory === cat
-                          ? `${activeNetConfig?.bg || 'bg-primary'} text-white border-transparent`
-                          : "bg-muted text-muted-foreground border-transparent"
-                      }`}
+                      className={`px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all border ${activeCategory === cat
+                        ? `${activeNetConfig?.bg || 'bg-primary'} text-white border-transparent shadow-sm`
+                        : "bg-muted text-muted-foreground border-transparent"
+                        }`}
                     >{cat}</button>
                   ))}
                 </div>
@@ -562,41 +739,76 @@ const Catalog = () => {
 
               {/* Header row */}
               <div className="flex items-center justify-between mb-2 shrink-0 relative">
-                <h2 className="text-sm font-bold text-foreground">{activeCategory}</h2>
+                <h1 className="text-sm font-bold text-foreground">
+                  {activeCategory ? (
+                    <>
+                      {activeNetwork && (
+                        <span className="opacity-60 font-medium">
+                          {platformNames[activeNetwork] || activeNetwork} → 
+                        </span>
+                      )} {activeCategory}
+                    </>
+                  ) : (
+                    "Каталог услуг"
+                  )}
+                </h1>
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setShowExplainer(!showExplainer)}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
-                      showExplainer
-                        ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
-                        : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
-                    }`}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${showExplainer
+                      ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
+                      : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+                      }`}
                   >
                     <HelpCircle className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Чем отличаются?</span>
                   </button>
-                  <button
+                   <button
                     onClick={() => {
-                      setShowExplainer(false);
-                      setCompareMode((v) => {
-                        const next = !v;
-                        if (!next) {
-                          setCompareIds([]);
-                          setShowCompare(false);
-                        }
-                        return next;
-                      });
+                      if (compareServices.length > 0) {
+                        setShowCompareModal(true);
+                      } else {
+                        setShowExplainer(false);
+                        setCompareMode(!compareMode);
+                        if (compareMode) setCompareServices([]);
+                      }
                     }}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
-                      compareMode
-                        ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
-                        : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
-                    }`}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${compareMode || compareServices.length > 0
+                      ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
+                      : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+                      }`}
                   >
                     <BarChart3 className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Сравнить</span>
+                    <span className="hidden sm:inline">
+                      {compareServices.length > 0 ? `Сравнить (${compareServices.length})` : "Сравнить"}
+                    </span>
                   </button>
+                  {(compareMode || compareServices.length > 0) && (
+                    <button
+                      onClick={() => {
+                        setCompareMode(false);
+                        setCompareServices([]);
+                      }}
+                      className="p-1.5 rounded-lg bg-muted/60 text-muted-foreground hover:text-destructive transition-colors"
+                      title="Выйти из режима сравнения"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
+
+                {/* Link Type Filter Hint */}
+                {link.trim() && detectedLinkType !== "unknown" && !showAllServices && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="absolute -bottom-6 left-0 flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full border border-border/40 z-10"
+                  >
+                    <Link2 className="w-3 h-3 text-primary" />
+                    Фильтр: {detectedLinkType === 'profile' ? 'для Канала' : 'для Поста'}
+                    <button onClick={() => setShowAllServices(true)} className="text-primary hover:underline font-bold ml-1">Показать все</button>
+                  </motion.div>
+                )}
 
                 {/* Explainer popup */}
                 <AnimatePresence>
@@ -632,36 +844,36 @@ const Catalog = () => {
                             </thead>
                             <tbody>
                               {categoryServices.map((service) => {
-                                const isCompared = compareIds.includes(service.id);
-                                const compareIndex = compareIds.indexOf(service.id);
-                                const isPopular = service.price === minPrice && categoryServices.length > 1;
+                                 const isCompared = compareServices.some(s => s.id === service.id);
+                                 const isSelected = selectedService?.id === service.id;
+                                 const isPopular = service.price === minPrice && categoryServices.length > 1;
 
-                                return (
-                                  <tr
-                                    key={service.id}
-                                    onClick={() => toggleCompareId(service.id)}
-                                    className={`cursor-pointer transition-colors border-b border-border/20 last:border-0 ${
-                                      isCompared
-                                        ? `bg-primary/5 ${activeNetConfig?.color || 'text-primary'}`
-                                        : isPopular
-                                          ? 'bg-primary/[0.03] hover:bg-primary/5'
-                                          : 'hover:bg-muted/40'
-                                    }`}
-                                  >
-                                    <td className="px-2 py-2 text-center">
-                                      {isCompared ? (
-                                        <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full ${activeNetConfig?.bg || 'bg-primary'} text-white text-[11px] font-bold`}>
-                                          {compareIndex + 1}
-                                        </span>
-                                      ) : (
-                                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-border text-muted-foreground">&nbsp;</span>
-                                      )}
-                                    </td>
-                                    <td className="px-3 py-2 font-medium text-foreground">
-                                      <div className="flex items-center gap-1.5">
-                                        {isPopular && !isCompared && (
-                                          <Sparkles className={`w-3.5 h-3.5 shrink-0 ${activeNetConfig?.color || 'text-primary'}`} />
-                                        )}
+                                 return (
+                                   <tr
+                                     key={service.id}
+                                     onClick={() => compareMode ? toggleCompareService(service) : selectService(service)}
+                                     className={`cursor-pointer transition-colors border-b border-border/20 last:border-0 ${
+                                       (isSelected && !compareMode) || isCompared
+                                         ? `bg-primary/5 ${activeNetConfig?.color || 'text-primary'}`
+                                         : isPopular
+                                           ? 'bg-primary/[0.03] hover:bg-primary/5'
+                                           : 'hover:bg-muted/40'
+                                     }`}
+                                   >
+                                     <td className="px-2 py-2 text-center">
+                                       {isCompared ? (
+                                         <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full ${activeNetConfig?.bg || 'bg-primary'} text-white text-[11px] font-bold`}>
+                                           {compareServices.findIndex(s => s.id === service.id) + 1}
+                                         </span>
+                                       ) : (
+                                         <span className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-border text-muted-foreground">&nbsp;</span>
+                                       )}
+                                     </td>
+                                     <td className="px-3 py-2 font-medium text-foreground">
+                                       <div className="flex items-center gap-1.5">
+                                         {isPopular && !isSelected && !isCompared && (
+                                           <Sparkles className={`w-3.5 h-3.5 shrink-0 ${activeNetConfig?.color || 'text-primary'}`} />
+                                         )}
                                         <span className="line-clamp-1">{service.name}</span>
                                       </div>
                                     </td>
@@ -695,21 +907,24 @@ const Catalog = () => {
                                 onClick={() => selectService(service)}
                                 whileHover={{ y: -2 }}
                                 whileTap={{ scale: 0.98 }}
-                                className={`relative p-5 rounded-2xl text-left transition-all flex flex-col min-h-[220px] ${
-                                  isSelected
-                                    ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/10'}`
-                                    : isPopular
-                                      ? 'bg-gradient-to-br from-primary/5 to-accent/10 border-2 border-primary/30 hover:border-primary/50 hover:shadow-md'
-                                      : 'bg-card border border-border/50 hover:border-border hover:shadow-md'
-                                }`}
+                                className={`relative p-5 rounded-2xl text-left transition-all flex flex-col min-h-[220px] ${isSelected
+                                  ? `bg-card border-2 ${activeNetConfig?.border || 'border-primary'} shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/10'}`
+                                  : isPopular
+                                    ? 'bg-gradient-to-br from-primary/5 to-accent/10 border-2 border-primary/30 hover:border-primary/50 hover:shadow-md'
+                                    : 'bg-card border border-border/50 hover:border-border hover:shadow-md'
+                                  }`}
                               >
                                 {/* Badges top-right */}
-                                {isPopular && !isSelected && (
-                                  <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-primary/15 text-primary text-xs font-bold flex items-center gap-1">
+                                {isPopular && !isSelected && !compareMode && (
+                                  <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-full ${activeNetConfig?.lightBg || 'bg-primary/15'} ${activeNetConfig?.color || 'text-primary'} text-xs font-bold flex items-center gap-1`}>
                                     <Sparkles className="w-3.5 h-3.5" /> Хит
                                   </div>
                                 )}
-                                {isSelected && (
+                                {compareMode ? (
+                                  <div className={`absolute top-3 right-3 w-6 h-6 rounded border flex items-center justify-center transition-colors ${compareServices.some(s => s.id === service.id) ? (activeNetConfig?.bg || 'bg-primary') : 'border-border bg-card'}`}>
+                                    {compareServices.some(s => s.id === service.id) && <Check className="w-4 h-4 text-white" />}
+                                  </div>
+                                ) : isSelected && (
                                   <div className={`absolute top-3 right-3 w-6 h-6 rounded-full ${activeNetConfig?.bg || 'bg-primary'} flex items-center justify-center`}>
                                     <Check className="w-3.5 h-3.5 text-white" />
                                   </div>
@@ -734,21 +949,20 @@ const Catalog = () => {
 
                                 {/* Requirements — prominent */}
                                 <div className="flex flex-wrap gap-2 mb-3">
-                                  <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${activeNetConfig?.color || 'text-primary'} bg-primary/10`}>
+                                  <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${activeNetConfig?.color || 'text-primary'} ${activeNetConfig?.lightBg || 'bg-primary/10'}`}>
                                     от {service.min_quantity.toLocaleString()} шт
                                   </span>
-                                  <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${activeNetConfig?.color || 'text-primary'} bg-primary/10`}>
+                                  <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${activeNetConfig?.color || 'text-primary'} ${activeNetConfig?.lightBg || 'bg-primary/10'}`}>
                                     до {service.max_quantity.toLocaleString()} шт
                                   </span>
                                 </div>
 
                                 {/* Price — bottom */}
                                 <div className="mt-auto">
-                                  <span className={`inline-block px-4 py-2 rounded-full text-sm font-bold ${
-                                    isSelected || isPopular
-                                      ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
-                                      : 'bg-muted text-foreground'
-                                  }`}>
+                                  <span className={`inline-block px-4 py-2 rounded-full text-sm font-bold ${isSelected || isPopular
+                                    ? `${activeNetConfig?.bg || 'bg-primary'} text-white`
+                                    : 'bg-muted text-foreground'
+                                    }`}>
                                     {fmtPrice(service.price)} ₽ / 1000 шт
                                   </span>
                                 </div>
@@ -793,16 +1007,16 @@ const Catalog = () => {
                       </div>
                       {/* Description in order form */}
                       {selectedService.description && (
-                        <p className="text-xs text-muted-foreground leading-relaxed mt-2 p-2 rounded-lg bg-muted/30 border border-border/30">
+                        <p className={`text-xs text-muted-foreground leading-relaxed mt-2 p-2 rounded-lg ${activeNetConfig?.lightBg || 'bg-muted/30'} border ${activeNetConfig?.border?.replace('border-', 'border-') || 'border-border/30'} opacity-80`}>
                           {selectedService.description}
                         </p>
                       )}
                       {/* Requirements reminder */}
                       <div className="flex gap-2 mt-2">
-                        <span className={`text-[10px] font-medium ${activeNetConfig?.color || 'text-primary'} bg-primary/10 px-2 py-0.5 rounded-md`}>
+                        <span className={`text-[10px] font-medium ${activeNetConfig?.color || 'text-primary'} ${activeNetConfig?.lightBg || 'bg-primary/10'} px-2 py-0.5 rounded-md`}>
                           от {selectedService.min_quantity.toLocaleString()}
                         </span>
-                        <span className={`text-[10px] font-medium ${activeNetConfig?.color || 'text-primary'} bg-primary/10 px-2 py-0.5 rounded-md`}>
+                        <span className={`text-[10px] font-medium ${activeNetConfig?.color || 'text-primary'} ${activeNetConfig?.lightBg || 'bg-primary/10'} px-2 py-0.5 rounded-md`}>
                           до {selectedService.max_quantity.toLocaleString()}
                         </span>
                       </div>
@@ -817,14 +1031,23 @@ const Catalog = () => {
                       </div>
                     </div>
 
-                    {/* Email */}
-                    <div className="shrink-0">
-                      <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Email</label>
-                      <div className="relative">
-                        <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
-                        <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" className="pl-8 h-9 text-sm bg-muted/30 border-border/40" />
+                    {/* Email - Hidden for logged-in users to reduce friction */}
+                    {!user && (
+                      <div className="shrink-0">
+                        <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Email</label>
+                        <div className="relative">
+                          <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
+                          <Input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="you@email.com"
+                            className={`pl-8 h-9 text-sm bg-muted/30 border ${activeNetConfig?.border || 'border-border/40'}`}
+                          />
+                        </div>
+                        <p className="text-[9px] text-muted-foreground mt-1">Используется для уведомлений о статусе заказа</p>
                       </div>
-                    </div>
+                    )}
 
                     {/* Quantity */}
                     <div className="shrink-0">
@@ -879,7 +1102,7 @@ const Catalog = () => {
                     <button
                       onClick={handleOrder}
                       disabled={!link.trim() || (checkboxSettings.show_offer_checkbox && !consentOffer) || (checkboxSettings.show_policy_checkbox && !consentPD) || ordering}
-                      className={`w-full py-3 rounded-xl ${activeNetConfig?.bg || 'bg-gradient-to-r from-primary to-secondary'} text-white font-bold text-sm shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/20'} hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shrink-0`}
+                      className={`w-full py-3 rounded-xl ${activeNetConfig?.bg || 'bg-gradient-to-r from-primary to-secondary'} text-white font-bold text-sm shadow-lg ${activeNetConfig?.shadow || 'shadow-primary/20'} hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2 shrink-0 group`}
                     >
                       {ordering ? (
                         <span className="flex items-center gap-2">
@@ -913,7 +1136,7 @@ const Catalog = () => {
             initial={{ y: 100 }}
             animate={{ y: 0 }}
             exit={{ y: 100 }}
-            className="md:hidden fixed bottom-14 left-0 right-0 z-40 border-t border-border/60 bg-card/95 backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.15)]"
+            className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border/60 bg-card/95 backdrop-blur-md shadow-[0_-8px_30px_rgba(0,0,0,0.15)] pb-safe"
           >
             <div className="px-3 pt-3 pb-2 space-y-2">
               {/* Selected service mini-info */}
@@ -990,117 +1213,162 @@ const Catalog = () => {
         )}
       </AnimatePresence>
 
-      {/* ─── Compare bar + modal ─── */}
+      {/* ─── Comparison Modal ─── */}
       <AnimatePresence>
-        {compareMode && (
-          <motion.div
-            initial={{ y: 32, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 32, opacity: 0 }}
-            className="fixed left-0 right-0 bottom-14 md:bottom-4 z-40"
-          >
-            <div className="max-w-7xl mx-auto px-4">
-              <div className="rounded-2xl border border-border/60 bg-card/95 backdrop-blur-md shadow-lg p-3 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-foreground">Сравнение услуг</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Выбрано: <span className="font-semibold text-foreground">{compareIds.length}</span> / {MAX_COMPARE}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={clearCompare}
-                    className="px-3 py-2 rounded-xl bg-muted text-foreground text-xs font-semibold hover:bg-muted/80 transition-colors"
-                    disabled={compareIds.length === 0}
-                  >
-                    Очистить
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (compareIds.length !== MAX_COMPARE) {
-                        toast({ title: "Выберите 2 услуги", description: "Чтобы открыть сравнение, отметьте две услуги в таблице." });
-                        return;
-                      }
-                      setShowCompare(true);
-                    }}
-                    className="px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors disabled:opacity-40"
-                    disabled={compareIds.length !== MAX_COMPARE}
-                  >
-                    Сравнить
-                  </button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showCompare && compareServices.length === MAX_COMPARE && (
+        {showCompareModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowCompare(false)}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+            onClick={() => setShowCompareModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.97, y: 10 }}
+              initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.97, y: 10 }}
+              exit={{ scale: 0.95, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-5xl rounded-2xl border border-border/60 bg-card shadow-2xl overflow-hidden"
+              className="bg-card border border-border/60 rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border/60">
-                <div className="min-w-0">
-                  <h3 className="text-base font-bold text-foreground">Сравнение</h3>
-                  <p className="text-xs text-muted-foreground line-clamp-1">Описание, требования, цена и параметры</p>
+              <div className="p-6 border-b border-border/40 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl ${activeNetConfig?.bg || 'bg-primary'} flex items-center justify-center text-white`}>
+                    <BarChart3 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">Сравнение услуг</h3>
+                    <p className="text-xs text-muted-foreground">Выбрано {compareServices.length} из 4</p>
+                  </div>
                 </div>
-                <button
-                  onClick={() => setShowCompare(false)}
-                  className="p-2 rounded-xl hover:bg-muted transition-colors"
-                  aria-label="Закрыть"
-                >
-                  <X className="w-4 h-4 text-muted-foreground" />
+                <button onClick={() => setShowCompareModal(false)} className="p-2 rounded-full hover:bg-muted text-muted-foreground transition-colors">
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="p-5 max-h-[78vh] overflow-y-auto">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                  {compareServices.map((s) => (
-                    <div key={s.id} className="rounded-2xl border border-border/60 p-4">
-                      <p className="text-xs text-muted-foreground mb-1">Услуга</p>
-                      <p className="text-sm font-bold text-foreground mb-1">{s.name}</p>
-                      <p className="text-lg font-bold text-foreground">{fmtPrice(s.price)} ₽ <span className="text-xs font-normal text-muted-foreground">/ 1000</span></p>
-                      <div className="flex items-center gap-3 mt-2">
-                        <SpeedBadge speed={s.speed} />
-                        <GuaranteeBadge guarantee={s.guarantee} />
+              <div className="flex-1 overflow-x-auto p-6 scrollbar-none">
+                <div className="flex gap-4 min-w-[800px] h-full">
+                  {compareServices.map((service) => (
+                    <div key={service.id} className="flex-1 min-w-[200px] flex flex-col rounded-2xl border border-border/40 bg-muted/10 p-5">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${networkConfig.find(n => n.key === service.network)?.bg || 'bg-primary'} text-white`}>
+                          {service.network}
+                        </div>
+                        <button
+                          onClick={() => toggleCompareService(service)}
+                          className="text-muted-foreground hover:text-destructive transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
-                      <div className="flex gap-2 mt-2">
-                        <span className="text-[11px] text-muted-foreground">Мин: <span className="font-semibold text-foreground">{s.min_quantity.toLocaleString()}</span></span>
-                        <span className="text-[11px] text-muted-foreground">Макс: <span className="font-semibold text-foreground">{s.max_quantity.toLocaleString()}</span></span>
+
+                      <h4 className="font-bold text-sm mb-2 line-clamp-2 min-h-[40px]">{service.name}</h4>
+
+                      <div className="space-y-4 flex-1">
+                        <div className="p-3 rounded-xl bg-card border border-border/30">
+                          <p className="text-[10px] text-muted-foreground font-medium uppercase mb-0.5">Цена за 1000</p>
+                          <p className={`text-xl font-bold ${activeNetConfig?.color || 'text-primary'}`}>{fmtPrice(service.price)} ₽</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-2">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[10px] text-muted-foreground font-medium uppercase">Скорость</span>
+                            <SpeedBadge speed={service.speed} />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[10px] text-muted-foreground font-medium uppercase">Гарантия</span>
+                            <GuaranteeBadge guarantee={service.guarantee} />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-muted-foreground font-medium uppercase">Объем</span>
+                          <p className="text-xs font-medium">{service.min_quantity.toLocaleString()} – {service.max_quantity.toLocaleString()} шт</p>
+                        </div>
+
+                        {service.description && (
+                          <div className="space-y-1">
+                            <span className="text-[10px] text-muted-foreground font-medium uppercase">Описание</span>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-4">{service.description}</p>
+                          </div>
+                        )}
                       </div>
+
+                      <button
+                        onClick={() => {
+                          setSelectedService(service);
+                          setQuantity(service.min_quantity);
+                          setShowCompareModal(false);
+                          setCompareMode(false);
+                        }}
+                        className={`mt-6 w-full py-2.5 rounded-xl ${activeNetConfig?.bg || 'bg-primary'} text-white text-xs font-bold shadow-md hover:shadow-lg transition-all`}
+                      >
+                        Выбрать
+                      </button>
                     </div>
                   ))}
+                  {compareServices.length < 4 && (
+                    <div className="flex-1 min-w-[200px] flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border/30 bg-muted/5 p-5">
+                      <div className="p-3 rounded-full bg-muted/40 mb-3">
+                        <Plus className="w-6 h-6 text-muted-foreground/40" />
+                      </div>
+                      <p className="text-xs text-muted-foreground/60 text-center">Добавьте еще услуги<br />для сравнения</p>
+                      <button
+                        onClick={() => setShowCompareModal(false)}
+                        className="mt-4 text-xs font-bold text-primary hover:underline"
+                      >
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Category Guideline Modal ─── */}
+      <AnimatePresence>
+        {showGuideline && currentGuideline && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+            onClick={dismissGuideline}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className={`relative max-w-lg w-full rounded-3xl bg-card border border-border/40 p-8 shadow-2xl overflow-hidden`}
+            >
+              {/* Background gradient hint */}
+              <div className={`absolute -top-24 -right-24 w-48 h-48 rounded-full blur-3xl opacity-20 ${activeNetConfig?.bg || 'bg-primary'}`} />
+
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className={`w-12 h-12 rounded-2xl ${activeNetConfig?.bg || 'bg-primary/10'} border ${activeNetConfig?.border || 'border-primary/20'} flex items-center justify-center`}>
+                    <Info className={`w-6 h-6 ${activeNetConfig?.color || 'text-primary'}`} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold">Правила оформления</h3>
+                    <p className="text-sm text-muted-foreground">Пожалуйста, прочтите перед заказом</p>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-[180px_1fr_1fr] gap-3 text-sm">
-                  <div className="text-xs font-semibold text-muted-foreground md:pt-2">Описание</div>
-                  <div className="rounded-2xl border border-border/60 p-4 text-sm text-muted-foreground whitespace-pre-wrap">
-                    {compareServices[0].description || "—"}
-                  </div>
-                  <div className="rounded-2xl border border-border/60 p-4 text-sm text-muted-foreground whitespace-pre-wrap">
-                    {compareServices[1].description || "—"}
-                  </div>
-
-                  <div className="text-xs font-semibold text-muted-foreground md:pt-2">Предупреждение</div>
-                  <div className="rounded-2xl border border-border/60 p-4 text-sm text-muted-foreground whitespace-pre-wrap">
-                    {compareServices[0].warning_text || "—"}
-                  </div>
-                  <div className="rounded-2xl border border-border/60 p-4 text-sm text-muted-foreground whitespace-pre-wrap">
-                    {compareServices[1].warning_text || "—"}
+                <div className="prose prose-sm prose-invert max-w-none mb-8">
+                  <div className="text-muted-foreground space-y-4 whitespace-pre-line leading-relaxed border-l-2 border-primary/30 pl-4 py-1">
+                    {currentGuideline.content}
                   </div>
                 </div>
+
+                <button
+                  onClick={dismissGuideline}
+                  className={`w-full py-4 rounded-2xl ${activeNetConfig?.bg || 'bg-primary'} text-white font-bold text-sm shadow-xl ${activeNetConfig?.shadow || 'shadow-primary/20'} hover:scale-[1.02] active:scale-[0.98] transition-all`}
+                >
+                  Я ознакомлен(а)
+                </button>
               </div>
             </motion.div>
           </motion.div>

@@ -71,6 +71,39 @@ const DashboardRules = () => {
         </CardContent>
       </Card>
 
+      {/* Refund & Support Policies */}
+      <Card className="border-border/60">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ShieldAlert className="h-4 w-4 text-primary" />
+            Правила возврата и поддержки
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold uppercase text-muted-foreground">Условия возврата</h4>
+              <ul className="text-xs space-y-2 text-muted-foreground list-disc pl-4">
+                <li><span className="text-foreground font-medium">100% Возврат</span>: Заказ не запущен &gt;24ч или техническая невозможность оказания.</li>
+                <li><span className="text-foreground font-medium">Частичный Возврат</span>: Если услуга выполнена не до конца (возврат за остаток).</li>
+                <li><span className="text-foreground font-medium">Отказ</span>: Неверная ссылка, закрытый профиль, одновременный запуск в разных сервисах.</li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold uppercase text-muted-foreground">Гарантия и компенсации</h4>
+              <ul className="text-xs space-y-2 text-muted-foreground list-disc pl-4">
+                <li><span className="text-foreground font-medium">Refill (Докрутка)</span>: Для услуг с гарантией при списании объема.</li>
+                <li><span className="text-foreground font-medium">Промокоды</span>: Выдаются при значительных задержках (&gt;12ч) как извинение.</li>
+                <li>Услуги без гарантии не компенсируются при списаниях.</li>
+              </ul>
+            </div>
+          </div>
+          <div className="p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/10 text-[11px] leading-relaxed text-muted-foreground">
+            <p><span className="font-bold text-foreground">Защита от накрутки:</span> При выявлении попыток обмана (редактирование скриншотов) аккаунт блокируется без возврата средств. Мы ценим честность.</p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Forbidden categories */}
       <Card className="border-border/60">
         <CardHeader className="pb-3">
@@ -83,15 +116,11 @@ const DashboardRules = () => {
           <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
             При размещении заказов на нашем сервисе учитываются местные законодательные запреты и внутренняя политика. Заказы по следующим тематикам <span className="text-destructive font-medium">запрещены</span> и будут отклонены без возврата средств:
           </p>
-          <div className="space-y-1.5">
+          <div className="flex flex-wrap gap-1.5">
             {forbiddenTopics.map((topic, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-2 py-1.5 px-3 rounded-md bg-destructive/5 border border-destructive/10"
-              >
-                <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
-                <span className="text-xs text-foreground leading-relaxed">{topic}</span>
-              </div>
+              <Badge key={i} variant="outline" className="text-[10px] font-normal py-0.5 px-2 bg-destructive/5 text-foreground border-destructive/10">
+                {topic}
+              </Badge>
             ))}
           </div>
           <div className="mt-4 p-3 rounded-lg bg-muted/50 border border-border/60">

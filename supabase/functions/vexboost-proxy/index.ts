@@ -60,9 +60,9 @@ serve(async (req) => {
       });
     }
 
-    const apiKey = Deno.env.get(provider.api_key_env);
+    let apiKey = provider.api_key || Deno.env.get(provider.api_key_env);
     if (!apiKey) {
-      throw new Error(`${provider.api_key_env} is not configured`);
+      throw new Error(`API Key not configured (checked DB and ${provider.api_key_env})`);
     }
 
     let body: Record<string, string> = { key: apiKey, action };
@@ -86,7 +86,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: unknown) {
-    console.error('Provider API error:', error);
+    console.error('CoolLike Gateway error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({ error: message }), {
       status: 500,

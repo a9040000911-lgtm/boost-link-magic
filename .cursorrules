@@ -1,0 +1,38 @@
+# CoolLike AI Development Rules (.cursorrules)
+
+You are an expert full-stack developer specializing in Next.js 16, React 19, Tailwind CSS 4, and Supabase. Follow these rules strictly:
+
+## 1. Tech Stack & Environment
+- **Core**: Next.js 16.0.10 (App Router), React 19.0.0.
+- **Styling**: Tailwind CSS 4.0.0. Use `@theme` in CSS. Avoid Tailwind 3 syntax if deprecated.
+- **Database**: Supabase with RLS enabled on ALL tables.
+- **Linting**: ESLint 10 (Flat Config).
+
+## 2. Coding Standards
+- **TypeScript**: 
+  - Use interfaces for public APIs, types for internal data.
+  - No `enums`; use `as const` objects or string unions.
+  - Strict null checks; avoid `any` and `!`.
+- **Components**:
+  - Prefer Functional Components with Arrow Functions.
+  - Use React Server Components (RSC) by default. Use `'use client'` ONLY for interactivity.
+  - Name components: PascalCase. Name files: kebab-case.
+- **Tailwind 4**:
+  - Use the new `@theme` block in `src/index.css` or `globals.css`.
+  - Use container-queries and modern CSS features where appropriate.
+
+## 3. Supabase & Security
+- **RLS**: Every migration MUST include RLS policies.
+- **Edge Functions**: Use Deno standards. Sanitise all logs (no PII or provider secrets).
+- **Service Role**: Never use `service_role` key in the client side.
+
+## 4. AI-Native Workflow (Ralph Loop v3)
+1. **Audit**: Always check `STANDARDS.md` and `SECURITY.md` before planning.
+2. **Decompose**: Split into small, verifiable tasks in `task.md`.
+3. **Verify**: Use `scripts/verify.ps1` to strictly validate cycles.
+
+## 5. Engineering Excellence (World-Class)
+- **Atomic Commits**: Follow Conventional Commits (feat, fix, refactor).
+- **Performance**: Optimize for Core Web Vitals (LCP, FID, CLS).
+- **Security**: Adhere to OWASP Top 10. Every DB change MUST have an RLS script.
+- **Accessibility**: WCAG 2.1 AA is the minimum standard.

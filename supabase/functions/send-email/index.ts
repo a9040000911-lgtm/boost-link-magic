@@ -25,9 +25,9 @@ serve(async (req) => {
     // Use Deno SMTP via fetch to Yandex SMTP API
     // Since Deno edge functions can't do raw SMTP, we use a simple HTTP-based approach
     // For Yandex, we'll use their SMTP relay through a base64 encoded auth
-    
+
     const port = parseInt(SMTP_PORT || "465");
-    
+
     // Connect via Deno's built-in TLS
     const conn = await Deno.connectTls({
       hostname: SMTP_HOST,
@@ -36,7 +36,7 @@ serve(async (req) => {
 
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
-    
+
     const read = async () => {
       const buf = new Uint8Array(4096);
       const n = await conn.read(buf);
@@ -50,8 +50,8 @@ serve(async (req) => {
 
     // SMTP handshake
     await read(); // greeting
-    await write(`EHLO lovable.dev`);
-    
+    await write(`EHLO system`);
+
     // AUTH LOGIN
     await write("AUTH LOGIN");
     await write(btoa(SMTP_USER));
@@ -61,10 +61,10 @@ serve(async (req) => {
     await write(`MAIL FROM:<${SMTP_USER}>`);
     await write(`RCPT TO:<${to}>`);
     await write("DATA");
-    
+
     const boundary = `boundary_${Date.now()}`;
     const emailContent = [
-      `From: VexBoost Support <${SMTP_USER}>`,
+      `From: CoolLike Support <${SMTP_USER}>`,
       `To: ${to}`,
       `Subject: =?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`,
       `MIME-Version: 1.0`,

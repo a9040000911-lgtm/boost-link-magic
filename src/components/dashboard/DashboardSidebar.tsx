@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingCart, FolderKanban, Settings, LogOut, Wallet, Shield, MessageSquare, Sparkles, ShieldAlert, Home, PlusCircle } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, FolderKanban, Settings, LogOut, Wallet, Shield, MessageSquare, Sparkles, ShieldAlert, Home, PlusCircle, Users } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminRole } from "@/hooks/useAdminRole";
@@ -25,6 +25,7 @@ const userMenuItems = [
   { title: "Бонусы", url: "/dashboard/bonuses", icon: Sparkles },
   { title: "Поддержка", url: "/dashboard/support", icon: MessageSquare },
   { title: "Запрещённые темы", url: "/dashboard/rules", icon: ShieldAlert },
+  { title: "Рефералы", url: "/dashboard/referrals", icon: Users },
   { title: "Настройки", url: "/dashboard/settings", icon: Settings },
 ];
 
