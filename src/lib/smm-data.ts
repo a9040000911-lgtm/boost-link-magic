@@ -354,3 +354,28 @@ export function getServicesForCategory(categoryId: string): Service[] {
     { id: 'def3', name: 'Pro', description: 'Максимальное качество и гарантия', price: '4₽', minOrder: 50, maxOrder: 10000, speed: '200/час' },
   ];
 }
+
+// =============================================================================
+// RE-EXPORT FROM NEW MODULES
+// =============================================================================
+
+export {
+  ProviderAPIClient,
+  ServiceClassifier,
+  NETWORK_NAMES,
+  NETWORK_COLORS,
+  NETWORK_ICONS,
+  type ProviderConfig,
+  type ProviderService,
+  type ImportedService,
+  type ImportResult,
+} from './smm-provider-import';
+
+export {
+  LinkAnalyzer as EnhancedLinkAnalyzer,
+  getServiceRequirements,
+  type LinkAnalysisResult,
+  type LinkChoice,
+  type ServiceRequirement,
+  type ServiceLinkRequirement,
+} from './link-analyzer';
