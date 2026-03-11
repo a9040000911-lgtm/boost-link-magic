@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   BarChart3, ShoppingCart, Users, XCircle, TrendingUp, RefreshCw,
-  AlertTriangle, MessageSquare, Package, Server, Clock
+  AlertTriangle, MessageSquare, Package, Server, Clock, Zap,
+  TrendingDown, Activity, DollarSign
 } from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/20 text-yellow-600",
@@ -32,12 +34,22 @@ interface Metrics {
   totalUsers: number;
   todayOrders: number;
   todayRevenue: number;
+  yesterdayOrders: number;
+  yesterdayRevenue: number;
   openTickets: number;
   totalTickets: number;
   activeServices: number;
   totalServices: number;
   activeProviders: number;
   totalProviders: number;
+  weekOrders: number;
+  weekRevenue: number;
+}
+
+interface DailyStats {
+  date: string;
+  orders: number;
+  revenue: number;
 }
 
 interface MetricCardProps {
@@ -46,16 +58,21 @@ interface MetricCardProps {
   label: string;
   sub?: React.ReactNode;
   onClick: () => void;
+  trend?: "up" | "down" | "neutral";
 }
 
-const MetricCard = ({ icon, value, label, sub, onClick }: MetricCardProps) => (
+const MetricCard = ({ icon, value, label, sub, onClick, trend }: MetricCardProps) => (
   <Card
     className="border-border/60 cursor-pointer hover:border-primary/40 hover:shadow-md transition-all group"
     onClick={onClick}
   >
     <CardContent className="p-2">
       <div className="flex items-center justify-between">
-        {icon}
+        <div className="flex items-center gap-1.5">
+          {icon}
+          {trend === "up" && <TrendingUp className="h-2.5 w-2.5 text-green-500" />}
+          {trend === "down" && <TrendingDown className="h-2.5 w-2.5 text-red-500" />}
+        </div>
         {sub}
       </div>
       <p className="text-lg font-bold mt-1 group-hover:text-primary transition-colors">{value}</p>
@@ -64,14 +81,44 @@ const MetricCard = ({ icon, value, label, sub, onClick }: MetricCardProps) => (
   </Card>
 );
 
+const MiniChart = ({ data, color = "hsl(var(--primary))" }: { data: DailyStats[]; color?: string }) => (
+  <div className="h-[60px] w-full">
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart data={data}>
+        <defs>
+          <linearGradient id="miniGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+            <stop offset="95%" stopColor={color} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <Tooltip
+          contentStyle={{ fontSize: 10, background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", padding: "4px 8px" }}
+          formatter={(value: number, name: string) => [name === "revenue" ? `${value.toFixed(0)}₽` : value, name === "revenue" ? "Выручка" : "Заказы"]}
+          labelFormatter={(label) => new Date(label).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" })}
+        />
+        <Area
+          type="monotone"
+          dataKey="revenue"
+          stroke={color}
+          fillOpacity={1}
+          fill="url(#miniGradient)"
+          strokeWidth={1.5}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  </div>
+);
+
 const AdminDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [topUsers, setTopUsers] = useState<any[]>([]);
+  const [topServices, setTopServices] = useState<any[]>([]);
   const [canceledOrders, setCanceledOrders] = useState<any[]>([]);
   const [recentAudit, setRecentAudit] = useState<any[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, string>>({});
+  const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -84,6 +131,10 @@ const AdminDashboard = () => {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
 
     const [ordersRes, profilesRes, txRes, auditRes, ticketsRes, servicesRes, providersRes] = await Promise.all([
       supabase.from("orders").select("*"),
@@ -91,7 +142,7 @@ const AdminDashboard = () => {
       supabase.from("transactions").select("*"),
       supabase.from("admin_audit_logs").select("*").order("created_at", { ascending: false }).limit(20),
       supabase.from("support_tickets").select("id, status"),
-      supabase.from("services").select("id, is_enabled"),
+      supabase.from("services").select("id, name, is_enabled"),
       supabase.from("providers").select("id, is_enabled"),
     ]);
 
@@ -107,9 +158,47 @@ const AdminDashboard = () => {
     setProfilesMap(pMap);
 
     const todayISO = today.toISOString();
+    const yesterdayISO = yesterday.toISOString();
+    const weekAgoISO = weekAgo.toISOString();
+
     const todayOrders = orders.filter((o) => o.created_at >= todayISO);
+    const yesterdayOrders = orders.filter((o) => o.created_at >= yesterdayISO && o.created_at < todayISO);
+    const weekOrders = orders.filter((o) => o.created_at >= weekAgoISO);
     const canceledList = orders.filter((o) => o.status === "canceled" || o.status === "refunded");
     const refundedTx = transactions.filter((t) => t.type === "refund");
+
+    // Calculate daily stats for last 7 days
+    const dailyData: DailyStats[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dayStart = date.toISOString();
+      date.setDate(date.getDate() + 1);
+      const dayEnd = date.toISOString();
+
+      const dayOrders = orders.filter((o) => o.created_at >= dayStart && o.created_at < dayEnd);
+      dailyData.push({
+        date: dayStart,
+        orders: dayOrders.length,
+        revenue: dayOrders.filter((o) => o.status !== "canceled").reduce((s, o) => s + Number(o.price), 0),
+      });
+    }
+    setDailyStats(dailyData);
+
+    // Top services
+    const serviceStats: Record<string, { count: number; revenue: number; name: string }> = {};
+    orders.forEach((o) => {
+      if (!serviceStats[o.service_name]) {
+        serviceStats[o.service_name] = { count: 0, revenue: 0, name: o.service_name };
+      }
+      serviceStats[o.service_name].count++;
+      serviceStats[o.service_name].revenue += Number(o.price);
+    });
+    setTopServices(
+      Object.values(serviceStats)
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5)
+    );
 
     setMetrics({
       totalOrders: orders.length,
@@ -122,12 +211,16 @@ const AdminDashboard = () => {
       totalUsers: profiles.length,
       todayOrders: todayOrders.length,
       todayRevenue: todayOrders.filter((o) => o.status !== "canceled").reduce((s, o) => s + Number(o.price), 0),
+      yesterdayOrders: yesterdayOrders.length,
+      yesterdayRevenue: yesterdayOrders.filter((o) => o.status !== "canceled").reduce((s, o) => s + Number(o.price), 0),
       openTickets: tickets.filter((t) => t.status === "open" || t.status === "waiting").length,
       totalTickets: tickets.length,
       activeServices: services.filter((s) => s.is_enabled).length,
       totalServices: services.length,
       activeProviders: providers.filter((p) => p.is_enabled).length,
       totalProviders: providers.length,
+      weekOrders: weekOrders.length,
+      weekRevenue: weekOrders.filter((o) => o.status !== "canceled").reduce((s, o) => s + Number(o.price), 0),
     });
 
     // Top users
@@ -156,6 +249,35 @@ const AdminDashboard = () => {
 
   const formatMoney = (n: number) => n.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "₽";
 
+  // Calculate trend
+  const getTrend = (today: number, yesterday: number): "up" | "down" | "neutral" => {
+    if (yesterday === 0) return today > 0 ? "up" : "neutral";
+    const change = ((today - yesterday) / yesterday) * 100;
+    if (change > 5) return "up";
+    if (change < -5) return "down";
+    return "neutral";
+  };
+
+  // Alerts
+  const alerts = useMemo(() => {
+    if (!metrics) return [];
+    const items: { type: "warning" | "error" | "info"; message: string; action?: () => void }[] = [];
+
+    if (metrics.pendingOrders > 10) {
+      items.push({ type: "warning", message: `${metrics.pendingOrders} заказов ожидают обработки`, action: () => navigate("/admin/orders") });
+    }
+    if (metrics.openTickets > 5) {
+      items.push({ type: "error", message: `${metrics.openTickets} открытых тикетов требуют внимания`, action: () => navigate("/admin/support") });
+    }
+    if (metrics.activeProviders === 0) {
+      items.push({ type: "error", message: "Нет активных провайдеров!", action: () => navigate("/admin/providers") });
+    }
+    if (metrics.todayOrders === 0 && new Date().getHours() > 10) {
+      items.push({ type: "info", message: "Сегодня ещё нет заказов" });
+    }
+    return items;
+  }, [metrics, navigate]);
+
   if (loading) {
     return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>;
   }
@@ -173,6 +295,28 @@ const AdminDashboard = () => {
         </Button>
       </div>
 
+      {/* Alerts */}
+      {alerts.length > 0 && (
+        <div className="flex flex-wrap gap-2 shrink-0">
+          {alerts.map((alert, i) => (
+            <button
+              key={i}
+              onClick={alert.action}
+              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${
+                alert.type === "error" ? "bg-red-500/20 text-red-600" :
+                alert.type === "warning" ? "bg-yellow-500/20 text-yellow-600" :
+                "bg-blue-500/20 text-blue-600"
+              }`}
+            >
+              {alert.type === "error" ? <XCircle className="h-3 w-3" /> :
+               alert.type === "warning" ? <AlertTriangle className="h-3 w-3" /> :
+               <Activity className="h-3 w-3" />}
+              {alert.message}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Metric cards - 2 rows */}
       {metrics && (
         <div className="flex flex-col gap-2 shrink-0">
@@ -183,13 +327,15 @@ const AdminDashboard = () => {
               label="Всего заказов"
               sub={<span className="text-[9px] text-muted-foreground">сегодня +{metrics.todayOrders}</span>}
               onClick={() => navigate("/admin/orders")}
+              trend={getTrend(metrics.todayOrders, metrics.yesterdayOrders)}
             />
             <MetricCard
               icon={<TrendingUp className="h-3.5 w-3.5 text-green-500" />}
               value={formatMoney(metrics.totalRevenue)}
               label="Выручка"
               sub={<span className="text-[9px] text-green-500">+{formatMoney(metrics.todayRevenue)}</span>}
-              onClick={() => navigate("/admin/orders")}
+              onClick={() => navigate("/admin/analytics")}
+              trend={getTrend(metrics.todayRevenue, metrics.yesterdayRevenue)}
             />
             <MetricCard
               icon={<Users className="h-3.5 w-3.5 text-blue-500" />}
@@ -235,6 +381,50 @@ const AdminDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Chart row */}
+      <div className="grid grid-cols-3 gap-3 shrink-0">
+        <Card className="border-border/60 col-span-2">
+          <div className="p-2 border-b bg-muted/30 flex items-center justify-between">
+            <h2 className="text-xs font-bold flex items-center gap-1">
+              <Activity className="h-3 w-3 text-primary" />
+              Выручка за 7 дней
+            </h2>
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+              <span>{metrics?.weekOrders || 0} заказов</span>
+              <span className="font-semibold text-foreground">{formatMoney(metrics?.weekRevenue || 0)}</span>
+            </div>
+          </div>
+          <CardContent className="p-2">
+            <MiniChart data={dailyStats} />
+          </CardContent>
+        </Card>
+
+        {/* Top services */}
+        <Card className="border-border/60">
+          <div className="p-2 border-b bg-muted/30 flex items-center justify-between">
+            <h2 className="text-xs font-bold flex items-center gap-1">
+              <Zap className="h-3 w-3 text-yellow-500" />
+              Топ услуги
+            </h2>
+          </div>
+          <CardContent className="p-2">
+            <div className="space-y-1.5">
+              {topServices.slice(0, 5).map((s, i) => (
+                <div key={i} className="flex items-center justify-between text-[10px]">
+                  <span className="truncate max-w-[120px] text-muted-foreground">
+                    {i + 1}. {s.name}
+                  </span>
+                  <span className="font-medium">{formatMoney(s.revenue)}</span>
+                </div>
+              ))}
+              {topServices.length === 0 && (
+                <p className="text-[10px] text-muted-foreground text-center py-2">Нет данных</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Two columns: top users + canceled orders */}
       <div className="grid grid-cols-2 gap-3 flex-1 min-h-0">
