@@ -57,8 +57,8 @@ const SiteHeader = () => {
                         className="cursor-pointer flex items-center gap-2.5 group"
                     >
                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 ${scrolled
-                                ? 'bg-primary shadow-lg shadow-primary/20 rotate-0 group-hover:rotate-12'
-                                : 'bg-white/10 backdrop-blur-md border border-white/20 group-hover:bg-white/20'
+                            ? 'bg-primary shadow-lg shadow-primary/20 rotate-0 group-hover:rotate-12'
+                            : 'bg-white/10 backdrop-blur-md border border-white/20 group-hover:bg-white/20'
                             }`}>
                             <Sparkles className="w-5 h-5 text-white" />
                         </div>
@@ -93,10 +93,22 @@ const SiteHeader = () => {
                             Отзывы
                         </button>
                         <button
-                            onClick={() => navigate('/dashboard?tab=referrals')}
+                            onClick={() => navigate('/about')}
                             className={`text-sm font-semibold transition-colors hover:text-primary ${scrolled ? 'text-muted-foreground' : 'text-white/70'}`}
                         >
-                            Рефералы
+                            О нас
+                        </button>
+                        <button
+                            onClick={() => navigate('/faq')}
+                            className={`text-sm font-semibold transition-colors hover:text-primary ${scrolled ? 'text-muted-foreground' : 'text-white/70'}`}
+                        >
+                            FAQ
+                        </button>
+                        <button
+                            onClick={() => navigate('/glossary')}
+                            className={`text-sm font-semibold transition-colors hover:text-primary ${scrolled ? 'text-muted-foreground' : 'text-white/70'}`}
+                        >
+                            Глоссарий
                         </button>
                         <button
                             onClick={() => navigate('/support')}
@@ -109,18 +121,6 @@ const SiteHeader = () => {
 
                 {/* Right: Actions */}
                 <div className="flex items-center gap-3">
-                    {!isCatalogPage && (
-                        <button
-                            onClick={() => navigate('/catalog')}
-                            className={`hidden sm:flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95 ${scrolled
-                                ? 'bg-primary/5 text-primary hover:bg-primary/10 border border-primary/20'
-                                : 'bg-white/5 text-white hover:bg-white/10 border border-white/10 backdrop-blur-md'
-                                }`}
-                        >
-                            <LayoutGrid className="w-3.5 h-3.5" />
-                            <span>Выбрать услугу</span>
-                        </button>
-                    )}
 
                     <button
                         onClick={() => navigate(session ? '/dashboard' : '/auth')}

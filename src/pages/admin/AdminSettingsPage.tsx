@@ -40,9 +40,9 @@ const SETTINGS_META: SettingMeta[] = [
 
   // AI Support
   { key: "support_ai_enabled", label: "ИИ-подсказки включены", hint: "Включить ИИ-помощника для операторов поддержки", type: "boolean", group: "ai_support" },
-  { key: "support_ai_provider", label: "Провайдер ИИ", hint: "lovable — встроенный Lovable AI (без доп. ключей). gemini — Google Gemini с ручным ключом. openclaw — OpenClaw. custom — любой OpenAI-совместимый endpoint", type: "text", group: "ai_support" },
+  { key: "support_ai_provider", label: "Провайдер ИИ", hint: "system — встроенный ИИ (без доп. ключей). gemini — Google Gemini с ручным ключом. openclaw — OpenClaw. custom — любой OpenAI-совместимый endpoint", type: "text", group: "ai_support" },
   { key: "support_ai_mode", label: "Режим работы", hint: "suggest — только подсказки оператору. auto — бот сам отвечает если уверен, иначе передаёт оператору. off — выключено", type: "text", group: "ai_support" },
-  { key: "support_ai_model", label: "Модель ИИ", hint: "Для lovable: google/gemini-2.5-flash, openai/gpt-5-mini. Для gemini: gemini-2.5-flash. Для custom: любая модель endpoint'а", type: "text", group: "ai_support" },
+  { key: "support_ai_model", label: "Модель ИИ", hint: "Для system: google/gemini-2.0-flash, openai/gpt-4o-mini. Для gemini: gemini-2.0-flash. Для custom: любая модель endpoint'а", type: "text", group: "ai_support" },
   { key: "support_ai_system_prompt", label: "Системный промпт", hint: "Инструкция для ИИ — как генерировать ответы и подсказки", type: "textarea", group: "ai_support" },
   { key: "support_ai_auto_confidence", label: "Порог уверенности (auto)", hint: "Минимальная уверенность (0.0-1.0) для автоответа бота. Если ниже — передаёт оператору", type: "text", group: "ai_support" },
   { key: "support_ai_custom_endpoint", label: "Custom endpoint URL", hint: "URL OpenAI-совместимого API (для провайдеров custom/openclaw). Пример: https://api.openclaw.ai/v1/chat/completions", type: "text", group: "ai_support" },
@@ -193,7 +193,7 @@ const AdminSettingsPage = () => {
         setLadder(parsed);
         setOriginalLadder(parsed);
       }
-    } catch {}
+    } catch { }
     setLoading(false);
   };
 

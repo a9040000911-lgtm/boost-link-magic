@@ -12,6 +12,8 @@ import PlatformIcon from "@/components/PlatformIcon";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import SiteHeader from "@/components/SiteHeader";
+import SEO from "@/components/SEO";
+import { getMetaTitle, getMetaDescription } from "@/lib/seo";
 
 interface CatalogService {
   id: string;
@@ -25,6 +27,7 @@ interface CatalogService {
   speed: string;
   guarantee: string;
   warning_text: string | null;
+  link_type: string | null;
 }
 
 /* ─── Speed & Guarantee display helpers ─── */
@@ -281,7 +284,7 @@ const Catalog = () => {
     const fetchServices = async () => {
       const { data } = await supabase
         .from("services")
-        .select("id, name, description, price, min_quantity, max_quantity, category, network, speed, guarantee, warning_text")
+        .select("id, name, description, price, min_quantity, max_quantity, category, network, speed, guarantee, warning_text, link_type")
         .eq("is_enabled", true)
         .order("network")
         .order("category")
@@ -334,9 +337,59 @@ const Catalog = () => {
     return [...new Set(filtered.map((s) => s.category))].sort();
   }, [services, activeNetwork, search]);
 
+  const getLinkType = (url: string, network: string): string => {
+    if (!url) return "unknown";
+    const lowUrl = url.toLowerCase();
+    
+    if (network === "telegram" || network === "tg") {
+      // t.me/channel/123 or telegram.me/channel/123 -> post
+      // t.me/channel -> profile
+      if (lowUrl.includes("t.me/") || lowUrl.includes("telegram.me/")) {
+        const path = lowUrl.split("t.me/")[1] || lowUrl.split("telegram.me/")[1];
+        if (path && path.split("/").filter(Boolean).length >= 2) return "post";
+        return "profile";
+      }
+    }
+    
+    if (network === "instagram" || network === "ig") {
+      if (lowUrl.includes("/p/") || lowUrl.includes("/reels/") || lowUrl.includes("/tv/")) return "post";
+      if (lowUrl.includes("/stories/")) return "story";
+      return "profile";
+    }
+
+    if (network === "youtube" || network === "yt") {
+      if (lowUrl.includes("/watch") || lowUrl.includes("youtu.be/") || lowUrl.includes("/shorts/")) return "video";
+      return "profile";
+    }
+
+    if (network === "tiktok" || network === "tt") {
+      if (lowUrl.includes("/video/")) return "video";
+      return "profile";
+    }
+
+    return "unknown";
+  };
+
+  const detectedLinkType = useMemo(() => {
+    if (!link || !activeNetwork) return "unknown";
+    return getLinkType(link, activeNetwork);
+  }, [link, activeNetwork]);
+
+  const [showAllServices, setShowAllServices] = useState(false);
+
   const categoryServices = useMemo(() => {
     if (!activeNetwork || !activeCategory) return [];
     let filtered = services.filter((s) => s.network === activeNetwork && s.category === activeCategory);
+    
+    // Smart Filter by Link Type
+    if (link.trim() && detectedLinkType !== "unknown" && !showAllServices) {
+      const typeFiltered = filtered.filter(s => s.link_type === detectedLinkType || !s.link_type || s.link_type === "unknown");
+      // Only apply filter if it actually hides something, or if specifically for TG views
+      if (typeFiltered.length > 0 && typeFiltered.length < filtered.length) {
+        filtered = typeFiltered;
+      }
+    }
+
     if (search.trim()) {
       const q = search.toLowerCase();
       filtered = filtered.filter(
@@ -347,11 +400,12 @@ const Catalog = () => {
       );
     }
     return filtered;
-  }, [services, activeNetwork, activeCategory, search]);
+  }, [services, activeNetwork, activeCategory, search, link, detectedLinkType, showAllServices]);
 
   const handleNetworkChange = (net: string) => {
     setActiveNetwork(net);
     setSelectedService(null);
+    setShowAllServices(false); // Reset filter when changing network
     const cats = [...new Set(services.filter((s) => s.network === net).map((s) => s.category))].sort();
     setActiveCategory(cats[0] || null);
   };
@@ -359,6 +413,7 @@ const Catalog = () => {
   const handleCategoryChange = (cat: string) => {
     setActiveCategory(cat);
     setSelectedService(null);
+    setShowAllServices(false); // Reset filter when changing category
   };
 
   useEffect(() => {
@@ -492,7 +547,7 @@ const Catalog = () => {
         .maybeSingle();
 
       if (data && !error) {
-        setCurrentGuideline(data as { content: string });
+        setCurrentGuideline(data as unknown as { content: string });
         setShowGuideline(true);
       }
     };
@@ -545,6 +600,22 @@ const Catalog = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background scrollbar-none pt-16 overflow-x-hidden">
+      <SEO 
+        title={getMetaTitle(
+          activeCategory ? "service" : (activeNetwork ? "platform" : "catalog"), 
+          { 
+            platform: activeNetwork ? (platformNames[activeNetwork] || activeNetwork) : undefined, 
+            service: activeCategory || undefined 
+          }
+        )} 
+        description={getMetaDescription(
+          activeCategory ? "service" : (activeNetwork ? "platform" : "catalog"), 
+          { 
+            platform: activeNetwork ? (platformNames[activeNetwork] || activeNetwork) : undefined, 
+            service: activeCategory || undefined 
+          }
+        )} 
+      />
       <SiteHeader />
       {/* Pre-fill banner */}
       {prefillLink && (
@@ -656,7 +727,19 @@ const Catalog = () => {
 
               {/* Header row */}
               <div className="flex items-center justify-between mb-2 shrink-0 relative">
-                <h2 className="text-sm font-bold text-foreground">{activeCategory}</h2>
+                <h1 className="text-sm font-bold text-foreground">
+                  {activeCategory ? (
+                    <>
+                      {activeNetwork && (
+                        <span className="opacity-60 font-medium">
+                          {platformNames[activeNetwork] || activeNetwork} → 
+                        </span>
+                      )} {activeCategory}
+                    </>
+                  ) : (
+                    "Каталог услуг"
+                  )}
+                </h1>
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setShowExplainer(!showExplainer)}
@@ -699,6 +782,19 @@ const Catalog = () => {
                     </button>
                   )}
                 </div>
+
+                {/* Link Type Filter Hint */}
+                {link.trim() && detectedLinkType !== "unknown" && !showAllServices && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="absolute -bottom-6 left-0 flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full border border-border/40 z-10"
+                  >
+                    <Link2 className="w-3 h-3 text-primary" />
+                    Фильтр: {detectedLinkType === 'profile' ? 'для Канала' : 'для Поста'}
+                    <button onClick={() => setShowAllServices(true)} className="text-primary hover:underline font-bold ml-1">Показать все</button>
+                  </motion.div>
+                )}
 
                 {/* Explainer popup */}
                 <AnimatePresence>

@@ -1,0 +1,14 @@
+﻿{
+  "services": {
+    "code": "42703",
+    "details": null,
+    "hint": "Perhaps you meant to reference the column \"services.category\".",
+    "message": "column services.category_id does not exist"
+  },
+  "categories": {
+    "code": "PGRST205",
+    "details": null,
+    "hint": "Perhaps you meant the table 'public.categories'",
+    "message": "Could not find the table 'public.service_categories' in the schema cache"
+  }
+}

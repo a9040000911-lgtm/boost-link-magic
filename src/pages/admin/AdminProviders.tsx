@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Server, Plus, Trash2, RefreshCw, Activity, DollarSign, Wifi, WifiOff, Clock, ArrowRightLeft } from "lucide-react";
+import { Server, Plus, Trash2, RefreshCw, Activity, DollarSign, Wifi, WifiOff, Clock, ArrowRightLeft, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { logAuditAction } from "@/lib/audit";
 
@@ -20,6 +20,7 @@ interface Provider {
   label: string;
   api_url: string;
   api_key_env: string;
+  api_key: string | null;
   is_enabled: boolean;
   last_health_check: string | null;
   health_status: string | null;
@@ -46,7 +47,10 @@ const AdminProviders = () => {
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [newProvider, setNewProvider] = useState({ key: "", label: "", api_url: "", api_key_env: "", balance_currency: "USD", rate_currency: "RUB" });
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
+  const [newProvider, setNewProvider] = useState({ key: "", label: "", api_url: "", api_key_env: "", api_key: "", balance_currency: "USD", rate_currency: "RUB" });
+  const [editForm, setEditForm] = useState({ key: "", label: "", api_url: "", api_key_env: "", api_key: "", balance_currency: "USD", rate_currency: "RUB" });
   const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([]);
   const [fetchingRates, setFetchingRates] = useState(false);
 
@@ -60,14 +64,14 @@ const AdminProviders = () => {
   const loadProviders = async () => {
     setLoading(true);
     const { data } = await supabase.from("providers").select("*").order("created_at");
-    
+
     if (data) {
       const enriched = await Promise.all(data.map(async (p) => {
         const { count } = await supabase
           .from("provider_services")
           .select("*", { count: "exact", head: true })
           .eq("provider", p.key);
-        return { ...p, services_count: count || 0 } as Provider;
+        return { ...p, services_count: count || 0 } as any;
       }));
       setProviders(enriched);
     }
@@ -144,8 +148,16 @@ const AdminProviders = () => {
   };
 
   const deleteProvider = async (provider: Provider) => {
-    if (!confirm(`Удалить провайдера ${provider.label}? Все связанные услуги останутся.`)) return;
-    await supabase.from("providers").delete().eq("id", provider.id);
+    if (!confirm(`Удалить провайдера ${provider.label}? ВНИМАНИЕ: Все связанные сведения об услугах этого провайдера также будут удалены.`)) return;
+    
+    const { error } = await supabase.from("providers").delete().eq("id", provider.id);
+    
+    if (error) {
+      console.error("Deletion error:", error);
+      toast.error(`Ошибка при удалении: ${error.message}`);
+      return;
+    }
+
     await logAuditAction("delete_service", "provider", provider.id, { key: provider.key });
     toast.success("Провайдер удалён");
     await loadProviders();
@@ -161,6 +173,7 @@ const AdminProviders = () => {
       label: newProvider.label,
       api_url: newProvider.api_url,
       api_key_env: newProvider.api_key_env,
+      api_key: newProvider.api_key || null,
       balance_currency: newProvider.balance_currency,
       rate_currency: newProvider.rate_currency,
     } as any);
@@ -171,7 +184,54 @@ const AdminProviders = () => {
     await logAuditAction("create_service", "provider", newProvider.key, { label: newProvider.label });
     toast.success("Провайдер добавлен");
     setAddOpen(false);
-    setNewProvider({ key: "", label: "", api_url: "", api_key_env: "", balance_currency: "USD", rate_currency: "RUB" });
+    setNewProvider({ key: "", label: "", api_url: "", api_key_env: "", api_key: "", balance_currency: "USD", rate_currency: "RUB" });
+    await loadProviders();
+  };
+
+  const handleEdit = (provider: Provider) => {
+    setEditingProvider(provider);
+    setEditForm({
+      key: provider.key,
+      label: provider.label,
+      api_url: provider.api_url,
+      api_key_env: provider.api_key_env,
+      api_key: provider.api_key || "",
+      balance_currency: provider.balance_currency || "USD",
+      rate_currency: provider.rate_currency || "RUB"
+    });
+    setEditOpen(true);
+  };
+
+  const saveEditProvider = async () => {
+    if (!editingProvider) return;
+    if (!editForm.label || !editForm.api_url || !editForm.api_key_env) {
+      toast.error("Заполните все поля");
+      return;
+    }
+
+    const updates = {
+      label: editForm.label,
+      api_url: editForm.api_url,
+      api_key_env: editForm.api_key_env,
+      api_key: editForm.api_key || null,
+      balance_currency: editForm.balance_currency,
+      rate_currency: editForm.rate_currency,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabase
+      .from("providers")
+      .update(updates)
+      .eq("id", editingProvider.id);
+
+    if (error) {
+      toast.error("Ошибка обновления: " + error.message);
+      return;
+    }
+
+    await logAuditAction("update_service", "provider", editingProvider.id, { key: editingProvider.key, updates });
+    toast.success("Провайдер обновлён");
+    setEditOpen(false);
     await loadProviders();
   };
 
@@ -216,7 +276,19 @@ const AdminProviders = () => {
               <div className="space-y-3">
                 <div>
                   <Label className="text-xs">Ключ (уникальный идентификатор)</Label>
-                  <Input placeholder="mysmmpanel" value={newProvider.key} onChange={(e) => setNewProvider(p => ({ ...p, key: e.target.value }))} className="text-xs" />
+                  <Input 
+                    placeholder="mysmmpanel" 
+                    value={newProvider.key} 
+                    onChange={(e) => {
+                      const val = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '');
+                      setNewProvider(p => ({ 
+                        ...p, 
+                        key: val,
+                        api_key_env: val ? `${val.toUpperCase()}_API_KEY` : ""
+                      }));
+                    }} 
+                    className="text-xs" 
+                  />
                 </div>
                 <div>
                   <Label className="text-xs">Название</Label>
@@ -227,9 +299,14 @@ const AdminProviders = () => {
                   <Input placeholder="https://example.com/api/v2" value={newProvider.api_url} onChange={(e) => setNewProvider(p => ({ ...p, api_url: e.target.value }))} className="text-xs" />
                 </div>
                 <div>
-                  <Label className="text-xs">Переменная окружения API ключа</Label>
-                  <Input placeholder="MY_PANEL_API_KEY" value={newProvider.api_key_env} onChange={(e) => setNewProvider(p => ({ ...p, api_key_env: e.target.value.toUpperCase() }))} className="text-xs" />
-                  <p className="text-[10px] text-muted-foreground mt-1">Имя секрета в Lovable Cloud. Добавьте ключ в настройках после создания.</p>
+                  <Label className="text-xs text-muted-foreground opacity-70">Переменная окружения API ключа (генерируется автоматически)</Label>
+                  <Input placeholder="MY_PANEL_API_KEY" value={newProvider.api_key_env} onChange={(e) => setNewProvider(p => ({ ...p, api_key_env: e.target.value.toUpperCase() }))} className="text-xs bg-muted/30" />
+                  <p className="text-[10px] text-muted-foreground mt-1">Это внутреннее имя для связи. Вы можете оставить как есть.</p>
+                </div>
+                <div>
+                  <Label className="text-xs">Значение API ключа (необязательно)</Label>
+                  <Input type="password" placeholder="6ce3300..." value={newProvider.api_key} onChange={(e) => setNewProvider(p => ({ ...p, api_key: e.target.value }))} className="text-xs" />
+                  <p className="text-[10px] text-muted-foreground mt-1">Если заполнено, будет использоваться приоритетнее секрета из облака.</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -264,6 +341,73 @@ const AdminProviders = () => {
           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={loadProviders}>
             <RefreshCw className="h-3 w-3" />
           </Button>
+
+          {/* Edit Dialog */}
+          <Dialog open={editOpen} onOpenChange={setEditOpen}>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Редактировать провайдера</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div className="opacity-50">
+                  <Label className="text-xs">Ключ (уникальный идентификатор)</Label>
+                  <Input value={editForm.key} disabled className="text-xs bg-muted" />
+                  <p className="text-[10px] text-muted-foreground mt-1">Ключ нельзя изменить, так как он используется в связях.</p>
+                </div>
+                <div>
+                  <Label className="text-xs">Название</Label>
+                  <Input placeholder="My SMM Panel" value={editForm.label} onChange={(e) => setEditForm(p => ({ ...p, label: e.target.value }))} className="text-xs" />
+                </div>
+                <div>
+                  <Label className="text-xs">API URL</Label>
+                  <Input placeholder="https://example.com/api/v2" value={editForm.api_url} onChange={(e) => setEditForm(p => ({ ...p, api_url: e.target.value }))} className="text-xs" />
+                </div>
+                <div className="relative">
+                  <Label className="text-xs text-muted-foreground opacity-70">Переменная окружения API ключа</Label>
+                  <div className="flex gap-2">
+                    <Input placeholder="MY_PANEL_API_KEY" value={editForm.api_key_env} onChange={(e) => setEditForm(p => ({ ...p, api_key_env: e.target.value.toUpperCase() }))} className="text-xs bg-muted/30" />
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-8 text-[10px]" 
+                      onClick={() => setEditForm(p => ({ ...p, api_key_env: `${p.key.toUpperCase()}_API_KEY` }))}
+                    >
+                      Сброс
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">Используйте «Сброс», чтобы привести к стандартному виду: {editForm.key.toUpperCase()}_API_KEY</p>
+                </div>
+                <div>
+                  <Label className="text-xs">Значение API ключа (необязательно)</Label>
+                  <Input type="password" placeholder="Оставьте пустым, чтобы не менять" value={editForm.api_key} onChange={(e) => setEditForm(p => ({ ...p, api_key: e.target.value }))} className="text-xs" />
+                  <p className="text-[10px] text-muted-foreground mt-1">Прямое сохранение ключа в базу (удобнее, но менее безопасно, чем секреты Cloud).</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Валюта баланса</Label>
+                    <Select value={editForm.balance_currency} onValueChange={(v) => setEditForm(p => ({ ...p, balance_currency: v }))}>
+                      <SelectTrigger className="text-xs h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CURRENCIES.map(c => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Валюта услуг (rate)</Label>
+                    <Select value={editForm.rate_currency} onValueChange={(v) => setEditForm(p => ({ ...p, rate_currency: v }))}>
+                      <SelectTrigger className="text-xs h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CURRENCIES.map(c => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <Button onClick={saveEditProvider} className="w-full text-xs">Сохранить изменения</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -337,6 +481,9 @@ const AdminProviders = () => {
                 <Button size="sm" variant="outline" className="h-6 text-[10px] flex-1" onClick={() => healthCheck(p)} disabled={checking === p.id}>
                   <Activity className="h-2.5 w-2.5 mr-1" />{checking === p.id ? "..." : "Check"}
                 </Button>
+                <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => handleEdit(p)}>
+                  <Pencil className="h-2.5 w-2.5" />
+                </Button>
                 <Button size="sm" variant="destructive" className="h-6 text-[10px] px-2" onClick={() => deleteProvider(p)}>
                   <Trash2 className="h-2.5 w-2.5" />
                 </Button>
@@ -366,6 +513,7 @@ const AdminProviders = () => {
                 <TableHead className="px-2">Услуг</TableHead>
                 <TableHead className="px-2">Последняя проверка</TableHead>
                 <TableHead className="px-2">Активен</TableHead>
+                <TableHead className="px-2 text-right">Действия</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -382,6 +530,16 @@ const AdminProviders = () => {
                   <TableCell className="px-2">{p.services_count}</TableCell>
                   <TableCell className="px-2 whitespace-nowrap">{formatDate(p.last_health_check)}</TableCell>
                   <TableCell className="px-2"><Switch checked={p.is_enabled} onCheckedChange={() => toggleEnabled(p)} className="scale-[0.6]" /></TableCell>
+                  <TableCell className="px-2 text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => handleEdit(p)}>
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive" onClick={() => deleteProvider(p)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

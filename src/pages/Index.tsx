@@ -13,6 +13,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSiteContent } from '@/hooks/useSiteContent';
 import { Sparkles, Check, ExternalLink, Mail, PartyPopper, Zap, AlertTriangle, BookOpen, ArrowRight, X, Lock, KeyRound, ShoppingCart, ArrowLeft, RefreshCw, ShieldCheck, Fingerprint } from 'lucide-react';
 import { toast } from 'sonner';
+import PlatformIcon from '@/components/PlatformIcon';
+import SEO from '@/components/SEO';
+import { getMetaTitle, getMetaDescription } from '@/lib/seo';
 
 const Index = () => {
   const { content: siteContent } = useSiteContent();
@@ -137,6 +140,10 @@ const Index = () => {
       transition={{ duration: 0.3 }}
       className="flex flex-col min-h-screen bg-background scrollbar-none overflow-x-hidden"
     >
+      <SEO 
+        title={getMetaTitle("home")} 
+        description={getMetaDescription("home")} 
+      />
       <SiteHeader />
 
       {/* Main content wrapper to push footer down */}
@@ -157,32 +164,73 @@ const Index = () => {
                 transition={{ duration: 0.5 }}
                 className="absolute inset-0 z-0 pointer-events-none"
               >
+                {/* Main Dynamic Glow Blobs */}
                 <motion.div
-                  className="absolute top-10 left-[10%] w-72 h-72 bg-primary/10 rounded-full blur-3xl"
-                  animate={{ x: [0, 60, 0], y: [0, -40, 0], scale: [1, 1.2, 1] }}
-                  transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+                  className="absolute top-[-10%] left-[5%] w-[40rem] h-[40rem] bg-primary/20 rounded-full blur-[120px]"
+                  animate={{ x: [0, 40, 0], y: [0, 20, 0], scale: [1, 1.1, 1] }}
+                  transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
                 />
                 <motion.div
-                  className="absolute bottom-10 right-[10%] w-64 h-64 bg-primary/20 rounded-full blur-3xl"
-                  animate={{ x: [0, -50, 0], y: [0, 30, 0], scale: [1, 1.3, 1] }}
-                  transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+                  className="absolute bottom-[-10%] right-[5%] w-[35rem] h-[35rem] bg-secondary/20 rounded-full blur-[120px]"
+                  animate={{ x: [0, -30, 0], y: [0, -20, 0], scale: [1, 1.15, 1] }}
+                  transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
                 />
                 <motion.div
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-secondary/20 rounded-full blur-3xl"
-                  animate={{ scale: [1, 1.15, 1], rotate: [0, 180, 360] }}
-                  transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
+                  className="absolute top-[20%] right-[10%] w-96 h-96 bg-accent/15 rounded-full blur-[100px]"
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
+                  transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
                 />
 
-                {/* Elegant Decor Elements */}
-                <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
-                  <div className="absolute top-[20%] right-[15%] w-32 h-32 border border-white/10 rounded-3xl rotate-12 backdrop-blur-sm" />
-                  <div className="absolute bottom-[25%] left-[12%] w-24 h-24 border border-primary/20 rounded-full rotate-45 backdrop-blur-[2px]" />
-                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
+                {/* Floating Social Icons (Premium SMM feel) */}
+                <div className="absolute inset-0 overflow-hidden">
+                  {[
+                    { icon: 'telegram', top: '15%', left: '10%', size: 'w-12 h-12', delay: 0, duration: 18 },
+                    { icon: 'youtube', top: '25%', right: '12%', size: 'w-16 h-16', delay: 2, duration: 22 },
+                    { icon: 'tiktok', bottom: '20%', left: '15%', size: 'w-14 h-14', delay: 4, duration: 20 },
+                    { icon: 'instagram', bottom: '30%', right: '18%', size: 'w-10 h-10', delay: 1, duration: 24 },
+                    { icon: 'vk', top: '40%', left: '5%', size: 'w-8 h-8', delay: 3, duration: 19 },
+                  ].map((item, idx) => (
+                    <motion.div
+                      key={idx}
+                      className={`absolute ${item.size} text-white/5 backdrop-blur-[1px]`}
+                      style={{ top: item.top, left: item.left, right: item.right, bottom: item.bottom }}
+                      animate={{
+                        y: [0, -30, 0],
+                        rotate: [0, 15, -15, 0],
+                        opacity: [0.1, 0.25, 0.1],
+                      }}
+                      transition={{
+                        duration: item.duration,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: item.delay
+                      }}
+                    >
+                      <PlatformIcon platform={item.icon} className="w-full h-full" />
+                    </motion.div>
+                  ))}
                 </div>
 
+                {/* Elegant Geometric Decor */}
+                <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+                  <motion.div
+                    className="absolute top-[35%] right-[25%] w-48 h-48 border border-white/5 rounded-[3rem] rotate-12 backdrop-blur-[2px]"
+                    animate={{ rotate: [12, 24, 12] }}
+                    transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  <motion.div
+                    className="absolute bottom-[20%] left-[20%] w-32 h-32 border border-primary/10 rounded-full backdrop-blur-sm"
+                    animate={{ y: [0, 15, 0], scale: [1, 1.05, 1] }}
+                    transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.05] mix-blend-overlay" />
+                </div>
+
+                {/* Mesh/Grain/Grid */}
+                <div className="absolute inset-0 opacity-[0.03] pointer-events-none mix-blend-overlay bg-noise" />
                 <motion.div
-                  className="absolute top-0 left-0 w-full h-full z-0 opacity-[0.03] pointer-events-none"
-                  style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px' }}
+                  className="absolute top-0 left-0 w-full h-full z-0 opacity-[0.02] pointer-events-none"
+                  style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: 'clamp(20px, 4vw, 40px) 40px' }}
                 />
               </motion.div>
             )}
@@ -241,7 +289,13 @@ const Index = () => {
               transition={{ duration: 0.5, delay: 0.1 }}
               className="text-2xl md:text-3xl font-medium tracking-tight mb-8 text-white text-center relative z-10"
             >
-              {siteContent?.heroSubtitle || 'Продвигайте свои соцсети'}
+              {siteContent?.heroSubtitle ? (
+                <span>{siteContent.heroSubtitle}</span>
+              ) : (
+                <>
+                  Премиальное <b>продвижение</b> в социальных сетях
+                </>
+              )}
             </motion.h1>
           )}
 

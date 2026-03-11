@@ -18,10 +18,14 @@ serve(async (req) => {
   }
 
   // === HARDENED LICENSE VERIFICATION ===
-  const { valid, error: licError } = await checkLicense(req);
+  const { valid, error: licError, userId, userEmail } = await checkLicense(req);
   if (!valid) {
     console.error(`[License Blocked] Domain: ${req.headers.get('origin') || 'Unknown'}, Error: ${licError}`);
     return json({ error: `License invalid: ${licError}. Please check settings.`, license_error: true }, 403);
+  }
+
+  if (!userId) {
+    return json({ error: 'Unauthorized' }, 401);
   }
 
   try {
@@ -33,26 +37,6 @@ serve(async (req) => {
     }
     // Round to 2 decimal places to prevent sub-kopek amounts
     const safeAmount = Math.round(amount * 100) / 100;
-
-    // Auth
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return json({ error: 'Unauthorized' }, 401);
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
-      return json({ error: 'Unauthorized' }, 401);
-    }
-    const userId = claimsData.claims.sub;
-    const userEmail = claimsData.claims.email || '';
 
     // Admin client for settings
     const adminClient = createClient(
@@ -94,7 +78,7 @@ serve(async (req) => {
       return json({ error: 'Платёжная система не настроена. Заполните ключи в админке.' }, 500);
     }
 
-    const returnUrl = settingsMap.yookassa_return_url || `${req.headers.get('origin') || 'https://boost-link-magic.lovable.app'}/dashboard/transactions`;
+    const returnUrl = settingsMap.yookassa_return_url || `${req.headers.get('origin') || 'https://boost-link-magic.com'}/dashboard/transactions`;
 
     // Create pending transaction
     const { data: tx, error: txErr } = await adminClient

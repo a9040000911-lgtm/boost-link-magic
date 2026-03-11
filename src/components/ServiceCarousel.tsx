@@ -51,8 +51,8 @@ const ServiceCarousel = ({
         </div>
       </div>
 
-      <div className="overflow-visible py-4 -my-4" ref={emblaRef}>
-        <div className="flex gap-4 px-1">
+      <div className="overflow-visible py-6 -my-6 scrollbar-none" ref={emblaRef}>
+        <div className="flex gap-4 px-2 py-4">
           {services.map((service, i) => (
             <motion.div
               key={service.id}
@@ -64,8 +64,8 @@ const ServiceCarousel = ({
               onClick={() => onServiceSelect?.(service)}
             >
               <div className={`relative overflow-hidden rounded-2xl p-6 h-full flex flex-col gap-4 transition-all duration-300 bg-card border-2 shadow-lg group ${selectedServiceId === service.id
-                  ? `ring-2 ${branding?.ring || 'ring-primary'} ${branding?.border || 'border-primary/40'} ${branding?.shadow || 'shadow-primary/20'}`
-                  : `border-border/80 hover:${branding?.border || 'border-primary/30'} hover:${branding?.shadow || 'shadow-xl'}`
+                ? `ring-2 ${branding?.ring || 'ring-primary'} ${branding?.border || 'border-primary/40'} ${branding?.shadow || 'shadow-primary/20'}`
+                : `border-border/80 hover:${branding?.border || 'border-primary/30'} hover:${branding?.shadow || 'shadow-xl'}`
                 }`}>
                 {/* Shimmer */}
                 <motion.div

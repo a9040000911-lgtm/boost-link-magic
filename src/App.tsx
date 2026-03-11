@@ -54,6 +54,8 @@ import AdminReferrals from "./pages/admin/AdminReferrals";
 import DashboardBonuses from "./pages/dashboard/DashboardBonuses";
 import DashboardRules from "./pages/dashboard/DashboardRules";
 import ReferralsPage from "./pages/dashboard/ReferralsPage";
+import About from "./pages/About";
+import FAQ from "./pages/FAQ";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +71,8 @@ const App = () => (
             <Route path="/catalog" element={<Catalog />} />
             <Route path="/glossary" element={<Glossary />} />
             <Route path="/academy" element={<Academy />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/faq" element={<FAQ />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/auth" element={<Auth />} />

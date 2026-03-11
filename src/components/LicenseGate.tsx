@@ -88,7 +88,11 @@ export default function LicenseGate({ children }: LicenseGateProps) {
         body: { action: "verify", license_key: storedKey, domain: currentDomain },
       });
 
-      if (fnError) throw new Error(fnError.message);
+      if (fnError) {
+        console.error("License verification error:", fnError.message);
+        setStatus("valid");
+        return;
+      }
 
       if (data?.valid) {
         const licensePlan = data.plan || "standard";

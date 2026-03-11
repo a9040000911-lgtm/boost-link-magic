@@ -102,74 +102,85 @@ serve(async (req) => {
     const results: Record<string, { total: number; inserted: number; updated: number }> = {};
 
     for (const prov of dbProviders) {
-      const apiKey = Deno.env.get(prov.api_key_env);
-      if (!apiKey) {
-        results[prov.key] = { total: 0, inserted: 0, updated: 0 };
-        continue;
-      }
-
-      const response = await fetch(prov.api_url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: apiKey, action: 'services' }),
-      });
-
-      const services = await response.json();
-      if (!Array.isArray(services)) {
-        results[prov.key] = { total: 0, inserted: 0, updated: 0 };
-        continue;
-      }
-
-      let inserted = 0;
-      let updated = 0;
-
-      for (const svc of services) {
-        const { data: existing } = await adminClient
-          .from('provider_services')
-          .select('id, our_price, is_enabled, markup_percent')
-          .eq('provider', prov.key)
-          .eq('provider_service_id', svc.service)
-          .single();
-
-        const rawCategory = svc.category || 'Uncategorized';
-        const rawNetwork = svc.network || svc.category?.split(' ')[0] || 'Other';
-        const rawName = svc.name || '';
-
-        const serviceData = {
-          name: applyCleanup('name', rawName),
-          category: applyCleanup('category', rawCategory),
-          network: applyCleanup('network', rawNetwork),
-          description: svc.description || null,
-          type: svc.type || 'Default',
-          rate: parseFloat(svc.rate),
-          min_quantity: svc.min,
-          max_quantity: svc.max,
-          can_cancel: svc.cancel || false,
-          can_refill: svc.refill || false,
-          updated_at: new Date().toISOString(),
-        };
-
-        if (existing) {
-          await adminClient
-            .from('provider_services')
-            .update(serviceData)
-            .eq('id', existing.id);
-          updated++;
-        } else {
-          await adminClient
-            .from('provider_services')
-            .insert({
-              ...serviceData,
-              provider: prov.key,
-              provider_service_id: svc.service,
-              is_enabled: false,
-              markup_percent: 30,
-            });
-          inserted++;
+      try {
+        const apiKey = prov.api_key || Deno.env.get(prov.api_key_env);
+        if (!apiKey) {
+          results[prov.key] = { total: 0, inserted: 0, updated: 0, error: 'API key not configured (checked DB and ENV)' } as any;
+          continue;
         }
-      }
 
-      results[prov.key] = { total: services.length, inserted, updated };
+        const response = await fetch(prov.api_url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: apiKey, action: 'services' }),
+        }).catch(err => {
+          throw new Error(`Fetch failed: ${err.message}`);
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const services = await response.json();
+        if (!Array.isArray(services)) {
+          results[prov.key] = { total: 0, inserted: 0, updated: 0, error: 'Invalid response format (not an array)' } as any;
+          continue;
+        }
+
+        let inserted = 0;
+        let updated = 0;
+
+        for (const svc of services) {
+          const { data: existing } = await adminClient
+            .from('provider_services')
+            .select('id, our_price, is_enabled, markup_percent')
+            .eq('provider', prov.key)
+            .eq('provider_service_id', svc.service)
+            .single();
+
+          const rawCategory = svc.category || 'Uncategorized';
+          const rawNetwork = svc.network || svc.category?.split(' ')[0] || 'Other';
+          const rawName = svc.name || '';
+
+          const serviceData = {
+            name: applyCleanup('name', rawName),
+            category: applyCleanup('category', rawCategory),
+            network: applyCleanup('network', rawNetwork),
+            description: svc.description || null,
+            type: svc.type || 'Default',
+            rate: parseFloat(svc.rate),
+            min_quantity: svc.min,
+            max_quantity: svc.max,
+            can_cancel: svc.cancel || false,
+            can_refill: svc.refill || false,
+            updated_at: new Date().toISOString(),
+          };
+
+          if (existing) {
+            await adminClient
+              .from('provider_services')
+              .update(serviceData)
+              .eq('id', existing.id);
+            updated++;
+          } else {
+            await adminClient
+              .from('provider_services')
+              .insert({
+                ...serviceData,
+                provider: prov.key,
+                provider_service_id: svc.service,
+                is_enabled: false,
+                markup_percent: 30,
+              });
+            inserted++;
+          }
+        }
+
+        results[prov.key] = { total: services.length, inserted, updated };
+      } catch (provErr: any) {
+        console.error(`Error syncing provider ${prov.key}:`, provErr);
+        results[prov.key] = { total: 0, inserted: 0, updated: 0, error: provErr.message } as any;
+      }
     }
 
     return new Response(JSON.stringify({ success: true, results }), {

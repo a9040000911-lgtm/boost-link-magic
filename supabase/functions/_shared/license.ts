@@ -30,7 +30,13 @@ async function hmacVerify(
     return expected === signature;
 }
 
-export async function checkLicense(req: Request): Promise<{ valid: boolean; error?: string; plan?: string }> {
+export async function checkLicense(req: Request): Promise<{
+    valid: boolean;
+    error?: string;
+    plan?: string;
+    userId?: string;
+    userEmail?: string;
+}> {
     const supabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -102,5 +108,29 @@ export async function checkLicense(req: Request): Promise<{ valid: boolean; erro
         }
     }
 
-    return { valid: true, plan: dbLicense.plan };
+    // 7. User Auth (Unified)
+    const authHeader = req.headers.get('Authorization');
+    let userId: string | undefined;
+    let userEmail: string | undefined;
+
+    if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.replace('Bearer ', '');
+        const anonSupabase = createClient(
+            Deno.env.get("SUPABASE_URL")!,
+            Deno.env.get("SUPABASE_ANON_KEY")!,
+            { global: { headers: { Authorization: authHeader } } }
+        );
+        const { data: { user } } = await anonSupabase.auth.getUser(token);
+        if (user) {
+            userId = user.id;
+            userEmail = user.email;
+        }
+    }
+
+    return {
+        valid: true,
+        plan: dbLicense.plan,
+        userId,
+        userEmail
+    };
 }

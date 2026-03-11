@@ -26,7 +26,13 @@ export type AuditAction =
   | "bulk_markup"
   | "ladder_markup"
   | "bulk_category"
-  | "bulk_network";
+  | "bulk_network"
+  | "bulk_delete_services"
+  | "bulk_delete_provider_services"
+  | "bulk_move_category_services"
+  | "bulk_move_category_provider_services"
+  | "bulk_move_network_services"
+  | "bulk_move_network_provider_services";
 
 export async function logAuditAction(
   action: AuditAction,

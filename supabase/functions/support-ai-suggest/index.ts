@@ -17,7 +17,7 @@ const PROVIDER_ENDPOINTS: Record<string, string> = {
   qwen: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
   glm: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
   kimi: "https://api.moonshot.cn/v1/chat/completions",
-  lovable: "https://ai.gateway.lovable.dev/v1/chat/completions",
+  system: "https://ai.gateway.lovable.dev/v1/chat/completions",
 };
 
 /** Pick the least-used enabled key from ai_api_keys table, optionally filtered by provider */
@@ -45,7 +45,7 @@ async function markKeyUsed(supabase: any, keyId: string, error?: string) {
       .from("ai_api_keys")
       .update({ last_error: error, last_used_at: new Date().toISOString(), updated_at: new Date().toISOString() })
       .eq("id", keyId);
-    await supabase.rpc("increment_ai_key_error", { key_id: keyId }).catch(() => {});
+    await supabase.rpc("increment_ai_key_error", { key_id: keyId }).catch(() => { });
   }
   await supabase.rpc("increment_ai_key_usage", { key_id: keyId }).catch(() => {
     supabase
@@ -115,9 +115,9 @@ async function callAI({ systemPrompt, userPrompt, supabase: sb, preferredProvide
     apiKey = rotated.api_key;
     rotatedKeyId = rotated.id;
   } else {
-    // Fallback to Lovable AI
-    provider = "lovable";
-    model = "google/gemini-3-flash-preview";
+    // Fallback to internal AI
+    provider = "system";
+    model = "google/gemini-2.0-flash-exp";
     apiKey = Deno.env.get("LOVABLE_API_KEY") || "";
     if (!apiKey) throw new Error("Нет доступных AI ключей. Добавьте ключи в разделе API & Интеграции.");
   }
@@ -237,7 +237,7 @@ Deno.serve(async (req) => {
 
       // Try to use a key from DB for transcription
       const transcribeKey = await getRotatedKey(supabase);
-      
+
       let transcript = "";
 
       if (transcribeKey && transcribeKey.provider === "openai") {
@@ -245,7 +245,7 @@ Deno.serve(async (req) => {
         const formData = new FormData();
         formData.append("file", audioBlob, "audio.ogg");
         formData.append("model", "whisper-1");
-        
+
         const whisperResp = await fetch("https://api.openai.com/v1/audio/transcriptions", {
           method: "POST",
           headers: { Authorization: `Bearer ${transcribeKey.api_key}` },
@@ -260,7 +260,7 @@ Deno.serve(async (req) => {
           await markKeyUsed(supabase, transcribeKey.id, `Whisper HTTP ${whisperResp.status}`);
         }
       }
-      
+
       if (!transcript) {
         // Fallback: use Gemini with audio via base64
         const geminiKey = await getRotatedKey(supabase, "gemini");

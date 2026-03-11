@@ -174,7 +174,7 @@ export default function AdminAPI() {
                     )}
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-1.5">
-                    Секрет <code className="bg-muted px-1 rounded">MCP_ADMIN_KEY</code> задаётся в настройках Lovable Cloud
+                    Секрет <code className="bg-muted px-1 rounded">MCP_ADMIN_KEY</code> задаётся в настройках управления Cloud
                   </p>
                 </div>
 

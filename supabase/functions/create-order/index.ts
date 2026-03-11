@@ -16,10 +16,14 @@ serve(async (req) => {
   }
 
   // === HARDENED LICENSE VERIFICATION ===
-  const { valid, error: licError, plan: licPlan } = await checkLicense(req);
+  const { valid, error: licError, plan: licPlan, userId, userEmail } = await checkLicense(req);
   if (!valid) {
     console.error(`[License Blocked] Domain: ${req.headers.get('origin') || 'Unknown'}, Error: ${licError}`);
     return json({ error: `License invalid: ${licError}. Please check settings.`, license_error: true }, 403);
+  }
+
+  if (!userId) {
+    return json({ error: 'Unauthorized' }, 401);
   }
 
   try {
@@ -40,24 +44,6 @@ serve(async (req) => {
       return json({ error: 'Invalid link format' }, 400);
     }
 
-    // === AUTH ===
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return json({ error: 'Unauthorized' }, 401);
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
-      return json({ error: 'Unauthorized' }, 401);
-    }
-    const userId = claimsData.claims.sub;
 
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL')!,

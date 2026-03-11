@@ -1,5 +1,6 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,13 +12,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   RefreshCw, Search, Package, Plus, Link2, Trash2, ArrowUp, ArrowDown,
   Zap, ShieldCheck, AlertTriangle, Settings2, ChevronRight, Percent, Layers,
-  DollarSign, Hash
+  DollarSign, Hash, Eye, Pencil, Info, CheckCircle2, XCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { logAuditAction } from "@/lib/audit";
@@ -59,6 +61,7 @@ interface ProviderService {
   is_enabled: boolean;
   can_cancel: boolean;
   can_refill: boolean;
+  created_at?: string;
 }
 
 interface Service {
@@ -73,7 +76,9 @@ interface Service {
   is_enabled: boolean;
   speed: string;
   guarantee: string;
+  link_type: string;
   warning_text: string | null;
+  created_at?: string;
 }
 
 interface Mapping {
@@ -84,6 +89,19 @@ interface Mapping {
   is_active: boolean;
 }
 
+interface Platform {
+  id: string;
+  name: string;
+  sort_order: number;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  network: string;
+  sort_order: number;
+}
+
 const MIN_MARKUP_DEFAULT = 200;
 
 const AdminServices = () => {
@@ -92,6 +110,8 @@ const AdminServices = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [mappings, setMappings] = useState<Mapping[]>([]);
   const [providers, setProviders] = useState<any[]>([]);
+  const [dbPlatforms, setDbPlatforms] = useState<Platform[]>([]);
+  const [dbCategories, setDbCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [search, setSearch] = useState("");
@@ -115,7 +135,11 @@ const AdminServices = () => {
 
   // Edit dialog
   const [editService, setEditService] = useState<Service | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", description: "", category: "", network: "", min_quantity: "", max_quantity: "", price: "", speed: "medium", guarantee: "none", warning_text: "" });
+  const [editForm, setEditForm] = useState({
+    name: "", description: "", category: "", network: "", 
+    min_quantity: "", max_quantity: "", price: "", 
+    speed: "", guarantee: "", link_type: "unknown", warning_text: ""
+  });
 
   // Mapping add state inside edit dialog
   const [addMappingOpen, setAddMappingOpen] = useState(false);
@@ -136,6 +160,13 @@ const AdminServices = () => {
   const [priceMode, setPriceMode] = useState<"per1k" | "per1">("per1k");
   const [currency, setCurrency] = useState<"RUB" | "USD">("RUB");
   const [usdRate, setUsdRate] = useState<number>(0);
+  // UX Optimization state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingPrice, setEditingPrice] = useState<string>("");
+  const [editingName, setEditingName] = useState<string>("");
+  const [showDrawer, setShowDrawer] = useState(false);
+  const [showSmartImport, setShowSmartImport] = useState(false);
+  const [smartFilter, setSmartFilter] = useState<"all" | "error" | "low_margin" | "no_provider">("all");
 
   useEffect(() => {
     if (!user) return;
@@ -144,19 +175,23 @@ const AdminServices = () => {
 
   const loadAll = async () => {
     setLoading(true);
-    const [psRes, sRes, mRes, pRes, ladderRes, minMarkupRes, rateRes] = await Promise.all([
+    const [psRes, sRes, mRes, pRes, platRes, catRes, ladderRes, minMarkupRes, rateRes] = await Promise.all([
       supabase.from("provider_services").select("*").order("provider").order("network"),
       supabase.from("services").select("*").order("network").order("category").order("name"),
       supabase.from("service_provider_mappings").select("*").order("priority"),
       supabase.from("providers").select("*").eq("is_enabled", true),
+      supabase.from("platforms").select("*").order("sort_order"),
+      supabase.from("categories").select("*").order("sort_order"),
       supabase.from("app_settings").select("value").eq("key", "markup_ladder").single(),
       supabase.from("app_settings").select("value").eq("key", "min_markup_percent").single(),
       supabase.from("exchange_rates").select("rate").eq("base_currency", "USD").eq("target_currency", "RUB").order("fetched_at", { ascending: false }).limit(1).single(),
     ]);
     setProviderServices((psRes.data as ProviderService[]) || []);
-    setServices((sRes.data as Service[]) || []);
+    setServices((sRes.data as any[]) || []);
     setMappings((mRes.data as Mapping[]) || []);
     setProviders(pRes.data || []);
+    setDbPlatforms((platRes.data as Platform[]) || []);
+    setDbCategories((catRes.data as Category[]) || []);
     if (ladderRes.data?.value) {
       try { setMarkupLadder(JSON.parse(ladderRes.data.value)); } catch {}
     }
@@ -168,6 +203,32 @@ const AdminServices = () => {
     }
     setSelectedIds(new Set());
     setLoading(false);
+  };
+
+  const handleInlineSave = async (id: string, field: "price" | "name", value: string) => {
+    const updates: any = { [field]: field === "price" ? parseFloat(value) : value, updated_at: new Date().toISOString() };
+    
+    // Safety check for price
+    if (field === "price") {
+      const cheapest = getCheapestRate(id);
+      if (cheapest && cheapest > 0) {
+        const minAllowedPrice = cheapest * (1 + minMarkup / 100);
+        if (updates.price < minAllowedPrice) {
+          toast.error(`Минимальная цена: ${minAllowedPrice.toFixed(2)}`);
+          return;
+        }
+      }
+    }
+
+    const { error } = await supabase.from("services").update(updates).eq("id", id);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setServices(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+      setEditingId(null);
+      toast.success("Обновлено");
+      await logAuditAction("update_service", "service", id, updates);
+    }
   };
 
   // Price formatting helper
@@ -187,18 +248,40 @@ const AdminServices = () => {
       const { data, error } = await supabase.functions.invoke("sync-services", {
         body: { provider: providerKey || "all" },
       });
-      if (error) throw error;
-      const results = data.results;
-      const msgs = Object.entries(results).map(
-        ([k, v]: [string, any]) => `${k}: ${v.total} (${v.inserted} новых, ${v.updated} обнов.)`
-      );
-      toast.success(`Синхронизировано: ${msgs.join("; ")}`);
+      
+      if (error) {
+        console.error("Sync Edge Function error:", error);
+        throw new Error(error.message || "Ошибка вызова Edge Function (проверьте консоль)");
+      }
+      
+      const results = data.results || {};
+      const msgs: string[] = [];
+      const errors: string[] = [];
+
+      Object.entries(results).forEach(([k, v]: [string, any]) => {
+        if (v.error) {
+          errors.push(`${k}: ${v.error}`);
+        } else {
+          msgs.push(`${k}: ${v.total} (${v.inserted}+, ${v.updated}~)`);
+        }
+      });
+
+      if (msgs.length > 0) toast.success(`Синхр.: ${msgs.join("; ")}`);
+      if (errors.length > 0) toast.error(`Ошибки: ${errors.join("; ")}`, { duration: 5000 });
+
       await logAuditAction("sync_services", "provider_services", providerKey || "all");
       await loadAll();
     } catch (e: any) {
-      toast.error("Ошибка синхронизации: " + e.message);
+      console.error("Sync full error:", e);
+      // More helpful error messages
+      let errorMsg = e.message || "Неизвестная ошибка";
+      if (errorMsg.includes("Failed to fetch")) {
+        errorMsg = "Не удалось подключиться к Edge Function. Проверьте 'supabase start' и сеть.";
+      }
+      toast.error(`Ошибка синхронизации: ${errorMsg}`);
+    } finally {
+      setSyncing(false);
     }
-    setSyncing(false);
   };
 
   const createService = async () => {
@@ -444,6 +527,146 @@ const AdminServices = () => {
     await loadAll();
   };
 
+  const handleCleanup = async () => {
+    try {
+      if (!confirm("Вы уверены, что хотите удалить неиспользуемые услуги провайдеров?")) return;
+      
+      const { data: allProviders } = await supabase.from('providers').select('key');
+      const allKeys = (allProviders || []).map(p => p.key);
+      
+      // Determine what to delete: services where provider is NOT in our current providers list
+      // Or services where provider is disabled (optional, but let's stick to orphaned for now)
+      
+      if (allKeys.length === 0) {
+        // If no providers exist, all provider_services are orphaned? 
+        // Safer to just delete if we have at least one provider.
+        toast.error("Сначала добавьте хотя бы одного провайдера");
+        return;
+      }
+
+      // Query services that have a provider key NOT in allKeys
+      const { data: orphaned } = await supabase.from('provider_services').select('id, provider');
+      const toDelete = (orphaned || []).filter(ps => !allKeys.includes(ps.provider)).map(ps => ps.id);
+
+      if (toDelete.length === 0) {
+        toast.info("Осиротевших услуг не найдено");
+        return;
+      }
+
+      const { error } = await supabase
+        .from('provider_services')
+        .delete()
+        .in('id', toDelete);
+        
+      if (error) throw error;
+      
+      toast.success(`Очистка завершена: удалено ${toDelete.length} услуг`);
+      await logAuditAction("bulk_delete_provider_services" as any, "provider_services", undefined, { count: toDelete.length, reason: "cleanup_orphaned" });
+      await loadAll();
+    } catch (error: any) {
+      console.error("Cleanup error:", error);
+      toast.error("Ошибка очистки: " + error.message);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const table = activeTab === "catalog" ? "services" : "provider_services";
+    const label = activeTab === "catalog" ? "услуг в каталоге" : "услуг провайдеров";
+    
+    if (!confirm(`Удалить ${selectedIds.size} ${label}? Это действие необратимо.`)) return;
+    
+    setLoading(true);
+    const ids = [...selectedIds];
+    const { error } = await supabase.from(table).delete().in("id", ids);
+    
+    if (error) {
+      toast.error(`Ошибка удаления: ${error.message}`);
+    } else {
+      toast.success(`Удалено ${ids.length} ${label}`);
+      await logAuditAction(`bulk_delete_${table}` as any, table, undefined, { count: ids.length });
+      setSelectedIds(new Set());
+      await loadAll();
+    }
+    setLoading(false);
+  };
+
+  const handleBulkMoveCategory = async () => {
+    const table = activeTab === "catalog" ? "services" : "provider_services";
+    const category = bulkCategory.trim();
+    if (!category) { toast.error("Введите категорию"); return; }
+    
+    setLoading(true);
+    const ids = [...selectedIds];
+    const { error } = await supabase.from(table).update({ category, updated_at: new Date().toISOString() }).in("id", ids);
+    
+    if (error) {
+      toast.error(`Ошибка обновления: ${error.message}`);
+    } else {
+      toast.success(`Категория «${category}» → ${ids.length} строк`);
+      await logAuditAction(`bulk_move_category_${table}` as any, table, undefined, { count: ids.length, category });
+      setSelectedIds(new Set());
+      setBulkCategory("");
+      await loadAll();
+    }
+    setLoading(false);
+  };
+
+  const handleBulkMoveNetwork = async () => {
+    const table = activeTab === "catalog" ? "services" : "provider_services";
+    const network = bulkNetwork.trim();
+    if (!network) { toast.error("Введите платформу"); return; }
+    
+    setLoading(true);
+    const ids = [...selectedIds];
+    const { error } = await supabase.from(table).update({ network, updated_at: new Date().toISOString() }).in("id", ids);
+    
+    if (error) {
+      toast.error(`Ошибка обновления: ${error.message}`);
+    } else {
+      toast.success(`Платформа «${network}» → ${ids.length} строк`);
+      await logAuditAction(`bulk_move_network_${table}` as any, table, undefined, { count: ids.length, network });
+      setSelectedIds(new Set());
+      setBulkNetwork("");
+      await loadAll();
+    }
+    setLoading(false);
+  };
+
+  const handleBulkAlignPrices = async () => {
+    setLoading(true);
+    const ids = [...selectedIds];
+    let updated = 0;
+    let skipped = 0;
+    for (const id of ids) {
+      const rate = getCheapestRate(id);
+      if (!rate) { skipped++; continue; }
+      const newPrice = rate * (1 + minMarkup / 100);
+      const { error } = await supabase.from("services").update({ price: newPrice, updated_at: new Date().toISOString() }).eq("id", id);
+      if (!error) updated++;
+    }
+    const msg = `Цены выровнены до мин. наценки (${minMarkup}%) для ${updated} услуг${skipped ? ` (${skipped} без провайдера)` : ""}`;
+    toast.success(msg);
+    await logAuditAction("bulk_align_prices" as any, "services", undefined, { count: updated, minMarkup, skipped });
+    setSelectedIds(new Set());
+    await loadAll();
+    setLoading(false);
+  };
+
+  const handleBulkToggleStatus = async (enabled: boolean) => {
+    setLoading(true);
+    const ids = [...selectedIds];
+    const { error } = await supabase.from("services").update({ is_enabled: enabled, updated_at: new Date().toISOString() }).in("id", ids);
+    if (error) {
+      toast.error(`Ошибка обновления статуса: ${error.message}`);
+    } else {
+      toast.success(`Статус изменен для ${ids.length} услуг`);
+      await logAuditAction("bulk_toggle_service_status" as any, "services", undefined, { count: ids.length, enabled });
+      setSelectedIds(new Set());
+      await loadAll();
+    }
+    setLoading(false);
+  };
+
   const getMappingsForService = (serviceId: string) =>
     mappings.filter((m) => m.service_id === serviceId).sort((a, b) => a.priority - b.priority);
 
@@ -455,7 +678,9 @@ const AdminServices = () => {
       name: svc.name, description: svc.description || "", category: svc.category,
       network: svc.network, min_quantity: String(svc.min_quantity),
       max_quantity: String(svc.max_quantity), price: String(svc.price),
-      speed: svc.speed || "medium", guarantee: svc.guarantee || "none",
+      speed: svc.speed || "medium", 
+      guarantee: svc.guarantee || "none",
+      link_type: svc.link_type || "unknown",
       warning_text: svc.warning_text || "",
     });
     setAddMappingOpen(false);
@@ -480,13 +705,35 @@ const AdminServices = () => {
       if (categoryFilter !== "all" && s.category !== categoryFilter) return false;
       if (enabledFilter === "enabled" && !s.is_enabled) return false;
       if (enabledFilter === "disabled" && s.is_enabled) return false;
+      
+      // Smart filters
+      if (smartFilter === "error") {
+        const svcMappings = getMappingsForService(s.id);
+        const hasActiveProvider = svcMappings.some(m => m.is_active);
+        if (s.is_enabled && !hasActiveProvider) return true;
+        // Also check if primary provider is disabled
+        const primary = svcMappings.find(m => m.is_active) || svcMappings[0];
+        const ps = primary ? getProviderService(primary.provider_service_id) : null;
+        if (s.is_enabled && ps && !ps.is_enabled) return true;
+        return false;
+      }
+      if (smartFilter === "low_margin") {
+        const rate = getCheapestRate(s.id);
+        if (!rate) return false;
+        const markupPct = Math.round(((s.price / rate) - 1) * 100);
+        return markupPct < minMarkup;
+      }
+      if (smartFilter === "no_provider") {
+        return getMappingsForService(s.id).length === 0;
+      }
+
       if (search) {
         const q = search.toLowerCase();
         if (!s.name.toLowerCase().includes(q) && !s.category.toLowerCase().includes(q) && !s.id.includes(q)) return false;
       }
       return true;
     });
-  }, [services, search, networkFilter, categoryFilter, enabledFilter]);
+  }, [services, search, networkFilter, categoryFilter, enabledFilter, smartFilter, mappings, providerServices]);
 
   const filteredProviderServices = useMemo(() => {
     return providerServices.filter((s) => {
@@ -527,6 +774,12 @@ const AdminServices = () => {
           <Button size="sm" variant="outline" onClick={() => handleSync()} disabled={syncing} className="h-7 text-xs">
             <RefreshCw className={`h-3 w-3 mr-1 ${syncing ? "animate-spin" : ""}`} />
             {syncing ? "Синхр..." : "Синхр. провайдеров"}
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleCleanup} className="h-7 text-xs border-destructive/30 hover:bg-destructive/5 text-destructive">
+            <Trash2 className="h-3 w-3 mr-1" />Очистка
+          </Button>
+          <Button size="sm" variant="default" onClick={() => setShowSmartImport(true)} className="h-7 text-xs bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
+            <Zap className="h-3 w-3 mr-1" />Умный импорт
           </Button>
           <CleanupRulesDialog />
           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={loadAll}>
@@ -600,6 +853,36 @@ const AdminServices = () => {
               </SelectContent>
             </Select>
           )}
+
+          {activeTab === "catalog" && (
+            <div className="flex items-center gap-1.5 ml-2 p-1 bg-muted/30 rounded-lg border border-border/40">
+              <button
+                onClick={() => setSmartFilter("all")}
+                className={`px-2 py-1 rounded-md text-[10px] font-medium transition-all ${smartFilter === "all" ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-muted text-muted-foreground"}`}
+              >
+                Все
+              </button>
+              <button
+                onClick={() => setSmartFilter("error")}
+                className={`px-2 py-1 rounded-md text-[10px] font-medium flex items-center gap-1 transition-all ${smartFilter === "error" ? "bg-destructive text-destructive-foreground shadow-sm" : "hover:bg-destructive/10 text-destructive"}`}
+              >
+                <AlertTriangle className="h-3 w-3" /> Ошибки
+              </button>
+              <button
+                onClick={() => setSmartFilter("low_margin")}
+                className={`px-2 py-1 rounded-md text-[10px] font-medium flex items-center gap-1 transition-all ${smartFilter === "low_margin" ? "bg-amber-500 text-white shadow-sm" : "hover:bg-amber-500/10 text-amber-600"}`}
+              >
+                <Percent className="h-3 w-3" /> Наценка
+              </button>
+              <button
+                onClick={() => setSmartFilter("no_provider")}
+                className={`px-2 py-1 rounded-md text-[10px] font-medium flex items-center gap-1 transition-all ${smartFilter === "no_provider" ? "bg-zinc-600 text-white shadow-sm" : "hover:bg-zinc-600/10 text-zinc-600"}`}
+              >
+                <Link2 className="h-3 w-3" /> Без пров.
+              </button>
+            </div>
+          )}
+
           {/* Price display toggles */}
           <div className="flex items-center gap-0.5 ml-auto border rounded-md">
             <Button
@@ -659,8 +942,33 @@ const AdminServices = () => {
                     <div><Label className="text-xs">Название</Label><Input value={newService.name} onChange={(e) => setNewService({ ...newService, name: e.target.value })} /></div>
                     <div><Label className="text-xs">Описание</Label><Textarea value={newService.description} onChange={(e) => setNewService({ ...newService, description: e.target.value })} /></div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div><Label className="text-xs">Категория</Label><Input value={newService.category} onChange={(e) => setNewService({ ...newService, category: e.target.value })} placeholder="Подписчики" /></div>
-                      <div><Label className="text-xs">Платформа</Label><Input value={newService.network} onChange={(e) => setNewService({ ...newService, network: e.target.value })} placeholder="Instagram" /></div>
+                      <div>
+                        <Label className="text-xs">Платформа</Label>
+                        <Select value={newService.network} onValueChange={(v) => {
+                          setNewService({ ...newService, network: v });
+                          const firstCat = dbCategories.find(c => c.network === v)?.name;
+                          if (firstCat) setNewService(prev => ({ ...prev, network: v, category: firstCat }));
+                        }}>
+                          <SelectTrigger className="h-9"><SelectValue placeholder="Выберите платформу" /></SelectTrigger>
+                          <SelectContent>
+                            {dbPlatforms.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Категория</Label>
+                        <Select value={newService.category} onValueChange={(v) => setNewService({ ...newService, category: v })}>
+                          <SelectTrigger className="h-9"><SelectValue placeholder="Выберите категорию" /></SelectTrigger>
+                          <SelectContent>
+                            {dbCategories
+                              .filter(c => !newService.network || c.network === newService.network)
+                              .map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                            {dbCategories.filter(c => c.network === newService.network).length === 0 && (
+                              dbCategories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <div className="grid grid-cols-3 gap-3">
                       <div><Label className="text-xs">Мин</Label><Input type="number" value={newService.min_quantity} onChange={(e) => setNewService({ ...newService, min_quantity: e.target.value })} /></div>
@@ -719,7 +1027,7 @@ const AdminServices = () => {
                             if (!ps) return null;
                             return (
                               <Badge key={psId} variant="secondary" className="text-[9px] gap-1 pr-1">
-                                <span className="font-mono">#{idx + 1}</span> {ps.provider} · {ps.name.slice(0, 40)} · {ps.rate.toFixed(2)}₽
+                                <span className="font-mono">#{idx + 1}</span> {ps.provider} · {ps.name} · {ps.rate.toFixed(2)}₽
                                 <button
                                   onClick={() => setCreateMappingIds(prev => prev.filter(id => id !== psId))}
                                   className="ml-1 hover:text-destructive"
@@ -798,7 +1106,7 @@ const AdminServices = () => {
                               >
                                 <Checkbox checked={isSelected} className="scale-[0.7]" />
                                 <span className="text-muted-foreground w-[60px] shrink-0">{ps.provider}</span>
-                                <span className="flex-1 truncate">{ps.name}</span>
+                                <span className="flex-1">{ps.name}</span>
                                 <span className="text-muted-foreground shrink-0">{ps.network}</span>
                                 <span className="font-mono shrink-0 w-[70px] text-right">{ps.rate.toFixed(2)}₽</span>
                               </div>
@@ -888,6 +1196,10 @@ const AdminServices = () => {
                       </Button>
                     </div>
                     <div className="w-px h-5 bg-border" />
+                    <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={handleBulkDelete}>
+                      <Trash2 className="h-3 w-3 mr-1" />Удалить ({selectedIds.size})
+                    </Button>
+                    <div className="w-px h-5 bg-border" />
                     <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
                       Сбросить
                     </Button>
@@ -900,7 +1212,7 @@ const AdminServices = () => {
                 ) : (
                   <Table>
                     <TableHeader>
-                      <TableRow className="text-[11px]">
+                      <TableRow className="text-[10px] uppercase bg-muted/30">
                         <TableHead className="px-2 w-8">
                           <Checkbox
                             checked={selectedIds.size === filteredServices.length && filteredServices.length > 0}
@@ -908,20 +1220,28 @@ const AdminServices = () => {
                             className="scale-[0.75]"
                           />
                         </TableHead>
-                        <TableHead className="w-10 px-2">Вкл</TableHead>
+                        <TableHead className="px-2 w-10">ID</TableHead>
                         <TableHead className="px-2">Название</TableHead>
-                        <TableHead className="px-2 w-[80px]">Сеть</TableHead>
-                        <TableHead className="px-2 w-[80px] text-right">Закупка</TableHead>
-                        <TableHead className="px-2 w-[60px] text-right">Нац.%</TableHead>
-                        <TableHead className="px-2 w-[90px] text-right">{priceLabel}</TableHead>
-                        <TableHead className="px-2 w-[100px]">Провайдеры</TableHead>
-                        <TableHead className="px-2 w-10"></TableHead>
+                        <TableHead className="px-2">Категория</TableHead>
+                        <TableHead className="px-2">Активность (Группа)</TableHead>
+                        <TableHead className="px-2 min-w-[150px]">Активность (Услуга)</TableHead>
+                        <TableHead className="px-2">Статус</TableHead>
+                        <TableHead className="px-2">Статус Пров.</TableHead>
+                        <TableHead className="px-2 text-right">Процент</TableHead>
+                        <TableHead className="px-2 text-right">Реальная наценка</TableHead>
+                        <TableHead className="px-2 text-right">Цена</TableHead>
+                        <TableHead className="px-2">Индикатор</TableHead>
+                        <TableHead className="px-2">Создана</TableHead>
+                        <TableHead className="px-2 w-16">Действия</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredServices.map((svc) => {
+                      {filteredServices.map((svc, index) => {
                         const svcMappings = getMappingsForService(svc.id);
                         const activeCount = svcMappings.filter(m => m.is_active).length;
+                        const primaryMapping = svcMappings.find(m => m.is_active) || svcMappings[0];
+                        const ps = primaryMapping ? getProviderService(primaryMapping.provider_service_id) : null;
+                        
                         const isOrphan = svc.is_enabled && activeCount === 0;
                         const cheapestRate = getCheapestRate(svc.id);
                         const markupPct = cheapestRate && cheapestRate > 0
@@ -933,7 +1253,7 @@ const AdminServices = () => {
                           <Tooltip key={svc.id}>
                             <TooltipTrigger asChild>
                           <TableRow
-                            className={`text-xs cursor-pointer hover:bg-muted/50 ${selectedIds.has(svc.id) ? "bg-primary/5" : ""} ${!svc.is_enabled ? "opacity-40" : ""} ${isOrphan ? "bg-destructive/5" : ""} ${isBelowMin ? "border-l-2 border-l-destructive bg-destructive/10" : ""}`}
+                            className={`text-[11px] cursor-pointer hover:bg-muted/50 transition-colors ${selectedIds.has(svc.id) ? "bg-primary/5 border-l-2 border-l-primary" : "border-l-2 border-l-transparent"} ${!svc.is_enabled ? "opacity-60 bg-muted/20" : ""} ${isOrphan ? "bg-destructive/5" : ""} ${isBelowMin ? "bg-destructive/10" : ""}`}
                             onClick={() => openEditDialog(svc)}
                           >
                             <TableCell className="px-2" onClick={(e) => e.stopPropagation()}>
@@ -943,46 +1263,130 @@ const AdminServices = () => {
                                 className="scale-[0.75]"
                               />
                             </TableCell>
-                            <TableCell className="px-2" onClick={(e) => e.stopPropagation()}>
-                              <Switch checked={svc.is_enabled} onCheckedChange={(v) => toggleServiceEnabled(svc.id, v)} className="scale-[0.65]" />
+                            <TableCell className="px-2 font-mono text-muted-foreground">{index + 1}</TableCell>
+                            <TableCell className="px-2 font-semibold text-primary" onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingId(svc.id);
+                              setEditingName(svc.name);
+                            }}>
+                              {editingId === svc.id ? (
+                                <Input
+                                  value={editingName}
+                                  onChange={(e) => setEditingName(e.target.value)}
+                                  onBlur={() => handleInlineSave(svc.id, "name", editingName)}
+                                  onKeyDown={(e) => e.key === "Enter" && handleInlineSave(svc.id, "name", editingName)}
+                                  className="h-7 text-xs"
+                                  autoFocus
+                                />
+                              ) : (
+                                <span className="cursor-pointer hover:underline decoration-dotted block leading-normal py-1">
+                                  {svc.name}
+                                </span>
+                              )}
                             </TableCell>
-                            <TableCell className="px-2 font-medium">{svc.name}</TableCell>
+                            <TableCell className="px-2">{svc.network}</TableCell>
+                            <TableCell className="px-2 text-muted-foreground">{svc.network} - {svc.category}</TableCell>
+                            <TableCell className="px-2 max-w-[250px]">
+                              {ps ? (
+                                <div className="flex flex-col">
+                                  <span className="block leading-tight">{ps.name}</span>
+                                  <span className="text-[9px] text-muted-foreground/70 uppercase">{ps.provider} #{ps.provider_service_id}</span>
+                                </div>
+                              ) : <span className="text-destructive font-bold uppercase text-[9px]">Не привязана</span>}
+                            </TableCell>
                             <TableCell className="px-2">
-                              <Badge variant="outline" className="text-[10px] px-1.5">{svc.network}</Badge>
+                              {svc.is_enabled ? (
+                                <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-[9px] font-bold uppercase shadow-none">Активна</Badge>
+                              ) : (
+                                <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-[9px] font-bold uppercase shadow-none">Деактивирована</Badge>
+                              )}
                             </TableCell>
-                            <TableCell className="px-2 text-right font-mono text-muted-foreground">
-                              {cheapestRate ? fmtPrice(cheapestRate) : <span className="text-[10px]">—</span>}
+                            <TableCell className="px-2">
+                              {ps ? (
+                                ps.is_enabled ? (
+                                  <Badge variant="outline" className="text-green-500 border-green-500/50 text-[9px] uppercase shadow-none">Активна</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-destructive border-destructive/50 text-[9px] uppercase shadow-none">Удалена</Badge>
+                                )
+                              ) : <span className="text-muted-foreground">—</span>}
+                            </TableCell>
+                            <TableCell className="px-2 text-right font-mono">{markupPct ?? "—"}</TableCell>
+                            <TableCell className="px-2 text-right font-mono font-bold">
+                              {markupPct !== null ? `${markupPct}%` : "—"}
                             </TableCell>
                             <TableCell className="px-2 text-right">
-                              {markupPct !== null ? (
-                                <Badge
-                                  variant={isBelowMin ? "destructive" : "default"}
-                                  className="text-[9px] px-1"
-                                >
-                                  {isBelowMin && <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />}
-                                  {markupPct}%
-                                </Badge>
-                              ) : (
-                                <span className="text-muted-foreground text-[10px]">—</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="px-2 text-right font-mono font-medium">{fmtPrice(Number(svc.price))}</TableCell>
-                            <TableCell className="px-2">
-                              {isOrphan ? (
-                                <Badge variant="destructive" className="text-[9px] px-1">
-                                  <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />Нет
-                                </Badge>
-                              ) : activeCount > 0 ? (
-                                <div className="flex items-center gap-1">
-                                  <Badge variant="secondary" className="text-[9px] px-1">{activeCount} пров.</Badge>
-                                  {activeCount >= 2 && <ShieldCheck className="h-3 w-3 text-green-500" />}
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground text-[10px]">—</span>
-                              )}
+                              <div className="font-mono font-bold text-sm" onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingId(svc.id);
+                                setEditingPrice(svc.price.toString());
+                              }}>
+                                {editingId === svc.id ? (
+                                  <Input
+                                    type="number"
+                                    value={editingPrice}
+                                    onChange={(e) => setEditingPrice(e.target.value)}
+                                    onBlur={() => handleInlineSave(svc.id, "price", editingPrice)}
+                                    onKeyDown={(e) => e.key === "Enter" && handleInlineSave(svc.id, "price", editingPrice)}
+                                    className="h-7 text-xs w-[80px] ml-auto"
+                                    autoFocus
+                                  />
+                                ) : (
+                                  <span className="cursor-pointer hover:underline decoration-dotted">{fmtPrice(Number(svc.price))}</span>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="px-2">
-                              <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
+                              {svc.is_enabled ? (
+                                <Badge className="bg-green-100 text-green-700 text-[9px] font-bold uppercase">Активно</Badge>
+                              ) : <span className="text-muted-foreground">—</span>}
+                            </TableCell>
+                            <TableCell className="px-2 text-[9px] text-muted-foreground leading-tight">
+                              {svc.created_at ? new Date(svc.created_at).toLocaleString('ru-RU', {
+                                year: 'numeric', month: '2-digit', day: '2-digit',
+                                hour: '2-digit', minute: '2-digit', second: '2-digit'
+                              }).replace(',', '') : '—'}
+                            </TableCell>
+                            <TableCell className="px-2" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                                  setEditService(svc);
+                                  setEditForm({
+                                    name: svc.name,
+                                    description: svc.description || "",
+                                    category: svc.category,
+                                    network: svc.network,
+                                    min_quantity: String(svc.min_quantity),
+                                    max_quantity: String(svc.max_quantity),
+                                    price: String(svc.price),
+                                    speed: svc.speed || "medium",
+                                    guarantee: svc.guarantee || "none",
+                                    link_type: svc.link_type || "unknown",
+                                    warning_text: svc.warning_text || ""
+                                  });
+                                  setShowDrawer(true);
+                                }}>
+                                  <Eye className="h-3 w-3 text-primary" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                                  setEditService(svc);
+                                  setEditForm({
+                                    name: svc.name,
+                                    description: svc.description || "",
+                                    category: svc.category,
+                                    network: svc.network,
+                                    min_quantity: String(svc.min_quantity),
+                                    max_quantity: String(svc.max_quantity),
+                                    price: String(svc.price),
+                                    speed: svc.speed || "medium",
+                                    guarantee: svc.guarantee || "none",
+                                    link_type: svc.link_type || "unknown",
+                                    warning_text: svc.warning_text || ""
+                                  });
+                                  setShowDrawer(true);
+                                }}>
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                             </TooltipTrigger>
@@ -990,7 +1394,6 @@ const AdminServices = () => {
                               <TooltipContent side="top" className="text-xs max-w-[220px]">
                                 <p className="font-semibold text-destructive">⚠ Наценка ниже минимума!</p>
                                 <p>Текущая: {markupPct}% · Мин: {minMarkup}%</p>
-                                <p className="text-muted-foreground">Увеличьте цену или примените наценку</p>
                               </TooltipContent>
                             )}
                           </Tooltip>
@@ -1026,6 +1429,36 @@ const AdminServices = () => {
                     }}>
                       <Plus className="h-3 w-3 mr-1" />В каталог ({selectedIds.size})
                     </Button>
+                    <div className="w-px h-5 bg-border" />
+                    {/* Category for providers */}
+                    <div className="flex items-center gap-1">
+                      <Input
+                        placeholder="Категория"
+                        value={bulkCategory}
+                        onChange={(e) => setBulkCategory(e.target.value)}
+                        className="h-7 w-[120px] text-xs"
+                      />
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleBulkMoveCategory} disabled={!bulkCategory.trim()}>
+                        Кат.
+                      </Button>
+                    </div>
+                    {/* Network for providers */}
+                    <div className="flex items-center gap-1">
+                      <Input
+                        placeholder="Платформа"
+                        value={bulkNetwork}
+                        onChange={(e) => setBulkNetwork(e.target.value)}
+                        className="h-7 w-[100px] text-xs"
+                      />
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleBulkMoveNetwork} disabled={!bulkNetwork.trim()}>
+                        Плат.
+                      </Button>
+                    </div>
+                    <div className="w-px h-5 bg-border" />
+                    <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={handleBulkDelete}>
+                      <Trash2 className="h-3 w-3 mr-1" />Удалить
+                    </Button>
+                    <div className="w-px h-5 bg-border" />
                     <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
                       Сбросить
                     </Button>
@@ -1071,7 +1504,24 @@ const AdminServices = () => {
                             <TableCell className="px-2"><Badge variant="secondary" className="text-[10px]">{svc.provider}</Badge></TableCell>
                             <TableCell className="px-2 text-muted-foreground font-mono">{svc.provider_service_id}</TableCell>
                             <TableCell className="px-2">
-                              <div className="truncate max-w-[240px] font-medium">{svc.name}</div>
+                              <div className="flex items-center gap-1.5 py-1">
+                                <div className="font-medium leading-normal">{svc.name}</div>
+                                {svc.description && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full shrink-0" onClick={(e) => {
+                                        e.stopPropagation();
+                                        alert(svc.description); // Simple for now, can be improved to a nicer dialog
+                                      }}>
+                                        <Info className="h-3 w-3 text-muted-foreground" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-[300px] text-xs">
+                                      {svc.description}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="px-2"><Badge variant="outline" className="text-[10px]">{svc.network}</Badge></TableCell>
                             <TableCell className="px-2 text-right font-mono">{fmtPrice(Number(svc.rate))}</TableCell>
@@ -1121,8 +1571,35 @@ const AdminServices = () => {
                     <Textarea value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} className="h-16" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div><Label className="text-xs">Категория</Label><Input value={editForm.category} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} /></div>
-                    <div><Label className="text-xs">Платформа</Label><Input value={editForm.network} onChange={(e) => setEditForm({ ...editForm, network: e.target.value })} /></div>
+                    <div>
+                      <Label className="text-xs">Платформа</Label>
+                      <Select value={editForm.network} onValueChange={(v) => {
+                        setEditForm({ ...editForm, network: v });
+                        // Optionally auto-set first category of this network
+                        const firstCat = dbCategories.find(c => c.network === v)?.name;
+                        if (firstCat) setEditForm(prev => ({ ...prev, network: v, category: firstCat }));
+                      }}>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Выберите платформу" /></SelectTrigger>
+                        <SelectContent>
+                          {dbPlatforms.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Категория</Label>
+                      <Select value={editForm.category} onValueChange={(v) => setEditForm({ ...editForm, category: v })}>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Выберите категорию" /></SelectTrigger>
+                        <SelectContent>
+                          {dbCategories
+                            .filter(c => !editForm.network || c.network === editForm.network)
+                            .map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                          {/* If no categories for this network, show all as fallback or allow adding? */}
+                          {dbCategories.filter(c => c.network === editForm.network).length === 0 && (
+                            dbCategories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div><Label className="text-xs">Мин. кол-во</Label><Input type="number" value={editForm.min_quantity} onChange={(e) => setEditForm({ ...editForm, min_quantity: e.target.value })} /></div>
@@ -1275,7 +1752,627 @@ const AdminServices = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* === SERVICE INSPECTOR (DRAWER) === */}
+      <Sheet open={showDrawer} onOpenChange={setShowDrawer}>
+        <SheetContent className="sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Settings2 className="h-4 w-4 text-primary" />
+              Инспектор услуги
+            </SheetTitle>
+            <SheetDescription className="text-[10px] uppercase font-mono">
+              ID: {editService?.id}
+            </SheetDescription>
+          </SheetHeader>
+
+          {editService && (
+            <div className="space-y-6 mt-6 pb-12">
+              {/* Internal Info */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Общая информация</h3>
+                  <Badge variant={editService.is_enabled ? "default" : "secondary"} className="text-[9px]">
+                    {editService.is_enabled ? "Активна" : "Пауза"}
+                  </Badge>
+                </div>
+                
+                <div className="grid gap-3">
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Название</Label>
+                    <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="h-8 text-xs font-semibold" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">Платформа</Label>
+                      <Select value={editForm.network} onValueChange={(v) => {
+                        setEditForm({ ...editForm, network: v });
+                         const firstCat = dbCategories.find(c => c.network === v)?.name;
+                         if (firstCat) setEditForm(prev => ({ ...prev, network: v, category: firstCat }));
+                      }}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Сеть" /></SelectTrigger>
+                        <SelectContent>
+                          {dbPlatforms.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">Категория</Label>
+                      <Select value={editForm.category} onValueChange={(v) => setEditForm({ ...editForm, category: v })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Категория" /></SelectTrigger>
+                        <SelectContent>
+                          {dbCategories
+                            .filter(c => !editForm.network || c.network === editForm.network)
+                            .map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                          {dbCategories.filter(c => c.network === editForm.network).length === 0 && (
+                            dbCategories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pricing & Limits */}
+              <div className="space-y-3 p-3 bg-muted/40 rounded-lg border border-border/50">
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Цены и лимиты</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <Label className="text-[10px] text-muted-foreground">Цена (за 1000)</Label>
+                    <div className="relative">
+                      <Input type="number" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: e.target.value })} className="h-10 text-lg font-mono font-bold" />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">₽</span>
+                    </div>
+                    {(() => {
+                      const cr = getCheapestRate(editService.id);
+                      if (cr && cr > 0) {
+                        const minP = cr * (1 + minMarkup / 100);
+                        const currentMarkup = Math.round(((parseFloat(editForm.price) / cr) - 1) * 100);
+                        return (
+                          <div className="mt-1 flex justify-between items-center text-[10px]">
+                            <span className="text-muted-foreground">Закупка: {cr.toFixed(2)}₽</span>
+                            <span className={`font-bold ${currentMarkup < minMarkup ? "text-destructive" : "text-green-600"}`}>Наценка: {currentMarkup}%</span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Минимум</Label>
+                    <Input type="number" value={editForm.min_quantity} onChange={(e) => setEditForm({ ...editForm, min_quantity: e.target.value })} className="h-8 text-xs font-mono" />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Максимум</Label>
+                    <Input type="number" value={editForm.max_quantity} onChange={(e) => setEditForm({ ...editForm, max_quantity: e.target.value })} className="h-8 text-xs font-mono" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Behavior */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Скорость</Label>
+                  <Select value={editForm.speed} onValueChange={(v) => setEditForm({ ...editForm, speed: v })}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="instant">⚡ Мгновенно</SelectItem>
+                      <SelectItem value="fast">🚀 Быстро</SelectItem>
+                      <SelectItem value="medium">⏱ Средне</SelectItem>
+                      <SelectItem value="slow">🐢 Медленно</SelectItem>
+                      <SelectItem value="gradual">📈 Постепенно</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Гарантия</Label>
+                  <Select value={editForm.guarantee} onValueChange={(v) => setEditForm({ ...editForm, guarantee: v })}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Без гарантии</SelectItem>
+                      <SelectItem value="7d">7 дней</SelectItem>
+                      <SelectItem value="30d">30 дней</SelectItem>
+                      <SelectItem value="60d">60 дней</SelectItem>
+                      <SelectItem value="lifetime">♾ Навсегда</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Failover Visualization */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Failover Цепочка</h3>
+                  <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => setAddMappingOpen(!addMappingOpen)}>
+                    {addMappingOpen ? "Закрыть" : "+ Провайдер"}
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] text-muted-foreground uppercase font-bold">Тип ссылки</Label>
+                    <Select 
+                      value={editForm.link_type} 
+                      onValueChange={(v) => setEditForm(prev => ({ ...prev, link_type: v }))}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['profile', 'post', 'reel', 'story', 'video', 'shorts', 'channel', 'group', 'unknown'].map(t => (
+                          <SelectItem key={t} value={t}>{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] text-muted-foreground uppercase font-bold">Наценка (%)</Label>
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        type="number" 
+                        value={Math.round(((Number(editForm.price) / (getCheapestRate(editService!.id) || 1)) - 1) * 100)} 
+                        readOnly 
+                        className="h-9 bg-muted w-20"
+                      />
+                      <Badge variant="outline">Текущая</Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {getMappingsForService(editService.id).map((m, i) => {
+                    const ps = getProviderService(m.provider_service_id);
+                    if (!ps) return null;
+                    return (
+                      <div key={m.id} className={`group relative flex items-center gap-3 p-2 rounded-lg border transition-all ${!m.is_active ? "opacity-40 grayscale" : i === 0 ? "border-primary/40 bg-primary/5 shadow-sm" : "bg-muted/30"}`}>
+                        <div className="flex flex-col items-center justify-center w-6 h-6 rounded bg-background border text-[10px] font-bold">
+                          {i === 0 ? "⚡" : `P${m.priority}`}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-bold truncate">{ps.provider}</span>
+                            <span className="text-[9px] text-muted-foreground font-mono">#{ps.provider_service_id}</span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground truncate">{ps.name}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] font-mono leading-none">{ps.rate.toFixed(2)}₽</p>
+                          <p className="text-[8px] text-muted-foreground uppercase mt-0.5">Закупка</p>
+                        </div>
+                        <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => updateMappingPriority(m.id, m.priority - 1)} className="p-1 hover:bg-muted rounded"><ArrowUp className="h-2 w-2" /></button>
+                          <button onClick={() => updateMappingPriority(m.id, m.priority + 1)} className="p-1 hover:bg-muted rounded"><ArrowDown className="h-2 w-2" /></button>
+                        </div>
+                        <Switch className="scale-75" checked={m.is_active} onCheckedChange={(v) => toggleMapping(m.id, v)} />
+                        <button 
+                          onClick={() => deleteMapping(m.id)}
+                          className="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10 rounded-md"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {addMappingOpen && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-3 bg-muted rounded-lg border space-y-3">
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                        <Input placeholder="Поиск..." value={mappingSearch} onChange={(e) => setMappingSearch(e.target.value)} className="pl-7 h-8 text-xs bg-background" />
+                      </div>
+                    </div>
+                    <div className="max-h-[150px] overflow-auto border rounded bg-background">
+                      {filteredMappingProviders.slice(0, 20).map(ps => (
+                        <div 
+                          key={ps.id} 
+                          className={`flex items-center gap-2 p-2 text-[10px] cursor-pointer hover:bg-muted ${mappingProviderServiceId === ps.id ? "bg-primary/10" : ""}`}
+                          onClick={() => setMappingProviderServiceId(ps.id)}
+                        >
+                          <Badge variant="secondary" className="px-1 py-0">{ps.provider}</Badge>
+                          <span className="flex-1 truncate">{ps.name}</span>
+                          <span className="font-mono">{ps.rate.toFixed(2)}₽</span>
+                        </div>
+                      ))}
+                    </div>
+                    <Button onClick={() => addMapping(editService.id)} disabled={!mappingProviderServiceId} size="sm" className="w-full h-8">
+                      Привязать
+                    </Button>
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4 border-t sticky bottom-0 bg-background pb-4">
+                <Button onClick={saveEditService} className="flex-1 shadow-lg shadow-primary/20">
+                  Сохранить изменения
+                </Button>
+                <Button variant="outline" onClick={() => setShowDrawer(false)}>
+                  Отмена
+                </Button>
+              </div>
+
+              {/* Danger Zone */}
+              <div className="pt-8 opacity-40 hover:opacity-100 transition-opacity">
+                <Button variant="ghost" size="sm" className="w-full text-destructive hover:bg-destructive/10 text-[10px]" onClick={() => deleteService(editService.id)}>
+                  УДАЛИТЬ УСЛУГУ ПОЛНОСТЬЮ
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* === SMART IMPORT DIALOG === */}
+      <SmartImportDialog 
+        open={showSmartImport} 
+        onOpenChange={setShowSmartImport} 
+        providerServices={providerServices}
+        platforms={dbPlatforms}
+        categories={dbCategories}
+        onImportComplete={loadAll}
+      />
+
+      {/* Bulk Action Toolbar */}
+      <AnimatePresence>
+        {selectedIds.size > 0 && (
+          <motion.div 
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-background/95 backdrop-blur-md border border-primary/20 shadow-2xl px-6 py-3 rounded-2xl"
+          >
+            <div className="flex flex-col border-r pr-4">
+              <span className="text-[10px] text-muted-foreground uppercase font-bold">Выбрано</span>
+              <span className="text-xl font-black text-primary leading-none">{selectedIds.size}</span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" className="h-9 px-3 text-xs gap-1.5 border-amber-200 hover:bg-amber-50 text-amber-600" onClick={handleBulkAlignPrices}>
+                <Percent className="h-3.5 w-3.5" />
+                Выровнять цены
+              </Button>
+              <Button size="sm" variant="outline" className="h-9 px-3 text-xs gap-1.5" onClick={() => handleBulkToggleStatus(true)}>
+                <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                Включить
+              </Button>
+              <Button size="sm" variant="outline" className="h-9 px-3 text-xs gap-1.5" onClick={() => handleBulkToggleStatus(false)}>
+                <XCircle className="h-3.5 w-3.5 text-destructive" />
+                Выключить
+              </Button>
+              <Button size="sm" variant="outline" className="h-9 px-3 text-xs gap-1.5 border-destructive/20 text-destructive hover:bg-destructive/5" onClick={handleBulkDelete}>
+                <Trash2 className="h-3.5 w-3.5" />
+                Удалить
+              </Button>
+              <Button size="sm" variant="ghost" className="h-9 px-3 text-xs" onClick={() => setSelectedIds(new Set())}>
+                Сброс
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+  );
+};
+
+const SmartImportDialog = ({ open, onOpenChange, providerServices, platforms, categories, onImportComplete }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  providerServices: ProviderService[];
+  platforms: Platform[];
+  categories: Category[];
+  onImportComplete: () => void;
+}) => {
+  const [step, setStep] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [processing, setProcessing] = useState(false);
+
+  // Filters
+  const [importSearch, setImportSearch] = useState("");
+  const [importProviderFilter, setImportProviderFilter] = useState("all");
+
+  // Overrides
+  const [overrideNetwork, setOverrideNetwork] = useState<string>("auto");
+  const [overrideCategory, setOverrideCategory] = useState<string>("auto");
+  const [overrideLinkType, setOverrideLinkType] = useState<string>("auto");
+
+  const stats = useMemo(() => {
+    const unmapped = providerServices.filter((ps: ProviderService) => ps.is_enabled); // we could filter for actually unmapped ones later
+    return { total: providerServices.length, active: unmapped.length };
+  }, [providerServices]);
+
+  const filteredImportList = useMemo(() => {
+    return providerServices.filter((ps: ProviderService) => {
+      if (importProviderFilter !== "all" && ps.provider !== importProviderFilter) return false;
+      if (importSearch) {
+        const q = importSearch.toLowerCase();
+        if (!ps.name.toLowerCase().includes(q) && !ps.category.toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+  }, [providerServices, importSearch, importProviderFilter]);
+
+  const providerKeys = useMemo(() => Array.from(new Set(providerServices.map((ps: ProviderService) => ps.provider))), [providerServices]);
+
+  const detectMetadata = (name: string, category: string, network: string) => {
+    const n = name.toLowerCase();
+    const c = category.toLowerCase();
+    const net = network.toLowerCase();
+
+    let detectedNetwork = network;
+    if (n.includes("instagram") || c.includes("instagram")) detectedNetwork = "Instagram";
+    else if (n.includes("telegram") || c.includes("telegram") || n.includes(" tg ")) detectedNetwork = "Telegram";
+    else if (n.includes("tiktok") || c.includes("tiktok")) detectedNetwork = "TikTok";
+    else if (n.includes("youtube") || c.includes("youtube") || n.includes("yt ")) detectedNetwork = "YouTube";
+    else if (n.includes("vkontakte") || n.includes(" vk ") || n.includes("вк ")) detectedNetwork = "VK";
+
+    let detectedCategory = "Other";
+    if (n.includes("like") || n.includes("лайк") || c.includes("like")) detectedCategory = "Лайки";
+    else if (n.includes("follower") || n.includes("subscriber") || n.includes("подписчик") || c.includes("follower")) detectedCategory = "Подписчики";
+    else if (n.includes("view") || n.includes("просмотр") || c.includes("view")) detectedCategory = "Просмотры";
+    else if (n.includes("comment") || n.includes("коммент") || c.includes("comment")) detectedCategory = "Комментарии";
+    else if (n.includes("reach") || n.includes("охват")) detectedCategory = "Охват";
+    else if (n.includes("save") || n.includes("сохранение")) detectedCategory = "Сохранения";
+
+    let tier = "Standard";
+    if (n.includes("econom") || n.includes("эконом") || n.includes("cheap")) tier = "Econom";
+    else if (n.includes("premium") || n.includes("премиум") || n.includes("hq") || n.includes("high quality")) tier = "Premium";
+    else if (n.includes("real") || n.includes("живые") || n.includes("active")) tier = "Real";
+
+    let speed = "medium";
+    if (n.includes("instant") || n.includes("мгновен")) speed = "instant";
+    else if (n.includes("fast") || n.includes("быстр")) speed = "fast";
+    else if (n.includes("slow") || n.includes("медлен")) speed = "slow";
+
+    let guarantee = "none";
+    if (n.includes("30 day") || n.includes("30 дней")) guarantee = "30d";
+    else if (n.includes("60 day") || n.includes("60 дней")) guarantee = "60d";
+    else if (n.includes("lifetime") || n.includes("вечн")) guarantee = "lifetime";
+
+    let link_type = "unknown";
+    if (n.includes("post") || n.includes("picture") || n.includes("photo") || n.includes("публикация") || n.includes("фото") || n.includes("reel") || n.includes("shorts")) {
+      link_type = "post";
+    } else if (n.includes("profile") || n.includes("account") || n.includes("channel") || n.includes("профиль") || n.includes("аккаунт") || n.includes("канал") || n.includes("group") || n.includes("группа")) {
+      link_type = "profile";
+    } else if (n.includes("story") || n.includes("сторис")) {
+      link_type = "story";
+    } else if (n.includes("video") || n.includes("view") || n.includes("просмотр") || n.includes("видео")) {
+      // Special check for Telegram mass views (on last posts)
+      if (detectedNetwork === "Telegram" && (n.includes("last") || n.includes("последн"))) {
+        link_type = "profile";
+      } else {
+        link_type = "video";
+      }
+    }
+
+    return { network: detectedNetwork, category: detectedCategory, tier, speed, guarantee, link_type };
+  };
+
+  const handleImport = async () => {
+    setProcessing(true);
+    const ids = Array.from(selectedIds);
+    let count = 0;
+    
+    for (const id of ids) {
+      const ps = providerServices.find((p: ProviderService) => p.id === id);
+      if (!ps) continue;
+
+      const meta = detectMetadata(ps.name, ps.category, ps.network);
+      const cleanName = `${meta.category} — ${meta.tier}`;
+
+      // Overrides
+      const network = overrideNetwork === "auto" ? meta.network : overrideNetwork;
+      const finalCategory = overrideCategory === "auto" ? meta.category : overrideCategory;
+      const link_type = overrideLinkType === "auto" ? meta.link_type : overrideLinkType;
+
+      // 1. Create service
+      const { data: svc, error: svcErr } = await supabase.from("services").insert({
+        name: cleanName,
+        category: finalCategory,
+        network: network,
+        link_type: link_type,
+        description: ps.description,
+        min_quantity: ps.min_quantity,
+        max_quantity: ps.max_quantity,
+        price: ps.rate * 2.5, // Default 150% markup
+        speed: meta.speed,
+        guarantee: meta.guarantee,
+        is_enabled: true
+      }).select().single();
+
+      if (svcErr) {
+        console.error("Import error:", svcErr);
+        continue;
+      }
+
+      // 2. Map provider
+      await supabase.from("service_provider_mappings").insert({
+        service_id: svc.id,
+        provider_service_id: ps.id,
+        priority: 1,
+        is_active: true
+      });
+      
+      count++;
+    }
+
+    toast.success(`Успешно импортировано ${count} услуг`);
+    setProcessing(false);
+    onImportComplete();
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Zap className="h-5 w-5 text-violet-500" />
+            Умный импорт услуг v2
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="flex-1 overflow-y-auto space-y-4 py-4">
+          {step === 1 ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Card><CardContent className="p-4">
+                  <p className="text-2xl font-bold">{stats.total}</p>
+                  <p className="text-xs text-muted-foreground">Всего услуг у провайдеров</p>
+                </CardContent></Card>
+                <Card><CardContent className="p-4">
+                  <p className="text-2xl font-bold">{stats.active}</p>
+                  <p className="text-xs text-muted-foreground">Доступно для анализа</p>
+                </CardContent></Card>
+              </div>
+              <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+                <p className="text-sm font-semibold">Как это работает?</p>
+                <ul className="text-xs space-y-1 text-muted-foreground list-disc pl-4">
+                  <li>Система анализирует названия и категории провайдера.</li>
+                  <li>Автоматически определяет соцсеть (Instagram, Telegram и т.д.).</li>
+                  <li>Группирует по типу (Лайки, Подписчики) и качеству (Эконом, Премиум).</li>
+                  <li>Создает красивые кнопки в каталоге и привязывает их к базе.</li>
+                </ul>
+              </div>
+              <Button className="w-full" onClick={() => setStep(2)}>Начать анализ и выбор</Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="sticky top-0 bg-background pt-2 pb-3 border-b z-20 space-y-4">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input 
+                      placeholder="Поиск по названию..." 
+                      value={importSearch} 
+                      onChange={(e) => setImportSearch(e.target.value)} 
+                      className="pl-8 h-8 text-xs"
+                    />
+                  </div>
+                  <Select value={importProviderFilter} onValueChange={setImportProviderFilter}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Провайдер" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Все провайдеры</SelectItem>
+                      {providerKeys.map((pk: string) => <SelectItem key={pk} value={pk}>{pk}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="p-3 bg-violet-50/50 rounded-lg border border-violet-100 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-violet-700">
+                    <Settings2 className="h-3.5 w-3.5" />
+                    ПРАВИЛА ИМПОРТА (BATCH OVERRIDES)
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-violet-600 uppercase font-bold">Соцсеть</Label>
+                      <Select value={overrideNetwork} onValueChange={setOverrideNetwork}>
+                        <SelectTrigger className="h-7 text-[10px] bg-white border-violet-200">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">🪄 Авто (анализ)</SelectItem>
+                          {platforms.map((p: Platform) => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-violet-600 uppercase font-bold">Категория</Label>
+                      <Select value={overrideCategory} onValueChange={setOverrideCategory}>
+                        <SelectTrigger className="h-7 text-[10px] bg-white border-violet-200">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">🪄 Авто (анализ)</SelectItem>
+                          {categories.map((c: Category) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-violet-600 uppercase font-bold">Тип ссылки</Label>
+                      <Select value={overrideLinkType} onValueChange={setOverrideLinkType}>
+                        <SelectTrigger className="h-7 text-[10px] bg-white border-violet-200">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">🪄 Авто</SelectItem>
+                          {['profile', 'post', 'reel', 'story', 'video', 'shorts', 'channel', 'group', 'unknown'].map(t => (
+                            <SelectItem key={t} value={t}>{t}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-violet-500 italic">Эти параметры заменят автоматическое определение для всех выбранных услуг.</p>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Выберите услуги ({filteredImportList.length})</p>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setSelectedIds(new Set(filteredImportList.slice(0, 50).map((ps: any) => ps.id)))}>Топ 50</Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>Сброс</Button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-1">
+                {filteredImportList.slice(0, 50).map((ps: any) => {
+                  const meta = detectMetadata(ps.name, ps.category, ps.network);
+                  const isSelected = selectedIds.has(ps.id);
+                  return (
+                    <div 
+                      key={ps.id} 
+                      className={`flex items-center gap-3 p-2 rounded-md border cursor-pointer hover:bg-muted/50 transition-colors ${isSelected ? "border-violet-500 bg-violet-50" : ""}`}
+                      onClick={() => {
+                        const next = new Set(selectedIds);
+                        if (next.has(ps.id)) next.delete(ps.id); else next.add(ps.id);
+                        setSelectedIds(next);
+                      }}
+                    >
+                      <Checkbox checked={isSelected} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium leading-normal">{ps.name}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Badge variant="outline" className="text-[9px] px-1 bg-white">{overrideNetwork === "auto" ? meta.network : overrideNetwork}</Badge>
+                          <Badge variant="secondary" className="text-[9px] px-1 bg-white">{overrideCategory === "auto" ? meta.category : overrideCategory}</Badge>
+                          <Badge variant="default" className="text-[9px] px-1">{meta.tier}</Badge>
+                          <span className="text-[9px] text-muted-foreground font-mono ml-auto">#{ps.provider_service_id}</span>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-[10px] font-mono">{ps.rate.toFixed(2)}₽</p>
+                        <p className="text-[9px] text-muted-foreground">за 1к</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="border-t pt-4 flex justify-between items-center">
+          <p className="text-xs text-muted-foreground">
+            {selectedIds.size > 0 ? `Выбрано: ${selectedIds.size}` : "Выберите услуги для продолжения"}
+          </p>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>Отмена</Button>
+            {step === 2 && (
+              <Button 
+                size="sm" 
+                onClick={handleImport} 
+                disabled={selectedIds.size === 0 || processing}
+                className="bg-violet-600 hover:bg-violet-700"
+              >
+                {processing ? "Импорт..." : "Импортировать"}
+              </Button>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
