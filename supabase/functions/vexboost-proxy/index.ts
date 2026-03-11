@@ -42,7 +42,7 @@ serve(async (req) => {
       });
     }
 
-    // Fetch provider from DB
+    // Fetch provider from DB with admin privileges
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -50,7 +50,7 @@ serve(async (req) => {
 
     const { data: provider, error: provErr } = await adminClient
       .from('providers')
-      .select('*')
+      .select('key, label, api_url, api_key, api_key_env')
       .eq('key', providerKey)
       .single();
 
@@ -60,9 +60,21 @@ serve(async (req) => {
       });
     }
 
-    const apiKey = Deno.env.get(provider.api_key_env);
+    // Get API key: prefer direct key from DB, fallback to ENV variable
+    let apiKey = provider.api_key;
+
+    // If no direct key, try ENV variable
+    if (!apiKey && provider.api_key_env) {
+      apiKey = Deno.env.get(provider.api_key_env);
+    }
+
     if (!apiKey) {
-      throw new Error(`${provider.api_key_env} is not configured`);
+      const errorMsg = provider.api_key_env
+        ? `API key not found. Set ${provider.api_key_env} in ENV or add api_key in database.`
+        : `API key not configured for provider ${provider.label}. Add api_key in admin panel.`;
+      return new Response(JSON.stringify({ error: errorMsg }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     let body: Record<string, string> = { key: apiKey, action };
@@ -80,6 +92,20 @@ serve(async (req) => {
     });
 
     const data = await response.json();
+
+    // Update provider balance if balance action
+    if (action === 'balance' && data.balance) {
+      await adminClient
+        .from('providers')
+        .update({
+          balance: parseFloat(data.balance),
+          balance_currency: data.currency || 'USD',
+          last_health_check: new Date().toISOString(),
+          health_status: 'healthy',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('key', providerKey);
+    }
 
     return new Response(JSON.stringify(data), {
       status: 200,

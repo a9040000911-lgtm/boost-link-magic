@@ -19,7 +19,8 @@ interface Provider {
   key: string;
   label: string;
   api_url: string;
-  api_key_env: string;
+  api_key_env: string | null;
+  api_key: string | null;
   is_enabled: boolean;
   last_health_check: string | null;
   health_status: string | null;
@@ -46,7 +47,7 @@ const AdminProviders = () => {
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [newProvider, setNewProvider] = useState({ key: "", label: "", api_url: "", api_key_env: "", balance_currency: "USD", rate_currency: "RUB" });
+  const [newProvider, setNewProvider] = useState({ key: "", label: "", api_url: "", api_key: "", balance_currency: "USD", rate_currency: "RUB" });
   const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([]);
   const [fetchingRates, setFetchingRates] = useState(false);
 
@@ -152,15 +153,16 @@ const AdminProviders = () => {
   };
 
   const addProvider = async () => {
-    if (!newProvider.key || !newProvider.label || !newProvider.api_url || !newProvider.api_key_env) {
-      toast.error("Заполните все поля");
+    if (!newProvider.key || !newProvider.label || !newProvider.api_url || !newProvider.api_key) {
+      toast.error("Заполните все обязательные поля");
       return;
     }
     const { error } = await supabase.from("providers").insert({
       key: newProvider.key,
       label: newProvider.label,
       api_url: newProvider.api_url,
-      api_key_env: newProvider.api_key_env,
+      api_key: newProvider.api_key,
+      api_key_env: null, // No longer required, key is stored directly
       balance_currency: newProvider.balance_currency,
       rate_currency: newProvider.rate_currency,
     } as any);
@@ -171,7 +173,7 @@ const AdminProviders = () => {
     await logAuditAction("create_service", "provider", newProvider.key, { label: newProvider.label });
     toast.success("Провайдер добавлен");
     setAddOpen(false);
-    setNewProvider({ key: "", label: "", api_url: "", api_key_env: "", balance_currency: "USD", rate_currency: "RUB" });
+    setNewProvider({ key: "", label: "", api_url: "", api_key: "", balance_currency: "USD", rate_currency: "RUB" });
     await loadProviders();
   };
 
@@ -227,9 +229,15 @@ const AdminProviders = () => {
                   <Input placeholder="https://example.com/api/v2" value={newProvider.api_url} onChange={(e) => setNewProvider(p => ({ ...p, api_url: e.target.value }))} className="text-xs" />
                 </div>
                 <div>
-                  <Label className="text-xs">Переменная окружения API ключа</Label>
-                  <Input placeholder="MY_PANEL_API_KEY" value={newProvider.api_key_env} onChange={(e) => setNewProvider(p => ({ ...p, api_key_env: e.target.value.toUpperCase() }))} className="text-xs" />
-                  <p className="text-[10px] text-muted-foreground mt-1">Имя секрета в Lovable Cloud. Добавьте ключ в настройках после создания.</p>
+                  <Label className="text-xs">API ключ *</Label>
+                  <Input 
+                    type="password" 
+                    placeholder="Введите API ключ провайдера" 
+                    value={newProvider.api_key} 
+                    onChange={(e) => setNewProvider(p => ({ ...p, api_key: e.target.value }))} 
+                    className="text-xs font-mono" 
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Ключ хранится в базе данных. Рекомендуется использовать шифрование для production.</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -306,7 +314,7 @@ const AdminProviders = () => {
 
               <div className="text-[10px] text-muted-foreground space-y-0.5">
                 <p className="font-mono">{p.api_url}</p>
-                <p>Ключ: <code className="bg-muted px-1 rounded">{p.api_key_env}</code></p>
+                <p>API ключ: <code className="bg-muted px-1 rounded">{p.api_key ? '••••••••' + p.api_key.slice(-4) : 'Не задан'}</code></p>
               </div>
 
               <div className="flex items-center gap-3 text-[11px]">
